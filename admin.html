@@ -1,2 +1,277 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/admin-logic.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>SubletBuff | Admin</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+	<style>
+		:root {
+			--admin-gold: #B8922A;
+			--admin-cream: #FAF7F2;
+			--admin-ink: #1C1810;
+			--admin-ink-soft: #4A4035;
+			--admin-border: #E0D5C0;
+			--admin-white: #FFFFFF;
+		}
+		body {
+			padding: 40px 20px;
+			background-color: var(--admin-cream);
+			min-height: 100vh;
+			margin: 0;
+			font-family: 'DM Sans', sans-serif;
+			color: var(--admin-ink);
+			box-sizing: border-box;
+		}
+		.admin-hidden {
+			display: none !important;
+		}
+		.admin-auth-wrap {
+			max-width: 460px;
+			margin: 40px auto;
+			background: var(--admin-white);
+			border: 1px solid var(--admin-border);
+			border-radius: 16px;
+			padding: 24px;
+			box-shadow: 0 2px 12px rgba(28,24,16,0.05);
+		}
+		.admin-auth-wrap h1 {
+			margin: 0 0 8px;
+			font-family: 'Playfair Display', serif;
+			font-size: 1.8rem;
+		}
+		.admin-auth-wrap p {
+			margin: 0 0 14px;
+			color: #8A7D6B;
+			font-size: 0.92rem;
+		}
+		.admin-auth-field {
+			margin-bottom: 10px;
+		}
+		.admin-auth-field input {
+			width: 100%;
+			box-sizing: border-box;
+			padding: 10px 12px;
+			border: 1px solid var(--admin-border);
+			border-radius: 8px;
+			font-family: 'DM Sans', sans-serif;
+		}
+		.admin-auth-actions {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			margin-top: 10px;
+		}
+		.admin-auth-actions button {
+			border: none;
+			border-radius: 8px;
+			cursor: pointer;
+			font-weight: 600;
+			padding: 10px 12px;
+			font-family: 'DM Sans', sans-serif;
+		}
+		#admin-login-btn { background: #3D8A58; color: white; }
+		#admin-magic-btn { background: #E0D5C0; color: #1C1810; }
+		#admin-logout-btn { background: white; color: #C0392B; border: 1px solid #C0392B; }
+		#admin-auth-msg, #admin-flash {
+			margin-top: 12px;
+			font-size: 0.88rem;
+			color: #4A4035;
+			min-height: 18px;
+		}
+		#admin-flash {
+			max-width: 1000px;
+			margin: 0 auto 12px;
+			font-size: 0.9rem;
+		}
+		.admin-modal-overlay {
+			position: fixed;
+			inset: 0;
+			background: rgba(28,24,16,0.45);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+			z-index: 9999;
+		}
+		.admin-modal-overlay.open {
+			display: flex;
+		}
+		.admin-modal {
+			width: 100%;
+			max-width: 760px;
+			max-height: 90vh;
+			overflow: auto;
+			background: var(--admin-white);
+			border: 1px solid var(--admin-border);
+			border-radius: 14px;
+			padding: 18px;
+			box-sizing: border-box;
+		}
+		.admin-modal h2 {
+			margin: 0 0 12px;
+			font-family: 'Playfair Display', serif;
+		}
+		.admin-modal-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+		}
+		.admin-modal-field {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			font-size: 0.82rem;
+			color: #4A4035;
+		}
+		.admin-modal-field input,
+		.admin-modal-field select,
+		.admin-modal-field textarea {
+			width: 100%;
+			box-sizing: border-box;
+			border: 1px solid var(--admin-border);
+			border-radius: 8px;
+			padding: 9px 10px;
+			font-family: 'DM Sans', sans-serif;
+			font-size: 0.9rem;
+			color: #1C1810;
+		}
+		.admin-modal-field.full {
+			grid-column: 1 / -1;
+		}
+		.admin-modal-actions {
+			display: flex;
+			gap: 10px;
+			margin-top: 12px;
+			justify-content: flex-end;
+			flex-wrap: wrap;
+		}
+		.admin-modal-actions button {
+			border: none;
+			border-radius: 8px;
+			cursor: pointer;
+			font-weight: 600;
+			padding: 10px 14px;
+			font-family: 'DM Sans', sans-serif;
+		}
+		#admin-edit-save { background: #3D8A58; color: white; }
+		#admin-edit-cancel { background: #E0D5C0; color: #1C1810; }
+		#admin-modal-msg {
+			font-size: 0.88rem;
+			margin-top: 8px;
+			min-height: 18px;
+			color: #4A4035;
+		}
+		@media (max-width: 740px) {
+			body { padding: 24px 14px; }
+			.admin-modal-grid { grid-template-columns: 1fr; }
+		}
+	</style>
+</head>
+<body>
+	<div id="admin-auth-root" class="admin-auth-wrap admin-hidden"></div>
+	<div id="admin-app-root" class="admin-hidden"></div>
+	<div id="admin-flash"></div>
+
+	<div id="admin-edit-overlay" class="admin-modal-overlay" aria-hidden="true">
+		<div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-edit-title">
+			<h2 id="admin-edit-title">Edit Listing</h2>
+			<form id="admin-edit-form">
+				<div class="admin-modal-grid">
+					<label class="admin-modal-field">
+						<span>Monthly Rent</span>
+						<input type="number" id="edit-monthly-rent" min="0" step="1" />
+					</label>
+					<label class="admin-modal-field">
+						<span>Security Deposit</span>
+						<input type="number" id="edit-security-deposit" min="0" step="1" />
+					</label>
+
+					<label class="admin-modal-field">
+						<span>Address</span>
+						<input type="text" id="edit-address" />
+					</label>
+					<label class="admin-modal-field">
+						<span>Unit Number</span>
+						<input type="text" id="edit-unit-number" />
+					</label>
+
+					<label class="admin-modal-field">
+						<span>Neighborhood</span>
+						<input type="text" id="edit-neighborhood" />
+					</label>
+					<label class="admin-modal-field">
+						<span>Beds</span>
+						<input type="text" id="edit-beds" />
+					</label>
+
+					<label class="admin-modal-field">
+						<span>Baths</span>
+						<input type="text" id="edit-baths" />
+					</label>
+					<label class="admin-modal-field">
+						<span>Furnished</span>
+						<select id="edit-furnished">
+							<option value="">(blank)</option>
+							<option value="yes">yes</option>
+							<option value="no">no</option>
+						</select>
+					</label>
+
+					<label class="admin-modal-field">
+						<span>Start Date</span>
+						<input type="date" id="edit-start-date" />
+					</label>
+					<label class="admin-modal-field">
+						<span>End Date</span>
+						<input type="date" id="edit-end-date" />
+					</label>
+
+					<label class="admin-modal-field">
+						<span>Lease Type</span>
+						<input type="text" id="edit-lease-type" />
+					</label>
+					<label class="admin-modal-field">
+						<span>Housing Type</span>
+						<input type="text" id="edit-housing-type" />
+					</label>
+
+					<label class="admin-modal-field">
+						<span>Unit Type</span>
+						<input type="text" id="edit-unit-type" />
+					</label>
+					<label class="admin-modal-field">
+						<span>Verified</span>
+						<select id="edit-verified">
+							<option value="false">false</option>
+							<option value="true">true</option>
+						</select>
+					</label>
+
+					<label class="admin-modal-field full">
+						<span>Description</span>
+						<textarea id="edit-description" rows="4"></textarea>
+					</label>
+
+					<label class="admin-modal-field full">
+						<span>Photo URLs (one per line)</span>
+						<textarea id="edit-photo-urls" rows="5"></textarea>
+					</label>
+				</div>
+
+				<div id="admin-modal-msg"></div>
+
+				<div class="admin-modal-actions">
+					<button type="button" id="admin-edit-cancel">Cancel</button>
+					<button type="submit" id="admin-edit-save">Save</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="/admin-logic.js"></script>
+</body>
+</html>
