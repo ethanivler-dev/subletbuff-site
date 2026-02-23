@@ -134,15 +134,57 @@
   .upload-min { font-size: .78rem; color: var(--gold); font-weight: 500; margin-top: 6px; }
 
   /* ── PHOTO STRIP & REORDERING ── */
-  #photo-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
-  .photo-thumb-wrap { position: relative; width: 140px; height: 160px; cursor: grab; display: flex; flex-direction: column; }
-  .photo-thumb-wrap img { width: 100%; height: 100px; object-fit: cover; border-radius: var(--radius-sm); border: 1.5px solid var(--border); display: block; }
-  .photo-thumb-wrap:first-child img { border-color: var(--gold); border-width: 2px; }
-  .photo-thumb-wrap:first-child::after { content: 'COVER'; position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--gold); color: white; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 3px; }
-  .photo-note { font-size: 0.8rem; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; }
-  .photo-move { padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); background: white; cursor: pointer; }
-  .photo-delete { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--red); color: white; border: 2px solid white; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 1px 4px rgba(0,0,0,0.25); z-index: 2; }
+  #photo-mini-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .photo-mini-thumb { position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); }
+  .photo-mini-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-mini-thumb .photo-mini-num { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.7); color: white; font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .photo-mini-thumb:first-child { border-color: var(--gold); }
+  .photo-mini-thumb:first-child .photo-mini-num { background: var(--gold); }
+  
+  .manage-photos-btn { margin-top: 12px; padding: 10px 20px; background: var(--gold-pale); border: 1.5px solid var(--gold); color: var(--gold); font-weight: 600; font-size: 0.875rem; border-radius: var(--radius-sm); cursor: pointer; transition: all var(--transition); }
+  .manage-photos-btn:hover { background: var(--gold); color: white; }
+  
+  /* ── PHOTO MODAL ── */
+  .photo-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(28,24,16,0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 20px; }
+  .photo-modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+  .photo-modal { background: var(--white); border-radius: var(--radius-lg); width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .photo-modal-header { padding: 24px 28px 16px; border-bottom: 1px solid var(--border); position: relative; }
+  .photo-modal-header h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; color: var(--ink); margin: 0 0 4px 0; }
+  .photo-modal-header p { font-size: 0.875rem; color: var(--ink-muted); margin: 0; }
+  .photo-modal-close { position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--white); color: var(--ink-muted); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
+  .photo-modal-close:hover { background: var(--red); color: white; border-color: var(--red); }
+  .photo-modal-body { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  .photo-modal-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .photo-modal-count { font-size: 0.875rem; color: var(--ink-muted); }
+  .photo-modal-done { padding: 12px 32px; background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all var(--transition); }
+  .photo-modal-done:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(184,146,42,0.4); }
+  
+  /* ── PHOTO GRID IN MODAL ── */
+  .photo-grid-modal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+  .photo-card-modal { background: var(--cream); border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 16px; position: relative; transition: all var(--transition); }
+  .photo-card-modal:hover { border-color: var(--gold-light); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .photo-card-modal.is-cover { border-color: var(--gold); border-width: 2px; background: var(--gold-pale); }
+  .photo-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .photo-number { display: flex; align-items: center; gap: 8px; }
+  .photo-number-badge { width: 32px; height: 32px; border-radius: 8px; background: var(--ink); color: white; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .photo-card-modal.is-cover .photo-number-badge { background: var(--gold); }
+  .photo-cover-label { font-size: 0.75rem; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.05em; }
+  .photo-card-actions { display: flex; gap: 6px; }
+  .photo-card-actions button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all var(--transition); }
+  .photo-card-actions button:hover { border-color: var(--gold); color: var(--gold); }
+  .photo-card-actions .photo-delete-btn { color: var(--ink-muted); }
+  .photo-card-actions .photo-delete-btn:hover { background: var(--red); color: white; border-color: var(--red); }
+  .photo-card-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 12px; }
+  .photo-card-note { width: 100%; min-height: 80px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 0.875rem; resize: vertical; transition: border-color var(--transition); }
+  .photo-card-note:focus { border-color: var(--gold-light); outline: none; box-shadow: 0 0 0 3px rgba(184,146,42,0.12); }
+  .photo-card-note::placeholder { color: var(--ink-muted); }
+  .photo-set-cover { margin-top: 10px; padding: 8px 12px; width: 100%; background: transparent; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500; color: var(--ink-soft); cursor: pointer; transition: all var(--transition); }
+  .photo-set-cover:hover { border-color: var(--gold); color: var(--gold); }
+  .photo-card-modal.is-cover .photo-set-cover { display: none; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  
   .photo-count { font-size: .78rem; color: var(--ink-muted); margin-top: 6px; }
+  .photo-note { font-size: 0.8rem; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; }
 
   .pets-expand, .furnished-expand { overflow: hidden; max-height: 0; transition: max-height .35s ease, opacity .3s ease; opacity: 0; }
   .pets-expand.open, .furnished-expand.open { max-height: 300px; opacity: 1; margin-top: 12px; overflow: visible; }
@@ -456,9 +498,28 @@
           <div class="upload-hint">Drag to reorder photos · ≤20MB each</div>
           <div class="upload-min">Minimum 3 photos</div>
         </div>
-        <!-- Photo preview strip: fixed-height, scrollable, draggable order is reflected in saved metadata -->
-        <div id="photo-strip" class="photo-strip" aria-live="polite"></div>
+        <!-- Mini preview strip showing thumbnails -->
+        <div id="photo-mini-strip"></div>
         <div id="photo-count-msg" class="photo-count"></div>
+        <button type="button" id="manage-photos-btn" class="manage-photos-btn" style="display:none;">Manage Photos</button>
+      </div>
+
+      <!-- Photo Manager Modal -->
+      <div id="photo-modal-overlay" class="photo-modal-overlay">
+        <div class="photo-modal">
+          <div class="photo-modal-header">
+            <h2>Manage Your Photos</h2>
+            <p>Drag to reorder · Photo #1 is your cover · Add descriptions to highlight features</p>
+            <button type="button" class="photo-modal-close" id="photo-modal-close">✕</button>
+          </div>
+          <div class="photo-modal-body">
+            <div id="photo-strip" class="photo-grid-modal"></div>
+          </div>
+          <div class="photo-modal-footer">
+            <div class="photo-modal-count"><span id="photo-modal-count-num">0</span> photos added · Minimum 3 required</div>
+            <button type="button" class="photo-modal-done" id="photo-modal-done">Done</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -552,6 +613,6 @@
   </div>
 </main>
 
-<script src="/form-logic.js?v=20260222c"></script>
+<script src="/form-logic.js?v=20260222d"></script>
 </body>
 </html>

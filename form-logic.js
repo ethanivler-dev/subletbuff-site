@@ -68,6 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
 	let storedFiles = [];
 	const strip = document.getElementById('photo-strip');
 	const uploadZone = document.getElementById('upload-zone');
+	const photoModal = document.getElementById('photo-modal-overlay');
+	const photoMiniStrip = document.getElementById('photo-mini-strip');
+	const managePhotosBtn = document.getElementById('manage-photos-btn');
+	const photoModalCloseBtn = document.getElementById('photo-modal-close');
+	const photoModalDoneBtn = document.getElementById('photo-modal-done');
+	const photoModalCountNum = document.getElementById('photo-modal-count-num');
 
 	// Reordering Logic (Sortable uses dataset.index to map DOM -> storedFiles)
 	if (strip && window.Sortable) {
@@ -93,66 +99,195 @@ document.addEventListener('DOMContentLoaded', () => {
 		renderPhotos();
 	}
 
+	function openPhotoModal() {
+		if (photoModal) {
+			photoModal.classList.add('open');
+			document.body.style.overflow = 'hidden';
+		}
+	}
+	
+	function closePhotoModal() {
+		if (photoModal) {
+			photoModal.classList.remove('open');
+			document.body.style.overflow = '';
+		}
+	}
+	
+	function setCoverPhoto(index) {
+		if (index > 0 && index < storedFiles.length) {
+			const [item] = storedFiles.splice(index, 1);
+			storedFiles.unshift(item);
+			renderPhotos();
+		}
+	}
+	
+	function renderMiniStrip() {
+		if (!photoMiniStrip) return;
+		photoMiniStrip.innerHTML = '';
+		storedFiles.forEach((entry, i) => {
+			const thumb = document.createElement('div');
+			thumb.className = 'photo-mini-thumb';
+			const img = document.createElement('img');
+			img.src = entry.previewUrl || URL.createObjectURL(entry.file);
+			img.alt = `Photo ${i + 1}`;
+			const num = document.createElement('div');
+			num.className = 'photo-mini-num';
+			num.textContent = (i + 1).toString();
+			thumb.appendChild(img);
+			thumb.appendChild(num);
+			photoMiniStrip.appendChild(thumb);
+		});
+		if (managePhotosBtn) {
+			managePhotosBtn.style.display = storedFiles.length > 0 ? 'inline-block' : 'none';
+		}
+	}
+	
 	function renderPhotos() {
 		const countMsg = document.getElementById('photo-count-msg');
+		
+		// Update mini strip
+		renderMiniStrip();
+		
+		// Update modal count
+		if (photoModalCountNum) {
+			photoModalCountNum.textContent = storedFiles.length;
+		}
+		
+		// Render in modal grid
 		if (!strip) return;
 		strip.innerHTML = '';
+		
 		storedFiles.forEach((entry, i) => {
 			const file = entry.file;
-			const wrap = document.createElement('div');
-			wrap.className = 'photo-thumb-wrap';
-			wrap.dataset.index = i; // Needed for sortable sync
-
+			const card = document.createElement('div');
+			card.className = 'photo-card-modal' + (i === 0 ? ' is-cover' : '');
+			card.dataset.index = i;
+			
+			// Header with number and actions
+			const header = document.createElement('div');
+			header.className = 'photo-card-header';
+			
+			const numberWrap = document.createElement('div');
+			numberWrap.className = 'photo-number';
+			
+			const badge = document.createElement('div');
+			badge.className = 'photo-number-badge';
+			badge.textContent = (i + 1).toString();
+			numberWrap.appendChild(badge);
+			
+			if (i === 0) {
+				const coverLabel = document.createElement('span');
+				coverLabel.className = 'photo-cover-label';
+				coverLabel.textContent = 'Cover Photo';
+				numberWrap.appendChild(coverLabel);
+			}
+			
+			const actions = document.createElement('div');
+			actions.className = 'photo-card-actions';
+			
+			const upBtn = document.createElement('button');
+			upBtn.type = 'button';
+			upBtn.innerHTML = '↑';
+			upBtn.title = 'Move up';
+			upBtn.addEventListener('click', () => moveUp(i));
+			
+			const downBtn = document.createElement('button');
+			downBtn.type = 'button';
+			downBtn.innerHTML = '↓';
+			downBtn.title = 'Move down';
+			downBtn.addEventListener('click', () => moveDown(i));
+			
+			const delBtn = document.createElement('button');
+			delBtn.type = 'button';
+			delBtn.className = 'photo-delete-btn';
+			delBtn.innerHTML = '✕';
+			delBtn.title = 'Remove photo';
+			delBtn.addEventListener('click', () => {
+				storedFiles.splice(i, 1);
+				renderPhotos();
+				if (storedFiles.length >= 3) clearFieldError('upload-zone');
+			});
+			
+			actions.appendChild(upBtn);
+			actions.appendChild(downBtn);
+			actions.appendChild(delBtn);
+			
+			header.appendChild(numberWrap);
+			header.appendChild(actions);
+			
+			// Image
 			const img = document.createElement('img');
-			img.src = URL.createObjectURL(file);
-			img.alt = file.name || `photo-${i+1}`;
-
-			const controls = document.createElement('div');
-			controls.style.display = 'flex';
-			controls.style.gap = '6px';
-			controls.style.marginBottom = '8px';
-
-			const up = document.createElement('button'); up.type = 'button'; up.className = 'photo-move'; up.textContent = '↑';
-			const down = document.createElement('button'); down.type = 'button'; down.className = 'photo-move'; down.textContent = '↓';
-			up.addEventListener('click', () => { moveUp(i); });
-			down.addEventListener('click', () => { moveDown(i); });
-
-			const del = document.createElement('button'); del.type = 'button'; del.className = 'photo-delete'; del.innerHTML = '✕';
-			del.addEventListener('click', () => { storedFiles.splice(i, 1); renderPhotos(); if (storedFiles.length >= 3) clearFieldError('upload-zone'); });
-
-			controls.appendChild(up);
-			controls.appendChild(down);
-			controls.appendChild(del);
-
-			const noteInput = document.createElement('input');
-			noteInput.type = 'text';
-			noteInput.className = 'photo-note';
-			noteInput.placeholder = 'Photo note (optional)';
+			img.className = 'photo-card-img';
+			img.src = entry.previewUrl || URL.createObjectURL(file);
+			img.alt = file.name || `Photo ${i + 1}`;
+			
+			// Note textarea
+			const noteInput = document.createElement('textarea');
+			noteInput.className = 'photo-card-note';
+			noteInput.placeholder = 'Describe this photo (e.g., "Spacious living room with natural light")';
 			noteInput.value = entry.note || '';
-			noteInput.style.width = '100%';
-			noteInput.style.marginTop = '6px';
-			noteInput.addEventListener('input', (e) => { storedFiles[i].note = e.target.value; saveDraft(); });
-
-			wrap.appendChild(img);
-			wrap.appendChild(controls);
-			wrap.appendChild(noteInput);
-			strip.appendChild(wrap);
+			noteInput.addEventListener('input', (e) => {
+				storedFiles[i].note = e.target.value;
+				saveDraft();
+			});
+			
+			// Set as cover button (only for non-cover photos)
+			const setCoverBtn = document.createElement('button');
+			setCoverBtn.type = 'button';
+			setCoverBtn.className = 'photo-set-cover';
+			setCoverBtn.textContent = '★ Set as Cover Photo';
+			setCoverBtn.addEventListener('click', () => setCoverPhoto(i));
+			
+			card.appendChild(header);
+			card.appendChild(img);
+			card.appendChild(noteInput);
+			if (i !== 0) {
+				card.appendChild(setCoverBtn);
+			}
+			
+			strip.appendChild(card);
 		});
+		
 		const n = storedFiles.length;
 		if (countMsg) countMsg.textContent = n > 0 ? `${n} photo${n > 1 ? 's' : ''} added` : '';
 	}
+	
+	// Modal event listeners
+	if (managePhotosBtn) {
+		managePhotosBtn.addEventListener('click', openPhotoModal);
+	}
+	if (photoModalCloseBtn) {
+		photoModalCloseBtn.addEventListener('click', closePhotoModal);
+	}
+	if (photoModalDoneBtn) {
+		photoModalDoneBtn.addEventListener('click', closePhotoModal);
+	}
+	if (photoModal) {
+		photoModal.addEventListener('click', (e) => {
+			if (e.target === photoModal) closePhotoModal();
+		});
+	}
 
 	function addFilesToStore(fileList) {
+		const filesAdded = [];
 		Array.from(fileList).forEach(f => {
 			if (f.size > 20 * 1024 * 1024) {
 				alert(`The file "${f.name}" is too large. Please select photos under 20MB.`);
 				return;
 			}
 			const isDuplicate = storedFiles.some(sf => sf.file.name === f.name && sf.file.size === f.size);
-			if (!isDuplicate) storedFiles.push({ file: f, previewUrl: URL.createObjectURL(f), note: '' });
+			if (!isDuplicate) {
+				const entry = { file: f, previewUrl: URL.createObjectURL(f), note: '' };
+				storedFiles.push(entry);
+				filesAdded.push(entry);
+			}
 		});
 		renderPhotos();
 		if (strip && storedFiles.length >= 3) clearFieldError('upload-zone');
+		// Auto-open modal when photos are added
+		if (filesAdded.length > 0 && photoModal) {
+			openPhotoModal();
+		}
 	}
 
 	const photoInput = document.getElementById('photoInput') || document.getElementById('photo-input') || (uploadZone && uploadZone.querySelector('input[type=file]'));
