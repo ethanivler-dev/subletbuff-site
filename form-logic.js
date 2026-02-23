@@ -75,15 +75,17 @@ document.addEventListener('DOMContentLoaded', () => {
 	const photoModalDoneBtn = document.getElementById('photo-modal-done');
 	const photoModalCountNum = document.getElementById('photo-modal-count-num');
 
-	// Reordering Logic (Sortable uses dataset.index to map DOM -> storedFiles)
+	// Reordering Logic - use Sortable provided indices directly
 	if (strip && window.Sortable) {
 		Sortable.create(strip, {
 			animation: 150,
-			onEnd: () => {
-				const newOrder = [];
-				strip.querySelectorAll('.photo-thumb-wrap').forEach(el => newOrder.push(storedFiles[el.dataset.index]));
-				storedFiles = newOrder;
+			onEnd: (evt) => {
+				const { oldIndex, newIndex } = evt;
+				if (oldIndex === newIndex) return;
+				const [movedItem] = storedFiles.splice(oldIndex, 1);
+				storedFiles.splice(newIndex, 0, movedItem);
 				renderPhotos();
+				saveDraft();
 			}
 		});
 	}
