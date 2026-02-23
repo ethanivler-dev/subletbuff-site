@@ -167,6 +167,151 @@ nav.ss-nav .nav-links a.active {
   display: block;
 }
 
+.listings-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+}
+
+.listings-header {
+  margin-bottom: 16px;
+}
+
+.listings-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  margin: 0 0 6px;
+}
+
+.listings-subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.listings-filters {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.listings-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.listings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.listings-field input,
+.listings-field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.listings-filter-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+}
+
+.listings-btn-primary,
+.listings-btn-secondary {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.listings-btn-primary {
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  color: var(--white);
+}
+
+.listings-btn-secondary {
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink-soft);
+}
+
+.listings-status {
+  margin: 8px auto 6px;
+  max-width: 1950px;
+  padding: 0 24px;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.listings-status-error {
+  color: #C0392B;
+}
+
+.listings-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.listings-photo-wrap {
+  margin-bottom: 4px;
+}
+
+.listings-card-img {
+  margin-bottom: 0;
+}
+
+.listings-photo-placeholder {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #f3efe6;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.listings-rent {
+  font-weight: 700;
+  color: var(--gold);
+  margin-top: 8px;
+}
+
+.listings-neighborhood {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  margin-top: 5px;
+}
+
+.listings-details,
+.listings-dates,
+.listings-description {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-top: 8px;
+  line-height: 1.45;
+}
+
+.listings-description {
+  margin-bottom: 0;
+}
+
 @media (max-width: 720px) {
   nav.ss-nav {
     padding: 0 20px;
@@ -188,6 +333,14 @@ nav.ss-nav .nav-links a.active {
   }
   .nav-hamburger {
     display: flex !important;
+  }
+
+  .listings-page {
+    padding: 20px 16px 40px;
+  }
+
+  .listings-filter-actions {
+    flex-wrap: wrap;
   }
 }
 

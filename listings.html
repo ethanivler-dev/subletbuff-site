@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubletBuff | Listings</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/site.css" />
+</head>
+
+<body>
+  <nav class="ss-nav" style="position:relative;">
+    <a href="/" class="nav-logo">
+      <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg"
+           alt="SubletBuff"
+           style="height:40px;width:auto;" />
+    </a>
+
+    <div class="nav-links" id="nav-links-desktop">
+      <a href="/">Home</a>
+      <a href="#">How It Works</a>
+      <a href="/listings.html" class="active">Listings</a>
+      <a href="/form.html" id="nav-post-link">Post a Listing</a>
+    </div>
+
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="nav-mobile-menu" id="nav-mobile-menu">
+      <a href="/">Home</a>
+      <a href="#">How It Works</a>
+      <a href="/listings.html" class="active">Listings</a>
+      <a href="/form.html" id="nav-post-link-mobile">Post a Listing</a>
+    </div>
+  </nav>
+
+  <main class="listings-page">
+    <section class="listings-header">
+      <h1 class="listings-title">Approved Listings</h1>
+      <p class="listings-subtitle">Browse currently approved sublets and filter by your preferences.</p>
+    </section>
+
+    <section class="listings-filters" aria-label="Filter listings">
+      <div class="listings-filter-grid">
+        <label class="listings-field">
+          <span>Min Price</span>
+          <input type="number" id="filter-min-price" min="0" placeholder="e.g. 800" />
+        </label>
+
+        <label class="listings-field">
+          <span>Max Price</span>
+          <input type="number" id="filter-max-price" min="0" placeholder="e.g. 2200" />
+        </label>
+
+        <label class="listings-field">
+          <span>Neighborhood</span>
+          <select id="filter-neighborhood">
+            <option value="">Any</option>
+          </select>
+        </label>
+
+        <label class="listings-field">
+          <span>Start Date</span>
+          <input type="date" id="filter-start-date" />
+        </label>
+
+        <label class="listings-field">
+          <span>End Date</span>
+          <input type="date" id="filter-end-date" />
+        </label>
+
+        <label class="listings-field">
+          <span>Beds</span>
+          <select id="filter-beds">
+            <option value="">Any</option>
+          </select>
+        </label>
+
+        <label class="listings-field">
+          <span>Baths</span>
+          <select id="filter-baths">
+            <option value="">Any</option>
+          </select>
+        </label>
+
+        <label class="listings-field">
+          <span>Furnished</span>
+          <select id="filter-furnished">
+            <option value="">Any</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="listings-filter-actions">
+        <button type="button" id="apply-filters-btn" class="listings-btn-primary">Apply Filters</button>
+        <button type="button" id="clear-filters-btn" class="listings-btn-secondary">Clear</button>
+      </div>
+    </section>
+
+    <section class="listings-results">
+      <div id="listings-status" class="listings-status" aria-live="polite">Loading listings...</div>
+      <div id="listings-grid" class="listings-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/listings-logic.js"></script>
+</body>
+</html>
