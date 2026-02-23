@@ -4,20 +4,53 @@ document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_ZZ4mKcw6_e9diz7oFfbVag_YA9zkqFW';
 
+  const AUTH_TIMEOUT_MS = 8000;
+  const LIST_TIMEOUT_MS = 10000;
+  const PAGE_SIZE = 25;
+
   const supabaseClient = (window.supabase && window.supabase.createClient)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: true, autoRefreshToken: true }
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true
+        }
       })
     : null;
 
-  const appRoot = document.getElementById('admin-app-root');
-  const authRoot = document.getElementById('admin-auth-root');
-  const flashEl = document.getElementById('admin-flash');
-  const statusEl = document.getElementById('admin-status');
+  const elements = {
+    status: document.getElementById('admin-status'),
+    flash: document.getElementById('admin-flash'),
 
-  const editOverlay = document.getElementById('admin-edit-overlay');
-  const editForm = document.getElementById('admin-edit-form');
-  const modalMsg = document.getElementById('admin-modal-msg');
+    authRoot: document.getElementById('admin-auth-root'),
+    authMsg: document.getElementById('admin-auth-msg'),
+    email: document.getElementById('admin-email'),
+    password: document.getElementById('admin-password'),
+    loginBtn: document.getElementById('admin-login-btn'),
+    magicBtn: document.getElementById('admin-magic-btn'),
+    resetBtn: document.getElementById('admin-reset-btn'),
+
+    appRoot: document.getElementById('admin-app-root'),
+    subtitle: document.getElementById('admin-subtitle'),
+    modePending: document.getElementById('mode-pending'),
+    modeApproved: document.getElementById('mode-approved'),
+    refreshBtn: document.getElementById('admin-refresh'),
+    searchInput: document.getElementById('admin-search'),
+    userLabel: document.getElementById('admin-user-label'),
+    list: document.getElementById('admin-list'),
+
+    pagination: document.getElementById('admin-pagination'),
+    prevBtn: document.getElementById('admin-page-prev'),
+    nextBtn: document.getElementById('admin-page-next'),
+    pageInfo: document.getElementById('admin-page-info'),
+
+    editOverlay: document.getElementById('admin-edit-overlay'),
+    editForm: document.getElementById('admin-edit-form'),
+    editMsg: document.getElementById('admin-modal-msg'),
+    editCancel: document.getElementById('admin-edit-cancel'),
+    editSave: document.getElementById('admin-edit-save'),
+    editPhotosToggle: document.getElementById('edit-photos-toggle'),
+    editPhotosWrap: document.getElementById('edit-photos-wrap')
+  };
 
   const editFields = {
     monthly_rent: document.getElementById('edit-monthly-rent'),
@@ -38,86 +71,82 @@ document.addEventListener('DOMContentLoaded', () => {
     photo_urls: document.getElementById('edit-photo-urls')
   };
 
-  let currentMode = 'pending';
-  let allRows = [];
-  let filteredRows = [];
-  let activeSession = null;
-  let activeAdminId = null;
-  let editingRowId = null;
-  let isLoggingOut = false;
-
-  const ui = {
-    subtitle: null,
-    modePendingBtn: null,
-    modeApprovedBtn: null,
-    refreshBtn: null,
-    searchInput: null,
-    listContainer: null,
-    authStatus: null,
-    logoutBtn: null,
-    loadingLine: null
+  const state = {
+    mode: 'pending',
+    page: 1,
+    total: 0,
+    query: '',
+    rows: [],
+    session: null,
+    isAdmin: false,
+    requestId: 0,
+    currentEditId: null,
+    searchDebounceTimer: null,
+    authListenerBound: false,
+    isBusyAuth: false,
+    isLoggingOut: false
   };
 
-  function setFlash(message, color) {
-    if (!flashEl) return;
-    flashEl.textContent = message || '';
-    flashEl.style.color = color || '#4A4035';
-  }
-
   function setStatus(message, color) {
-    if (!statusEl) return;
-    statusEl.textContent = message || '';
-    statusEl.style.color = color || '#4A4035';
+    if (!elements.status) return;
+    elements.status.textContent = message || '';
+    elements.status.style.color = color || '#4A4035';
   }
 
-  function setModalMessage(message, color) {
-    if (!modalMsg) return;
-    modalMsg.textContent = message || '';
-    modalMsg.style.color = color || '#4A4035';
+  function setFlash(message, color) {
+    if (!elements.flash) return;
+    elements.flash.textContent = message || '';
+    elements.flash.style.color = color || '#4A4035';
   }
 
-  function showAuthRoot(show) {
-    if (!authRoot) return;
-    authRoot.classList.toggle('admin-hidden', !show);
-    if (show) setStatus('');
+  function setAuthMessage(message, color) {
+    if (!elements.authMsg) return;
+    elements.authMsg.textContent = message || '';
+    elements.authMsg.style.color = color || '#4A4035';
   }
 
-  function showAppRoot(show) {
-    if (!appRoot) return;
-    appRoot.classList.toggle('admin-hidden', !show);
-    if (show) setStatus('');
+  function setEditMessage(message, color) {
+    if (!elements.editMsg) return;
+    elements.editMsg.textContent = message || '';
+    elements.editMsg.style.color = color || '#4A4035';
   }
 
-  function fallbackToLogin(message) {
-    const text = message || 'Unable to load admin portal. Please sign in again.';
-    try {
-      showAppRoot(false);
-      showAuthRoot(true);
-      renderAuthUI(text);
-      setStatus(text, '#C0392B');
-    } catch (err) {
-      console.error('[admin] fallback render failed', err);
-      if (authRoot) {
-        authRoot.classList.remove('admin-hidden');
-        authRoot.innerHTML = '<h1 style="margin:0 0 8px;font-family:Playfair Display,serif;font-size:1.8rem;">Admin Sign In</h1><p style="margin:0;color:#8A7D6B;">' + text + '</p>';
-      }
-      if (appRoot) appRoot.classList.add('admin-hidden');
-      setStatus(text, '#C0392B');
-    }
+  function showLoginView(message, color) {
+    if (elements.authRoot) elements.authRoot.classList.remove('admin-hidden');
+    if (elements.appRoot) elements.appRoot.classList.add('admin-hidden');
+    if (message != null) setAuthMessage(message, color);
+    updateButtonsLoading(false);
   }
 
-  function normalizeModeLabel(mode) {
-    return mode === 'approved' ? 'Approved' : 'Pending';
+  function showAppView() {
+    if (elements.authRoot) elements.authRoot.classList.add('admin-hidden');
+    if (elements.appRoot) elements.appRoot.classList.remove('admin-hidden');
+    setAuthMessage('');
   }
 
-  function formatMoney(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return '';
-    return String(num);
+  function updateButtonsLoading(disabled) {
+    const list = [elements.loginBtn, elements.magicBtn, elements.resetBtn, elements.refreshBtn, elements.prevBtn, elements.nextBtn];
+    list.forEach((btn) => {
+      if (!btn) return;
+      btn.disabled = !!disabled;
+    });
+  }
+
+  function withTimeout(promise, timeoutMs, context) {
+    let timer = null;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(`${context} timed out after ${Math.round(timeoutMs / 1000)}s`));
+      }, timeoutMs);
+    });
+
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
   }
 
   function parseNumericOrNull(value) {
-    if (value === '' || value == null) return null;
+    if (value == null || value === '') return null;
     const num = Number(value);
     return Number.isFinite(num) ? num : null;
   }
@@ -130,71 +159,79 @@ document.addEventListener('DOMContentLoaded', () => {
     return parsed.toISOString().slice(0, 10);
   }
 
-  function clearList() {
-    if (ui.listContainer) ui.listContainer.innerHTML = '';
+  function escapeForOrIlike(value) {
+    return String(value || '')
+      .replace(/,/g, '\\,')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)');
   }
 
-  function renderLoadingState() {
-    clearList();
-    if (!ui.listContainer) return;
+  function updateModeButtons() {
+    if (!elements.modePending || !elements.modeApproved) return;
+    elements.modePending.classList.toggle('active', state.mode === 'pending');
+    elements.modeApproved.classList.toggle('active', state.mode === 'approved');
+  }
+
+  function updateSubtitle() {
+    if (!elements.subtitle) return;
+    const label = state.mode === 'approved' ? 'Approved' : 'Pending';
+    elements.subtitle.innerHTML = `Reviewing all <strong>${label}</strong> submissions.`;
+  }
+
+  function renderPagination() {
+    if (!elements.pageInfo || !elements.prevBtn || !elements.nextBtn) return;
+
+    const totalPages = Math.max(1, Math.ceil((state.total || 0) / PAGE_SIZE));
+    if (state.page > totalPages) state.page = totalPages;
+
+    elements.pageInfo.textContent = `Page ${state.page} of ${totalPages} • ${state.total} total`;
+    elements.prevBtn.disabled = state.page <= 1;
+    elements.nextBtn.disabled = state.page >= totalPages;
+  }
+
+  function renderListLoading() {
+    if (!elements.list) return;
+    elements.list.innerHTML = '';
     const loading = document.createElement('div');
     loading.style.cssText = 'padding: 26px; text-align:center; color:#8A7D6B; border:1px dashed #E0D5C0; border-radius:12px; background:#fff;';
     loading.textContent = 'Loading listings...';
-    ui.listContainer.appendChild(loading);
+    elements.list.appendChild(loading);
   }
 
-  function renderEmptyState() {
-    clearList();
-    if (!ui.listContainer) return;
+  function renderListEmpty() {
+    if (!elements.list) return;
+    elements.list.innerHTML = '';
     const empty = document.createElement('div');
     empty.style.cssText = 'padding: 60px; border: 2px dashed #E0D5C0; text-align: center; border-radius: 16px; color: #8A7D6B;';
-    empty.textContent = currentMode === 'approved'
-      ? 'No approved listings found.'
-      : '🎉 All caught up! No pending listings.';
-    ui.listContainer.appendChild(empty);
+    empty.textContent = state.mode === 'approved' ? 'No approved listings found.' : '🎉 All caught up! No pending listings.';
+    elements.list.appendChild(empty);
   }
 
-  function setHeaderSubtitle() {
-    if (!ui.subtitle) return;
-    ui.subtitle.innerHTML = `Reviewing all <strong>${normalizeModeLabel(currentMode)}</strong> submissions.`;
+  function renderListError(message) {
+    if (!elements.list) return;
+    elements.list.innerHTML = '';
+    const err = document.createElement('div');
+    err.style.cssText = 'padding: 20px; border:1px solid #C0392B; border-radius:12px; background:#fff; color:#C0392B;';
+    err.textContent = message;
+    elements.list.appendChild(err);
   }
 
-  function updateModeButtonStyles() {
-    if (!ui.modePendingBtn || !ui.modeApprovedBtn) return;
-
-    const activeStyle = 'background:#1C1810; color:white; border:1px solid #1C1810;';
-    const inactiveStyle = 'background:white; color:#4A4035; border:1px solid #E0D5C0;';
-
-    ui.modePendingBtn.style.cssText = (currentMode === 'pending' ? activeStyle : inactiveStyle) + ' padding:8px 14px; border-radius:8px; cursor:pointer; font-weight:600;';
-    ui.modeApprovedBtn.style.cssText = (currentMode === 'approved' ? activeStyle : inactiveStyle) + ' padding:8px 14px; border-radius:8px; cursor:pointer; font-weight:600;';
-  }
-
-  function normalizeSearch(value) {
-    return String(value || '').toLowerCase().trim();
-  }
-
-  function applySearchFilter() {
-    const query = normalizeSearch(ui.searchInput ? ui.searchInput.value : '');
-    if (!query) {
-      filteredRows = allRows.slice();
-      renderRows(filteredRows);
-      return;
-    }
-
-    filteredRows = allRows.filter((row) => {
-      const address = normalizeSearch(row.address);
-      const neighborhood = normalizeSearch(row.neighborhood);
-      const email = normalizeSearch(row.email);
-      return address.includes(query) || neighborhood.includes(query) || email.includes(query);
-    });
-
-    renderRows(filteredRows);
+  function createContactButton(item) {
+    const contactBtn = document.createElement('a');
+    const subject = encodeURIComponent('Action Required: Your SubSwap Listing');
+    const body = encodeURIComponent(
+      'Hi ' + (item.first_name || '') + ',\n\nThanks for posting your listing at ' + (item.address || '') + '! Before we can approve it, we need you to fix the following:\n\n- [Add fix here]\n\nOnce updated, let us know!\n\nBest,\nSubSwap Team'
+    );
+    contactBtn.href = 'mailto:' + encodeURIComponent(item.email || '') + '?subject=' + subject + '&body=' + body;
+    contactBtn.textContent = 'Contact Lister ✉️';
+    contactBtn.style.cssText = 'background: #FAF7F2; color: #B8922A; border: 1px solid #B8922A; padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.85rem; font-weight: 600; display: inline-block; text-decoration: none;';
+    return contactBtn;
   }
 
   function createActionButton({ id, text, style, onClick }) {
     const btn = document.createElement('button');
-    btn.id = id;
     btn.type = 'button';
+    btn.id = id;
     btn.textContent = text;
     btn.style.cssText = style;
     btn.addEventListener('click', onClick);
@@ -205,9 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const photo = (Array.isArray(item.photo_urls) && item.photo_urls.length > 0)
       ? item.photo_urls[0]
       : 'https://via.placeholder.com/150x100?text=No+Photo';
-    const photoNote = (Array.isArray(item.photo_notes) && item.photo_notes.length > 0)
-      ? item.photo_notes[0]
-      : '';
 
     const card = document.createElement('div');
     card.id = `card-${item.id}`;
@@ -218,12 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
     img.src = photo;
     img.style.cssText = 'width: 180px; height: 120px; object-fit: cover; border-radius: 8px; display:block;';
     left.appendChild(img);
-    if (photoNote) {
-      const noteEl = document.createElement('div');
-      noteEl.style.cssText = 'font-size:0.85rem;color:#4A4035;margin-top:8px;';
-      noteEl.textContent = 'Photo note: ' + photoNote;
-      left.appendChild(noteEl);
-    }
 
     const mid = document.createElement('div');
     const title = document.createElement('div');
@@ -249,50 +277,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const right = document.createElement('div');
     right.style.cssText = 'display: flex; flex-direction: column; gap: 10px; min-width: 180px;';
 
-    if (currentMode === 'pending') {
-      const approveBtn = createActionButton({
+    if (state.mode === 'pending') {
+      right.appendChild(createActionButton({
         id: `app-${item.id}`,
         text: 'Approve ✅',
         style: 'background: #3D8A58; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;',
         onClick: () => handleApprove(item.id)
-      });
-      right.appendChild(approveBtn);
+      }));
 
       right.appendChild(createContactButton(item));
 
-      const rejectBtn = createActionButton({
+      right.appendChild(createActionButton({
         id: `rej-${item.id}`,
         text: 'Reject & Delete ✕',
         style: 'background: white; color: #C0392B; border: 1.5px solid #C0392B; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;',
         onClick: () => handleRejectDelete(item.id)
-      });
-      right.appendChild(rejectBtn);
+      }));
     } else {
-      const editBtn = createActionButton({
+      right.appendChild(createActionButton({
         id: `edit-${item.id}`,
         text: 'Edit ✏️',
         style: 'background: #E0D5C0; color: #1C1810; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;',
-        onClick: () => openEditModal(item)
-      });
-      right.appendChild(editBtn);
+        onClick: () => openEditModal(item.id)
+      }));
 
       right.appendChild(createContactButton(item));
 
-      const takeDownBtn = createActionButton({
+      right.appendChild(createActionButton({
         id: `down-${item.id}`,
         text: 'Take Down ⬇️ (to Pending)',
         style: 'background: #FAF7F2; color: #B8922A; border: 1px solid #B8922A; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;',
         onClick: () => handleTakeDown(item.id)
-      });
-      right.appendChild(takeDownBtn);
+      }));
 
-      const deleteBtn = createActionButton({
+      right.appendChild(createActionButton({
         id: `del-${item.id}`,
         text: 'Delete 🗑️',
         style: 'background: white; color: #C0392B; border: 1.5px solid #C0392B; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;',
         onClick: () => handleDeleteApproved(item.id)
-      });
-      right.appendChild(deleteBtn);
+      }));
     }
 
     card.appendChild(left);
@@ -301,59 +324,98 @@ document.addEventListener('DOMContentLoaded', () => {
     return card;
   }
 
-  function createContactButton(item) {
-    const contactBtn = document.createElement('a');
-    const subject = encodeURIComponent('Action Required: Your SubSwap Listing');
-    const body = encodeURIComponent(
-      'Hi ' + (item.first_name || '') + ',\n\nThanks for posting your listing at ' + (item.address || '') + '! Before we can approve it, we need you to fix the following:\n\n- [Add fix here]\n\nOnce updated, let us know!\n\nBest,\nSubSwap Team'
-    );
-    contactBtn.href = 'mailto:' + encodeURIComponent(item.email || '') + '?subject=' + subject + '&body=' + body;
-    contactBtn.textContent = 'Contact Lister ✉️';
-    contactBtn.style.cssText = 'background: #FAF7F2; color: #B8922A; border: 1px solid #B8922A; padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.85rem; font-weight: 600; display: inline-block; text-decoration: none;';
-    return contactBtn;
-  }
-
   function renderRows(rows) {
-    clearList();
+    if (!elements.list) return;
+    elements.list.innerHTML = '';
+
     if (!rows || rows.length === 0) {
-      renderEmptyState();
+      renderListEmpty();
       return;
     }
 
-    rows.forEach((row) => {
-      const card = createCard(row);
-      if (ui.listContainer) ui.listContainer.appendChild(card);
+    rows.forEach((item) => {
+      elements.list.appendChild(createCard(item));
     });
   }
 
-  async function loadCurrentMode() {
-    if (!supabaseClient || !ui.listContainer) return;
+  function updatePhotoSectionCount(urls) {
+    if (!elements.editPhotosToggle) return;
+    const count = Array.isArray(urls) ? urls.length : 0;
+    const isOpen = !(elements.editPhotosWrap && elements.editPhotosWrap.classList.contains('admin-hidden'));
+    elements.editPhotosToggle.textContent = `Photos (${count}) ${isOpen ? '▾' : '▸'}`;
+  }
 
-    setHeaderSubtitle();
-    updateModeButtonStyles();
-    renderLoadingState();
-    setFlash('', '#4A4035');
+  function openEditOverlay() {
+    if (!elements.editOverlay) return;
+    elements.editOverlay.classList.add('open');
+    elements.editOverlay.setAttribute('aria-hidden', 'false');
+  }
 
-    const statusFilter = currentMode === 'approved' ? 'approved' : 'pending';
-    const sortAscending = currentMode === 'pending';
+  function closeEditOverlay() {
+    state.currentEditId = null;
+    if (!elements.editOverlay) return;
+    elements.editOverlay.classList.remove('open');
+    elements.editOverlay.setAttribute('aria-hidden', 'true');
+    setEditMessage('');
+  }
 
-    const { data, error } = await supabaseClient
-      .from('listings')
-      .select('*')
-      .eq('status', statusFilter)
-      .order('created_at', { ascending: sortAscending });
+  async function loadCurrentModeList() {
+    if (!supabaseClient) return;
 
-    if (error) {
-      clearList();
-      const err = document.createElement('div');
-      err.style.cssText = 'padding: 20px; border:1px solid #C0392B; border-radius:12px; background:#fff; color:#C0392B;';
-      err.textContent = 'Error: ' + error.message;
-      ui.listContainer.appendChild(err);
-      return;
+    const requestId = ++state.requestId;
+    const from = (state.page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    updateSubtitle();
+    updateModeButtons();
+    renderPagination();
+    renderListLoading();
+    setStatus(`Loading ${state.mode} listings...`);
+    updateButtonsLoading(true);
+
+    try {
+      let query = supabaseClient
+        .from('listings')
+        .select('id,status,monthly_rent,address,neighborhood,email,first_name,last_name,photo_urls,created_at', { count: 'exact' })
+        .eq('status', state.mode)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      const trimmed = state.query.trim();
+      if (trimmed) {
+        const q = escapeForOrIlike(trimmed);
+        query = query.or(`address.ilike.%${q}%,neighborhood.ilike.%${q}%,email.ilike.%${q}%`);
+      }
+
+      const { data, error, count } = await withTimeout(query, LIST_TIMEOUT_MS, 'Listing fetch');
+
+      if (requestId !== state.requestId) {
+        return;
+      }
+
+      if (error) {
+        console.error('[admin] load listings error', error);
+        renderListError('Error loading listings: ' + error.message);
+        setStatus('Error loading listings.', '#C0392B');
+        return;
+      }
+
+      state.rows = Array.isArray(data) ? data : [];
+      state.total = Number.isFinite(count) ? count : 0;
+
+      renderRows(state.rows);
+      renderPagination();
+      setStatus('');
+    } catch (err) {
+      if (requestId !== state.requestId) return;
+      console.error('[admin] list fetch exception', err);
+      renderListError('Error loading listings: ' + (err && err.message ? err.message : String(err)));
+      setStatus('Error loading listings: ' + (err && err.message ? err.message : String(err)), '#C0392B');
+    } finally {
+      if (requestId === state.requestId) {
+        updateButtonsLoading(false);
+      }
     }
-
-    allRows = Array.isArray(data) ? data : [];
-    applySearchFilter();
   }
 
   async function handleApprove(id) {
@@ -375,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     setFlash('Listing approved.', '#3D8A58');
-    await loadCurrentMode();
+    await loadCurrentModeList();
   }
 
   async function handleRejectDelete(id) {
@@ -398,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     setFlash('Listing deleted.', '#3D8A58');
-    await loadCurrentMode();
+    await loadCurrentModeList();
   }
 
   async function handleTakeDown(id) {
@@ -421,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     setFlash('Listing moved back to Pending.', '#3D8A58');
-    await loadCurrentMode();
+    await loadCurrentModeList();
   }
 
   async function handleDeleteApproved(id) {
@@ -444,46 +506,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     setFlash('Listing deleted.', '#3D8A58');
-    await loadCurrentMode();
+    await loadCurrentModeList();
   }
 
-  function openEditModal(item) {
-    if (!editOverlay || !editForm) return;
+  async function openEditModal(id) {
+    if (!supabaseClient) return;
 
-    editingRowId = item.id;
-    editFields.monthly_rent.value = formatMoney(item.monthly_rent);
-    editFields.security_deposit.value = formatMoney(item.security_deposit);
-    editFields.address.value = item.address || '';
-    editFields.unit_number.value = item.unit_number || '';
-    editFields.neighborhood.value = item.neighborhood || '';
-    editFields.beds.value = item.beds || '';
-    editFields.baths.value = item.baths || '';
-    editFields.furnished.value = (item.furnished || '').toLowerCase();
-    editFields.start_date.value = toDateInputValue(item.start_date);
-    editFields.end_date.value = toDateInputValue(item.end_date);
-    editFields.description.value = item.description || '';
-    editFields.lease_type.value = item.lease_type || '';
-    editFields.housing_type.value = item.housing_type || '';
-    editFields.unit_type.value = item.unit_type || '';
-    editFields.verified.value = item.verified ? 'true' : 'false';
-    editFields.photo_urls.value = Array.isArray(item.photo_urls) ? item.photo_urls.join('\n') : '';
+    state.currentEditId = id;
+    openEditOverlay();
+    setEditMessage('Loading listing...');
 
-    setModalMessage('', '#4A4035');
-    editOverlay.classList.add('open');
-    editOverlay.setAttribute('aria-hidden', 'false');
-  }
+    try {
+      const { data, error } = await withTimeout(
+        supabaseClient
+          .from('listings')
+          .select('id,monthly_rent,address,unit_number,neighborhood,beds,baths,furnished,start_date,end_date,description,lease_type,housing_type,unit_type,security_deposit,verified,photo_urls')
+          .eq('id', id)
+          .single(),
+        LIST_TIMEOUT_MS,
+        'Load listing for edit'
+      );
 
-  function closeEditModal() {
-    editingRowId = null;
-    setModalMessage('', '#4A4035');
-    if (editOverlay) {
-      editOverlay.classList.remove('open');
-      editOverlay.setAttribute('aria-hidden', 'true');
+      if (error) {
+        throw error;
+      }
+
+      editFields.monthly_rent.value = data.monthly_rent ?? '';
+      editFields.security_deposit.value = data.security_deposit ?? '';
+      editFields.address.value = data.address || '';
+      editFields.unit_number.value = data.unit_number || '';
+      editFields.neighborhood.value = data.neighborhood || '';
+      editFields.beds.value = data.beds || '';
+      editFields.baths.value = data.baths || '';
+      editFields.furnished.value = (data.furnished || '').toLowerCase();
+      editFields.start_date.value = toDateInputValue(data.start_date);
+      editFields.end_date.value = toDateInputValue(data.end_date);
+      editFields.description.value = data.description || '';
+      editFields.lease_type.value = data.lease_type || '';
+      editFields.housing_type.value = data.housing_type || '';
+      editFields.unit_type.value = data.unit_type || '';
+      editFields.verified.value = data.verified ? 'true' : 'false';
+      editFields.photo_urls.value = Array.isArray(data.photo_urls) ? data.photo_urls.join('\n') : '';
+
+      updatePhotoSectionCount(Array.isArray(data.photo_urls) ? data.photo_urls : []);
+      setEditMessage('');
+    } catch (err) {
+      console.error('[admin] openEditModal error', err);
+      setEditMessage('Error loading listing: ' + (err && err.message ? err.message : String(err)), '#C0392B');
     }
   }
 
-  async function saveEditFromModal() {
-    if (!editingRowId) return;
+  async function saveEditModal() {
+    if (!state.currentEditId || !supabaseClient) return;
 
     const payload = {
       monthly_rent: parseNumericOrNull(editFields.monthly_rent.value),
@@ -507,370 +581,406 @@ document.addEventListener('DOMContentLoaded', () => {
         .filter(Boolean)
     };
 
-    setModalMessage('Saving...', '#4A4035');
+    setEditMessage('Saving...');
 
     const { error } = await supabaseClient
       .from('listings')
       .update(payload)
-      .eq('id', editingRowId);
+      .eq('id', state.currentEditId);
 
     if (error) {
-      setModalMessage('Error: ' + error.message, '#C0392B');
+      console.error('[admin] saveEditModal error', error);
+      setEditMessage('Error: ' + error.message, '#C0392B');
       return;
     }
 
-    setModalMessage('Saved successfully.', '#3D8A58');
     setFlash('Listing updated successfully.', '#3D8A58');
-    await loadCurrentMode();
-    closeEditModal();
+    closeEditOverlay();
+    await loadCurrentModeList();
   }
 
-  function buildAppUI() {
-    if (!appRoot) return;
+  async function checkIsAdmin(userId) {
+    if (!supabaseClient || !userId) return false;
 
-    appRoot.innerHTML = '';
+    const { data, error } = await withTimeout(
+      supabaseClient
+        .from('admins')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle(),
+      AUTH_TIMEOUT_MS,
+      'Admin allowlist check'
+    );
 
-    const header = document.createElement('div');
-    header.style.cssText = "max-width: 1000px; margin: 0 auto 30px; font-family: 'Playfair Display', serif;";
+    if (error) throw error;
+    return !!(data && data.id === userId);
+  }
 
-    const headerRow = document.createElement('div');
-    headerRow.style.display = 'flex';
-    headerRow.style.justifyContent = 'space-between';
-    headerRow.style.alignItems = 'flex-start';
-    headerRow.style.gap = '16px';
+  function clearSupabaseStorage() {
+    try {
+      Object.keys(localStorage || {}).forEach((key) => {
+        if (key.startsWith('sb-')) localStorage.removeItem(key);
+      });
+    } catch (err) {
+      console.error('[admin] localStorage clear error', err);
+    }
 
-    const left = document.createElement('div');
-
-    const h1 = document.createElement('h1');
-    h1.style.fontSize = '2.5rem';
-    h1.style.marginBottom = '5px';
-    h1.textContent = 'Admin Approval Portal';
-    left.appendChild(h1);
-
-    ui.subtitle = document.createElement('p');
-    ui.subtitle.style.color = '#8A7D6B';
-    ui.subtitle.style.margin = '0';
-    left.appendChild(ui.subtitle);
-
-    const modeWrap = document.createElement('div');
-    modeWrap.style.cssText = 'display:flex; gap:8px; margin-top:12px;';
-
-    ui.modePendingBtn = document.createElement('button');
-    ui.modePendingBtn.type = 'button';
-    ui.modePendingBtn.textContent = 'Pending';
-    ui.modePendingBtn.addEventListener('click', async () => {
-      if (currentMode === 'pending') return;
-      currentMode = 'pending';
-      await loadCurrentMode();
-    });
-    modeWrap.appendChild(ui.modePendingBtn);
-
-    ui.modeApprovedBtn = document.createElement('button');
-    ui.modeApprovedBtn.type = 'button';
-    ui.modeApprovedBtn.textContent = 'Approved';
-    ui.modeApprovedBtn.addEventListener('click', async () => {
-      if (currentMode === 'approved') return;
-      currentMode = 'approved';
-      await loadCurrentMode();
-    });
-    modeWrap.appendChild(ui.modeApprovedBtn);
-
-    left.appendChild(modeWrap);
-
-    const controls = document.createElement('div');
-    controls.style.cssText = 'display:flex; flex-direction:column; gap:10px; align-items:flex-end; min-width: 280px;';
-
-    ui.refreshBtn = document.createElement('button');
-    ui.refreshBtn.type = 'button';
-    ui.refreshBtn.textContent = '🔄 Refresh List';
-    ui.refreshBtn.style.cssText = 'background:#E0D5C0; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;';
-    ui.refreshBtn.addEventListener('click', () => loadCurrentMode());
-    controls.appendChild(ui.refreshBtn);
-
-    ui.searchInput = document.createElement('input');
-    ui.searchInput.type = 'text';
-    ui.searchInput.placeholder = 'Search address / neighborhood / email';
-    ui.searchInput.style.cssText = 'width: 100%; padding: 9px 10px; border:1px solid #E0D5C0; border-radius:8px; font-family: DM Sans, sans-serif;';
-    ui.searchInput.addEventListener('input', applySearchFilter);
-    controls.appendChild(ui.searchInput);
-
-    const authLine = document.createElement('div');
-    authLine.style.cssText = 'display:flex; gap:8px; align-items:center;';
-
-    ui.authStatus = document.createElement('span');
-    ui.authStatus.style.cssText = 'font-size:0.82rem; color:#4A4035;';
-    authLine.appendChild(ui.authStatus);
-
-    ui.logoutBtn = document.createElement('button');
-    ui.logoutBtn.type = 'button';
-    ui.logoutBtn.id = 'admin-logout';
-    ui.logoutBtn.textContent = 'Log Out';
-    authLine.appendChild(ui.logoutBtn);
-
-    controls.appendChild(authLine);
-
-    headerRow.appendChild(left);
-    headerRow.appendChild(controls);
-    header.appendChild(headerRow);
-    appRoot.appendChild(header);
-
-    ui.listContainer = document.createElement('div');
-    ui.listContainer.id = 'admin-list';
-    ui.listContainer.style.cssText = 'max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 20px;';
-    appRoot.appendChild(ui.listContainer);
-
-    setHeaderSubtitle();
-    updateModeButtonStyles();
-    if (ui.authStatus && activeSession && activeSession.user) {
-      ui.authStatus.textContent = activeSession.user.email || activeSession.user.id;
+    try {
+      Object.keys(sessionStorage || {}).forEach((key) => {
+        if (key.startsWith('sb-')) sessionStorage.removeItem(key);
+      });
+    } catch (err) {
+      console.error('[admin] sessionStorage clear error', err);
     }
   }
 
-  function renderAuthUI(initialMessage) {
-    if (!authRoot) return;
+  async function doLogoutWithFallback() {
+    if (!supabaseClient || state.isLoggingOut) return;
+    state.isLoggingOut = true;
+    setStatus('Logging out...');
 
-    showAppRoot(false);
-    showAuthRoot(true);
-
-    authRoot.innerHTML = '';
-
-    const title = document.createElement('h1');
-    title.textContent = 'Admin Sign In';
-    authRoot.appendChild(title);
-
-    const sub = document.createElement('p');
-    sub.textContent = 'Log in with your admin account. Access is allowed only for users in the admins allowlist.';
-    authRoot.appendChild(sub);
-
-    const emailField = document.createElement('div');
-    emailField.className = 'admin-auth-field';
-    const emailInput = document.createElement('input');
-    emailInput.type = 'email';
-    emailInput.placeholder = 'Admin email';
-    emailInput.id = 'admin-email';
-    emailField.appendChild(emailInput);
-    authRoot.appendChild(emailField);
-
-    const pwField = document.createElement('div');
-    pwField.className = 'admin-auth-field';
-    const pwInput = document.createElement('input');
-    pwInput.type = 'password';
-    pwInput.placeholder = 'Password';
-    pwInput.id = 'admin-password';
-    pwField.appendChild(pwInput);
-    authRoot.appendChild(pwField);
-
-    const actions = document.createElement('div');
-    actions.className = 'admin-auth-actions';
-
-    const loginBtn = document.createElement('button');
-    loginBtn.type = 'button';
-    loginBtn.id = 'admin-login-btn';
-    loginBtn.textContent = 'Log In';
-    actions.appendChild(loginBtn);
-
-    const magicBtn = document.createElement('button');
-    magicBtn.type = 'button';
-    magicBtn.id = 'admin-magic-btn';
-    magicBtn.textContent = 'Send Magic Link';
-    actions.appendChild(magicBtn);
-
-    authRoot.appendChild(actions);
-
-    const msg = document.createElement('div');
-    msg.id = 'admin-auth-msg';
-    msg.textContent = initialMessage || '';
-    authRoot.appendChild(msg);
-
-    loginBtn.addEventListener('click', async () => {
-      msg.style.color = '#4A4035';
-      msg.textContent = 'Signing in...';
-
-      const email = emailInput.value.trim();
-      const password = pwInput.value;
-      if (!email || !password) {
-        msg.style.color = '#C0392B';
-        msg.textContent = 'Email and password are required.';
-        return;
-      }
-
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) {
-        msg.style.color = '#C0392B';
-        msg.textContent = error.message;
-        return;
-      }
-
-      msg.style.color = '#3D8A58';
-      msg.textContent = 'Logged in. Checking admin access...';
-      await bootstrap();
-    });
-
-    magicBtn.addEventListener('click', async () => {
-      msg.style.color = '#4A4035';
-      msg.textContent = 'Sending magic link...';
-
-      const email = emailInput.value.trim();
-      if (!email) {
-        msg.style.color = '#C0392B';
-        msg.textContent = 'Email is required.';
-        return;
-      }
-
-      const { error } = await supabaseClient.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: window.location.href }
-      });
-
-      if (error) {
-        msg.style.color = '#C0392B';
-        msg.textContent = error.message;
-        return;
-      }
-
-      msg.style.color = '#3D8A58';
-      msg.textContent = 'Magic link sent. Check your email.';
-    });
-  }
-
-  function renderUnauthorizedUI(message) {
-    if (!authRoot || !activeSession || !activeSession.user) return;
-
-    showAppRoot(false);
-    showAuthRoot(true);
-
-    authRoot.innerHTML = '';
-
-    const title = document.createElement('h1');
-    title.textContent = 'Admin Access';
-    authRoot.appendChild(title);
-
-    const sub = document.createElement('p');
-    sub.textContent = message || 'Not authorized for admin access.';
-    authRoot.appendChild(sub);
-
-    const who = document.createElement('div');
-    who.style.cssText = 'font-size:0.9rem; color:#4A4035; margin-bottom:12px;';
-    who.textContent = 'Signed in as: ' + (activeSession.user.email || activeSession.user.id);
-    authRoot.appendChild(who);
-
-    const logoutBtn = document.createElement('button');
-    logoutBtn.type = 'button';
-    logoutBtn.id = 'admin-logout';
-    logoutBtn.textContent = 'Log Out';
-    authRoot.appendChild(logoutBtn);
-  }
-
-  async function handleLogout() {
-    if (!supabaseClient || isLoggingOut) return;
-    isLoggingOut = true;
     try {
       const { error } = await supabaseClient.auth.signOut();
       if (error) {
         console.error('[admin] logout error', error);
-        setFlash('Logout failed. Please try again.', '#C0392B');
-        return;
+        setFlash('Logout failed: ' + error.message, '#C0392B');
       }
-      setFlash('Logged out.', '#4A4035');
-      await bootstrap();
     } catch (err) {
       console.error('[admin] logout exception', err);
-      setFlash('Logout failed. Please try again.', '#C0392B');
+      setFlash('Logout failed: ' + (err && err.message ? err.message : String(err)), '#C0392B');
     } finally {
-      isLoggingOut = false;
-    }
-  }
-
-  async function isAllowedAdmin(userId) {
-    if (!userId) return false;
-    const { data, error } = await supabaseClient
-      .from('admins')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      setFlash('Admin check error: ' + error.message, '#C0392B');
-      return false;
-    }
-
-    return !!(data && data.id === userId);
-  }
-
-  async function bootstrap() {
-    setStatus('Loading...', '#4A4035');
-    if (!supabaseClient) {
-      fallbackToLogin('Supabase client not available.');
-      return;
-    }
-
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) {
-      fallbackToLogin('Auth error: ' + error.message);
-      return;
-    }
-
-    activeSession = data ? data.session : null;
-    activeAdminId = activeSession && activeSession.user ? activeSession.user.id : null;
-
-    if (!activeSession || !activeAdminId) {
-      renderAuthUI('');
+      state.session = null;
+      state.isAdmin = false;
+      showLoginView('Signed out.');
       setStatus('Please sign in.');
+      state.isLoggingOut = false;
+      window.location.reload();
+    }
+  }
+
+  async function resetLoginState() {
+    setAuthMessage('Resetting login state...');
+    try {
+      if (supabaseClient) {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) console.error('[admin] reset signOut error', error);
+      }
+    } catch (err) {
+      console.error('[admin] reset signOut exception', err);
+    }
+
+    clearSupabaseStorage();
+    window.location.reload();
+  }
+
+  async function handleSession(session, sourceLabel) {
+    console.log('[admin] handleSession', sourceLabel, session ? 'session-present' : 'no-session');
+
+    state.session = session || null;
+    state.isAdmin = false;
+
+    if (!session || !session.user) {
+      showLoginView('');
+      setStatus('Please sign in.');
+      if (elements.userLabel) elements.userLabel.textContent = '';
       return;
     }
 
-    const allowed = await isAllowedAdmin(activeAdminId);
-    if (!allowed) {
-      renderUnauthorizedUI('You are logged in but not authorized as an admin.');
-      setStatus('Not authorized.', '#C0392B');
+    if (elements.userLabel) {
+      elements.userLabel.textContent = session.user.email || session.user.id;
+    }
+
+    showLoginView('Checking admin access...');
+    setStatus('Checking admin...');
+
+    try {
+      const adminAllowed = await checkIsAdmin(session.user.id);
+      if (!adminAllowed) {
+        showLoginView('Not authorized: this user is not in admins allowlist.', '#C0392B');
+        setStatus('Not authorized.', '#C0392B');
+        return;
+      }
+
+      state.isAdmin = true;
+      showAppView();
+      setStatus('');
+      await loadCurrentModeList();
+    } catch (err) {
+      console.error('[admin] admin check/session handling error', err);
+      showLoginView((err && err.message) ? err.message : 'Session check failed.', '#C0392B');
+      setStatus('Auth error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
+    }
+  }
+
+  async function initializeAuth() {
+    if (!supabaseClient) {
+      showLoginView('Supabase client not available.', '#C0392B');
+      setStatus('Supabase client not available.', '#C0392B');
       return;
     }
 
-    showAuthRoot(false);
-    showAppRoot(true);
-    buildAppUI();
-    await loadCurrentMode();
-    setStatus('');
+    showLoginView('');
+    setStatus('Loading...');
+
+    try {
+      const { data, error } = await withTimeout(
+        supabaseClient.auth.getSession(),
+        AUTH_TIMEOUT_MS,
+        'Get session'
+      );
+
+      if (error) {
+        console.error('[admin] getSession error', error);
+        showLoginView(error.message, '#C0392B');
+        setStatus('Auth error: ' + error.message, '#C0392B');
+        return;
+      }
+
+      await handleSession(data ? data.session : null, 'initial-load');
+    } catch (err) {
+      console.error('[admin] initializeAuth exception', err);
+      showLoginView((err && err.message) ? err.message : 'Initialization failed.', '#C0392B');
+      setStatus('Initialization error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
+    }
   }
 
-  if (editOverlay) {
-    editOverlay.addEventListener('click', (event) => {
-      if (event.target === editOverlay) closeEditModal();
-    });
-  }
+  function bindEventsOnce() {
+    if (elements.loginBtn) {
+      elements.loginBtn.addEventListener('click', async () => {
+        if (!supabaseClient || state.isBusyAuth) return;
+        state.isBusyAuth = true;
 
-  const cancelBtn = document.getElementById('admin-edit-cancel');
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', closeEditModal);
-  }
+        try {
+          const email = (elements.email && elements.email.value || '').trim();
+          const password = elements.password ? elements.password.value : '';
 
-  if (editForm) {
-    editForm.addEventListener('submit', async (event) => {
+          if (!email || !password) {
+            setAuthMessage('Email and password are required.', '#C0392B');
+            return;
+          }
+
+          setAuthMessage('Signing in...');
+          setStatus('Signing in...');
+
+          const signInRes = await withTimeout(
+            supabaseClient.auth.signInWithPassword({ email, password }),
+            AUTH_TIMEOUT_MS,
+            'Password sign in'
+          );
+
+          if (signInRes.error) {
+            console.error('[admin] signInWithPassword error', signInRes.error);
+            setAuthMessage(signInRes.error.message, '#C0392B');
+            setStatus('Sign in failed.', '#C0392B');
+            return;
+          }
+
+          const sessionRes = await withTimeout(
+            supabaseClient.auth.getSession(),
+            AUTH_TIMEOUT_MS,
+            'Session check after sign in'
+          );
+
+          if (sessionRes.error) {
+            console.error('[admin] getSession after sign-in error', sessionRes.error);
+            setAuthMessage(sessionRes.error.message, '#C0392B');
+            setStatus('Session check failed.', '#C0392B');
+            return;
+          }
+
+          await handleSession(sessionRes.data ? sessionRes.data.session : null, 'password-signin');
+        } catch (err) {
+          console.error('[admin] password login exception', err);
+          setAuthMessage((err && err.message) ? err.message : String(err), '#C0392B');
+          setStatus('Sign in error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
+        } finally {
+          state.isBusyAuth = false;
+        }
+      });
+    }
+
+    if (elements.magicBtn) {
+      elements.magicBtn.addEventListener('click', async () => {
+        if (!supabaseClient || state.isBusyAuth) return;
+        state.isBusyAuth = true;
+
+        try {
+          const email = (elements.email && elements.email.value || '').trim();
+          if (!email) {
+            setAuthMessage('Email is required.', '#C0392B');
+            return;
+          }
+
+          setAuthMessage('Sending magic link...');
+          setStatus('Sending magic link...');
+
+          const { error } = await withTimeout(
+            supabaseClient.auth.signInWithOtp({
+              email,
+              options: {
+                emailRedirectTo: `${window.location.origin}/admin.html`
+              }
+            }),
+            AUTH_TIMEOUT_MS,
+            'Magic link sign in'
+          );
+
+          if (error) {
+            console.error('[admin] signInWithOtp error', error);
+            setAuthMessage(error.message, '#C0392B');
+            setStatus('Magic link failed.', '#C0392B');
+            return;
+          }
+
+          setAuthMessage('Magic link sent. Check your email.', '#3D8A58');
+          setStatus('Magic link sent.');
+        } catch (err) {
+          console.error('[admin] magic link exception', err);
+          setAuthMessage((err && err.message) ? err.message : String(err), '#C0392B');
+          setStatus('Magic link error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
+        } finally {
+          state.isBusyAuth = false;
+        }
+      });
+    }
+
+    if (elements.resetBtn) {
+      elements.resetBtn.addEventListener('click', async () => {
+        await resetLoginState();
+      });
+    }
+
+    if (elements.modePending) {
+      elements.modePending.addEventListener('click', async () => {
+        if (state.mode === 'pending') return;
+        state.mode = 'pending';
+        state.page = 1;
+        await loadCurrentModeList();
+      });
+    }
+
+    if (elements.modeApproved) {
+      elements.modeApproved.addEventListener('click', async () => {
+        if (state.mode === 'approved') return;
+        state.mode = 'approved';
+        state.page = 1;
+        await loadCurrentModeList();
+      });
+    }
+
+    if (elements.refreshBtn) {
+      elements.refreshBtn.addEventListener('click', async () => {
+        await loadCurrentModeList();
+      });
+    }
+
+    if (elements.searchInput) {
+      elements.searchInput.addEventListener('input', () => {
+        if (state.searchDebounceTimer) clearTimeout(state.searchDebounceTimer);
+        state.searchDebounceTimer = setTimeout(async () => {
+          state.query = elements.searchInput.value || '';
+          state.page = 1;
+          await loadCurrentModeList();
+        }, 300);
+      });
+    }
+
+    if (elements.prevBtn) {
+      elements.prevBtn.addEventListener('click', async () => {
+        if (state.page <= 1) return;
+        state.page -= 1;
+        await loadCurrentModeList();
+      });
+    }
+
+    if (elements.nextBtn) {
+      elements.nextBtn.addEventListener('click', async () => {
+        const totalPages = Math.max(1, Math.ceil((state.total || 0) / PAGE_SIZE));
+        if (state.page >= totalPages) return;
+        state.page += 1;
+        await loadCurrentModeList();
+      });
+    }
+
+    if (elements.editOverlay) {
+      elements.editOverlay.addEventListener('click', (event) => {
+        if (event.target === elements.editOverlay) {
+          closeEditOverlay();
+        }
+      });
+    }
+
+    if (elements.editCancel) {
+      elements.editCancel.addEventListener('click', () => {
+        closeEditOverlay();
+      });
+    }
+
+    if (elements.editForm) {
+      elements.editForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await saveEditModal();
+      });
+    }
+
+    if (elements.editPhotosToggle) {
+      elements.editPhotosToggle.addEventListener('click', () => {
+        if (!elements.editPhotosWrap) return;
+        elements.editPhotosWrap.classList.toggle('admin-hidden');
+        const urls = (editFields.photo_urls && editFields.photo_urls.value)
+          ? editFields.photo_urls.value.split('\n').map((line) => line.trim()).filter(Boolean)
+          : [];
+        updatePhotoSectionCount(urls);
+      });
+    }
+
+    if (editFields.photo_urls) {
+      editFields.photo_urls.addEventListener('input', () => {
+        const urls = editFields.photo_urls.value.split('\n').map((line) => line.trim()).filter(Boolean);
+        updatePhotoSectionCount(urls);
+      });
+    }
+
+    document.addEventListener('click', async (event) => {
+      const logoutBtn = event.target && event.target.closest ? event.target.closest('#admin-logout') : null;
+      if (!logoutBtn) return;
       event.preventDefault();
-      await saveEditFromModal();
+      await doLogoutWithFallback();
     });
   }
 
-  if (supabaseClient && supabaseClient.auth && supabaseClient.auth.onAuthStateChange) {
-    supabaseClient.auth.onAuthStateChange(async () => {
+  function bindAuthListenerOnce() {
+    if (!supabaseClient || state.authListenerBound) return;
+    state.authListenerBound = true;
+
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      console.log('[admin] onAuthStateChange', event);
       try {
-        await bootstrap();
+        await handleSession(session, `auth-change:${event}`);
       } catch (err) {
-        console.error('[admin] onAuthStateChange bootstrap error', err);
-        fallbackToLogin('Session update error. Please sign in again.');
+        console.error('[admin] onAuthStateChange handler error', err);
+        showLoginView((err && err.message) ? err.message : 'Session update error.', '#C0392B');
+        setStatus('Session update error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
       }
     });
   }
 
-  document.addEventListener('click', async (event) => {
-    const logoutBtn = event.target && event.target.closest ? event.target.closest('#admin-logout') : null;
-    if (!logoutBtn) return;
-    event.preventDefault();
-    await handleLogout();
-  });
+  function safeBoot() {
+    showLoginView('');
+    setStatus('Loading...');
+    setFlash('');
+    updateModeButtons();
+    updateSubtitle();
+    renderPagination();
+    bindEventsOnce();
+    bindAuthListenerOnce();
 
-  bootstrap().catch((err) => {
-    console.error('[admin] bootstrap failed', err);
-    fallbackToLogin('Initialization error. Please sign in again.');
-  });
+    initializeAuth().catch((err) => {
+      console.error('[admin] initializeAuth unhandled', err);
+      showLoginView((err && err.message) ? err.message : 'Initialization error.', '#C0392B');
+      setStatus('Initialization error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
+    });
+  }
+
+  safeBoot();
 });
