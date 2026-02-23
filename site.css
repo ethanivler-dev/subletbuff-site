@@ -434,7 +434,7 @@ nav.ss-nav .nav-links a.active {
   margin-top: 6px;
 }
 /* ── HOME HERO ── */
-.home-wrap {
+.home {
   max-width: 1200px;
   margin: 0 auto;
   padding: 48px 24px 20px; /* aligns with your grid padding */
