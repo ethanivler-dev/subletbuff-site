@@ -90,14 +90,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		try {
 			const { data, error } = await supabaseClient
 				.from('listings')
-				.select('id,monthly_rent,photo_urls,neighborhood,address,photo_notes,status,created_at')
+				.select('*')
 				.eq('status', 'approved')
 				.order('created_at', { ascending: false })
 				.limit(6);
 
 			if (error) {
 				console.error('[home] Supabase query error', error);
-				grid.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:40px 0;">Error loading listings.</div>';
+				grid.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:40px 0;">Error: ' + (error.message || JSON.stringify(error)) + '</div>';
 				return;
 			}
 
