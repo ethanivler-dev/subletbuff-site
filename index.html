@@ -41,8 +41,22 @@
     </div>
   </nav>
 
-  <!-- Listings inject here -->
-  <div id="featured-grid" class="listings-grid"></div>
+  <main class="home">
+    <section class="home-hero">
+      <h1 class="home-title">Find student subleases in Boulder</h1>
+
+      <a class="btn-submit home-cta" href="/form.html">Post a Listing</a>
+
+      <p class="home-note">
+        Only CU Boulder students with <strong>@colorado.edu</strong> email addresses can post listings. Listings are manually reviewed before being posted.
+      </p>
+    </section>
+
+    <!-- Listings inject here -->
+    <section class="home-results">
+      <div id="featured-grid" class="listings-grid"></div>
+    </section>
+  </main>
 
   <!-- Libraries + page logic -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
