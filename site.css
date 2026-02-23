@@ -433,3 +433,75 @@ nav.ss-nav .nav-links a.active {
   resize: vertical;
   margin-top: 6px;
 }
+/* ── HOME HERO ── */
+.home-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 20px; /* aligns with your grid padding */
+  box-sizing: border-box;
+}
+
+.home-hero {
+  text-align: center;
+  padding: 28px 0 12px;
+}
+
+.home-title {
+  font-family: "Playfair Display", serif;
+  font-size: 2.6rem;
+  font-weight: 600;
+  margin: 0 0 18px;
+  color: var(--ink);
+}
+
+.home-note {
+  margin: 14px auto 0;
+  max-width: 760px;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* ── PRIMARY BUTTON (matches form submit look) ── */
+.btn-submit {
+  background: linear-gradient(135deg, #C9A84C, var(--gold));
+  color: var(--white);
+  font-family: "DM Sans", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  padding: 15px 64px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(184,146,42,0.35);
+  transition: all var(--transition);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(184,146,42,0.45);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+/* Home CTA should not be full-width */
+.home-cta {
+  width: auto;
+}
+
+/* Mobile sizing */
+@media (max-width: 640px) {
+  .home-title {
+    font-size: 2rem;
+  }
+  .btn-submit {
+    padding: 14px 28px;
+  }
+}
