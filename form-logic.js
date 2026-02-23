@@ -718,6 +718,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		const folderName = currentListingId ? currentListingId : `submission-${Date.now()}`;
 
 		// Reordered Photo Loop
+const photosMeta = [];
 		for (let i = 0; i < storedFiles.length; i++) {
 			const file = storedFiles[i].file;
 			const fileExt = file.name.split('.').pop();
@@ -737,11 +738,18 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 				.getPublicUrl(filePath);
 
 			uploadedUrls.push(publicUrlData.publicUrl);
+photosMeta.push({
+  path: filePath,
+  url: publicUrlData.publicUrl,
+  order: i,
+  note: (storedFiles[i] && storedFiles[i].note) ? storedFiles[i].note : ''
+});
 		}
 
 		submitBtn.textContent = 'Saving Listing...';
 		const payload = buildPayload(uploadedUrls); 
     
+payload.photos_meta = photosMeta;
 		if (currentListingId) {
 			const { error } = await supabaseClient
 				.from('listings')
@@ -759,25 +767,6 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 			}
 		}
 
-		// Persist normalized photo records in `listing_photos` table
-		try {
-			if (!currentListingId) throw new Error('Missing listing id after save');
-			// If updating, remove old photo rows for this listing
-			await supabaseClient.from('listing_photos').delete().eq('listing_id', currentListingId);
-			const photoRows = uploadedUrls.map((u, idx) => ({
-				listing_id: currentListingId,
-				url: u,
-				note: storedFiles[idx] && storedFiles[idx].note ? storedFiles[idx].note : null,
-				position: idx
-			}));
-			if (photoRows.length) {
-				const { error: photoErr } = await supabaseClient.from('listing_photos').insert(photoRows);
-					if (photoErr) { console.error('[form] Supabase insert listing_photos error', photoErr); throw new Error('Failed to save listing photos: ' + photoErr.message); }
-			}
-		} catch (photoSaveErr) {
-			console.error('Photo save error:', photoSaveErr);
-			alert('Warning: photos saved to storage but failed to persist in database.');
-		}
 
 	} catch(err) {
 		console.error("Submission Error:", err);
