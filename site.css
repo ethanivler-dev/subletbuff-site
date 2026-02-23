@@ -338,3 +338,77 @@ nav.ss-nav .nav-links a.active {
   outline: 2px dashed rgba(0,0,0,.35);
   outline-offset: 4px;
 }
+
+/* Upload card photo strip (horizontal, fixed-height scroll) */
+#photo-strip.photo-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-items: flex-start;
+  padding: 10px 6px;
+  max-height: 220px; /* fixed height so form doesn't grow */
+  border-top: 8px solid transparent;
+}
+
+.photo-thumb-wrap {
+  position: relative;
+  flex: 0 0 160px;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: grab;
+}
+.photo-thumb-wrap img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  display: block;
+}
+.photo-thumb-wrap:first-child img { border-color: var(--gold); border-width: 2px; }
+.photo-thumb-wrap:first-child::after { content: 'COVER'; position: absolute; bottom: 62px; left: 50%; transform: translateX(-50%); background: var(--gold); color: white; font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 4px; }
+
+.photo-number-badge {
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  z-index: 3;
+}
+.photo-number-badge.cover { background: var(--gold); color: #111; }
+
+.photo-delete {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  border: 2px solid white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+
+.photo-thumb-wrap textarea.photo-note {
+  min-height: 86px; /* larger textarea for notes */
+  resize: vertical;
+  margin-top: 6px;
+}

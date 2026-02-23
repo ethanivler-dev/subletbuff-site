@@ -453,10 +453,11 @@
             </svg>
           </div>
           <div style="font-size:.875rem;font-weight:500;color:var(--ink-soft)">Click to upload or drag files here to add photos</div>
-          <div class="upload-hint">Drag to reorder photos (or use arrows) · ≤20MB each</div>
+          <div class="upload-hint">Drag to reorder photos · ≤20MB each</div>
           <div class="upload-min">Minimum 3 photos</div>
         </div>
-        <div id="photo-strip"></div>
+        <!-- Photo preview strip: fixed-height, scrollable, draggable order is reflected in saved metadata -->
+        <div id="photo-strip" class="photo-strip" aria-live="polite"></div>
         <div id="photo-count-msg" class="photo-count"></div>
       </div>
 
