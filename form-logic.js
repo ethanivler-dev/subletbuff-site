@@ -34,14 +34,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	const formEl = document.getElementById('listing-form');
 	if (!formEl) {
-		console.error('Missing required element: listing-form');
-		return;
+		console.warn('[form] listing-form not found — continuing for photo handling');
 	}
-	formEl.addEventListener('keydown', function(e) {
+	if (formEl) {
+		formEl.addEventListener('keydown', function(e) {
 		if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
 			e.preventDefault();
 		}
 	});
+	}
 
 	const hamburger  = document.getElementById('nav-hamburger');
 	const mobileMenu = document.getElementById('nav-mobile-menu');
