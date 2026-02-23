@@ -1,15 +1,108 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SubletBuff</title>
-    <link rel="stylesheet" href="/site.css" />
-  </head>
-  <body>
-    <div id="app"></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubletBuff | Home</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/home-logic.js"></script>
-  </body>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- If you later move all CSS into /site.css, you can delete this <style> block. -->
+  <style>
+    :root {
+      --gold: #B8922A;
+      --gold-pale: #F5EDD6;
+      --ink: #1C1810;
+      --ink-soft: #4A4035;
+      --border: #E0D5C0;
+      --white: #FFFFFF;
+      --transition: 0.18s ease;
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: #FAF7F2; color: var(--ink); margin: 0; padding: 0; }
+
+    /* ── NAV BAR FIXED ── */
+    nav.ss-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 9999;
+      padding: 0 48px; height: 60px;
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    nav.ss-nav .nav-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; white-space: nowrap; flex-shrink: 0; margin-right: 40px; }
+    nav.ss-nav .nav-logo img { height: 40px; width: auto; display: block; }
+
+    nav.ss-nav .nav-links { display: flex !important; flex-direction: row !important; align-items: center !important; flex: 1; justify-content: space-around; gap: 20px; flex-wrap: nowrap; }
+
+    nav.ss-nav .nav-links a { font-size: .875rem; font-weight: 400; color: var(--ink-soft); text-decoration: none; transition: color var(--transition); white-space: nowrap; }
+    nav.ss-nav .nav-links a:hover { color: var(--gold); }
+    nav.ss-nav .nav-links a.active { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--gold); padding-bottom: 2px; }
+
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px; color: var(--ink-soft); flex-shrink: 0; align-items: center; justify-content: center; }
+    .nav-hamburger:hover { color: var(--gold); }
+
+    .nav-mobile-menu { display: none; position: absolute; top: 60px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--border); box-shadow: 0 4px 16px rgba(28,24,16,0.08); padding: 8px 0; z-index: 9998; }
+    .nav-mobile-menu.open { display: block; }
+    .nav-mobile-menu a { display: block; padding: 12px 24px; font-size: .9rem; font-weight: 400; color: var(--ink-soft); text-decoration: none; transition: background var(--transition), color var(--transition); border-left: 3px solid transparent; }
+    .nav-mobile-menu a:hover { background: var(--gold-pale); color: var(--gold); }
+    .nav-mobile-menu a.active { color: var(--ink); font-weight: 600; background: var(--gold-pale); border-left-color: var(--gold); }
+
+    /* Fixed-size cards so images don't resize with the tab width */
+    .listings-grid { display: grid; grid-template-columns: repeat(auto-fill, 360px); gap: 24px; max-width: 1200px; margin: 40px auto; padding: 0 24px; justify-content: center; }
+    .listing-card { width: 360px; background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-decoration: none; color: inherit; transition: 0.3s; box-sizing: border-box; }
+    .card-img { width: 100%; height: 200px; border-radius: 8px; object-fit: cover; margin-bottom: 12px; display: block; }
+
+    @media (max-width: 720px) { nav.ss-nav { padding: 0 20px; } nav.ss-nav .nav-links { display: none !important; } .nav-hamburger { display: flex !important; } }
+    @media (max-width: 640px) { nav.ss-nav { padding: 0 16px; } nav.ss-nav .nav-links { display: none !important; } .nav-hamburger { display: flex !important; } }
+  </style>
+
+  <!-- Optional external stylesheet (keep, even if empty for now) -->
+  <link rel="stylesheet" href="/site.css" />
+</head>
+
+<body>
+  <nav class="ss-nav" style="position:relative;">
+    <a href="/" class="nav-logo">
+      <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg"
+           alt="SubletBuff"
+           style="height:40px;width:auto;" />
+    </a>
+
+    <div class="nav-links" id="nav-links-desktop">
+      <a href="/" class="active">Home</a>
+      <a href="#">How It Works</a>
+      <a href="/" aria-disabled="true">Listings</a>
+      <a href="/form.html" id="nav-post-link">Post a Listing</a>
+    </div>
+
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="nav-mobile-menu" id="nav-mobile-menu">
+      <a href="/">Home</a>
+      <a href="#">How It Works</a>
+      <a href="/" aria-disabled="true">Listings</a>
+      <a href="/form.html" id="nav-post-link-mobile">Post a Listing</a>
+    </div>
+  </nav>
+
+  <!-- Listings inject here -->
+  <div id="featured-grid" class="listings-grid"></div>
+
+  <!-- Libraries + page logic -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/home-logic.js"></script>
+</body>
 </html>
