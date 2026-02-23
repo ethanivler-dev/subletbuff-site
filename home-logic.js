@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!grid) return;
 		if (!supabaseClient) return;
 		try {
-			const { data, error } = await supabaseClient.from('listings').select('id,monthly_rent,photo_urls,neighborhood,address,photo_notes').eq('status', 'approved').order('created_at', { ascending: false }).limit(50);
+			const { data, error } = await supabaseClient.from('listings').select('id,monthly_rent,photo_urls,neighborhood,address,photo_notes').eq('status', 'approved').order('created_at', { ascending: false }).limit(6);
 			if (error) { console.error('[home] Supabase query error', error); return; }
 			grid.innerHTML = '';
 			if (Array.isArray(data)) {
