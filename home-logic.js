@@ -89,32 +89,35 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!supabaseClient) return;
 		try {
 			const { data, error } = await supabaseClient
-  .from('listings')
-  .select('id,monthly_rent,photo_urls,neighborhood,address,photo_notes,status,created_at')
-  .eq('status', 'approved')
-  .order('created_at', { ascending: false })
-  .limit(6);
+				.from('listings')
+				.select('id,monthly_rent,photo_urls,neighborhood,address,photo_notes,status,created_at')
+				.eq('status', 'approved')
+				.order('created_at', { ascending: false })
+				.limit(6);
 
-if (error) {
-  console.error('[home] Supabase query error', error);
-  grid.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:40px 0;">Error loading listings.</div>';
-  return;
-}
+			if (error) {
+				console.error('[home] Supabase query error', error);
+				grid.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:40px 0;">Error loading listings.</div>';
+				return;
+			}
 
-// DEBUG: print what you got back
-console.log('[home] approved listings returned:', Array.isArray(data) ? data.length : data, data);
+			console.log('[home] approved listings returned:', Array.isArray(data) ? data.length : data, data);
 
-grid.innerHTML = '';
+			grid.innerHTML = '';
 
-if (!Array.isArray(data) || data.length === 0) {
-  grid.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:40px 0;">No approved listings yet.</div>';
-  return;
-}
+			if (!Array.isArray(data) || data.length === 0) {
+				grid.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:40px 0;">No approved listings yet.</div>';
+				return;
+			}
 
-data.forEach(item => {
-  const card = createListingCard(item);
-  grid.appendChild(card);
-});
+			data.forEach(item => {
+				const card = createListingCard(item);
+				grid.appendChild(card);
+			});
+		} catch (err) {
+			console.error('[home] loadListings error', err);
+		}
+	}
 
 	loadListings();
 });
