@@ -159,6 +159,32 @@ document.addEventListener('DOMContentLoaded', () => {
 	let draggedCard = null;
 	let draggedFromIndex = null;
 
+	function showToastMessage(message) {
+		// Create and show temporary toast message
+		const existingToast = document.getElementById('form-toast');
+		if (existingToast) existingToast.remove();
+		
+		const toast = document.createElement('div');
+		toast.id = 'form-toast';
+		toast.textContent = message;
+		toast.style.cssText = `
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			background: var(--ink);
+			color: white;
+			padding: 12px 16px;
+			border-radius: var(--radius-sm);
+			font-size: 0.875rem;
+			z-index: 9999;
+			box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+			animation: slideUp 0.3s ease;
+		`;
+		document.body.appendChild(toast);
+		
+		setTimeout(() => toast.remove(), 2500);
+	}
+
 	function openPhotoModal() {
 		if (photoModalOverlay) {
 			photoModalOverlay.classList.add('open');
@@ -454,7 +480,16 @@ document.addEventListener('DOMContentLoaded', () => {
 	const managePhotosBtn = document.getElementById('manage-photos-btn');
 	if (managePhotosBtn) {
 		managePhotosBtn.addEventListener('click', () => {
-			openPhotoModal();
+			// Empty-state check: if no photos, trigger file picker and show message
+			if (storedFiles.length === 0) {
+				const photoInput = document.getElementById('photoInput');
+				if (photoInput) {
+					photoInput.click();
+					showToastMessage('Upload photos first');
+				}
+			} else {
+				openPhotoModal();
+			}
 		});
 	}
 
