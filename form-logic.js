@@ -178,6 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (countEl) countEl.textContent = storedFiles.length;
 	}
 
+	// Render UI after loading draft photos from localStorage
+	renderPhotos();
+
 	// Prevent closing on background click (overlay)
 	if (photoModalOverlay) {
 		photoModalOverlay.addEventListener('click', (e) => {
@@ -203,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	function renderPhotos() {
-		console.log('[form] renderPhotos called, storedFiles:', storedFiles.length);
+		console.log('[form] renderPhotos called, storedFiles:', storedFiles.length, 'draftPhotos:', draftPhotos.length);
 		const miniStrip = document.getElementById('photo-mini-strip');
 		const modalStrip = document.getElementById('photo-strip');
 		const managePhotosBtn = document.getElementById('manage-photos-btn');
@@ -221,12 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		// Update modal count
 		updatePhotoModalCount();
 
-		// Open modal when first photo added, otherwise when manage button clicked
-		if (storedFiles.length > 0 && !photoModalOverlay.classList.contains('open')) {
-			openPhotoModal();
-		}
+		// DO NOT auto-open modal - only open via user click on Manage Photos button
 		
-		// Render mini strip for upload preview
+		// Render mini strip for upload preview (compact, no editing)
 		if (miniStrip) {
 			miniStrip.innerHTML = '';
 			storedFiles.forEach((entry, i) => {
@@ -258,26 +258,14 @@ document.addEventListener('DOMContentLoaded', () => {
 					if (storedFiles.length >= 3) clearFieldError('upload-zone');
 				});
 
-				const noteInput = document.createElement('textarea');
-				noteInput.className = 'photo-note';
-				noteInput.placeholder = 'Photo note (optional)';
-				noteInput.value = entry.note || '';
-				noteInput.addEventListener('input', (e) => {
-					storedFiles[i].note = e.target.value;
-					// Sync to draft
-					if (draftPhotos[i]) draftPhotos[i].note = e.target.value;
-					saveDraft();
-				});
-
 				wrap.appendChild(idxBadge);
 				wrap.appendChild(img);
 				wrap.appendChild(del);
-				wrap.appendChild(noteInput);
 				miniStrip.appendChild(wrap);
 			});
 		}
 		
-		// Render modal strip with enhanced photo cards
+		// Render modal strip with photo cards (sortable grid)
 		if (modalStrip) {
 			modalStrip.innerHTML = '';
 			storedFiles.forEach((entry, i) => {
@@ -285,7 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				const card = document.createElement('div');
 				card.className = 'photo-card-modal' + (i === 0 ? ' is-cover' : '');
 				card.dataset.index = i;
-				card.draggable = true;
+				card.dataset.id = `photo-${i}`; // For SortableJS
+				card.draggable = false; // Let SortableJS handle dragging
 
 				// Header with number and actions
 				const header = document.createElement('div');
@@ -341,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				img.draggable = false;
 				card.appendChild(img);
 
-				// Note textarea
+				// Note textarea (modal-only editing)
 				const noteLabel = document.createElement('label');
 				noteLabel.style.fontSize = '0.75rem';
 				noteLabel.style.fontWeight = '500';
@@ -387,19 +376,38 @@ document.addEventListener('DOMContentLoaded', () => {
 					card.appendChild(setCoverBtn);
 				}
 
-				// Drag and drop handlers
-				card.addEventListener('dragstart', handleDragStart);
-				card.addEventListener('dragover', handleDragOver);
-				card.addEventListener('drop', handleDrop);
-				card.addEventListener('dragend', handleDragEnd);
-
-				// Touch drag handlers for mobile
-				card.addEventListener('touchstart', handleTouchStart, false);
-				card.addEventListener('touchmove', handleTouchMove, false);
-				card.addEventListener('touchend', handleTouchEnd, false);
-
 				modalStrip.appendChild(card);
 			});
+			
+			// Initialize SortableJS for drag-and-drop (handles both desktop and mobile)
+			if (window.Sortable && modalStrip.children.length > 0) {
+				Sortable.create(modalStrip, {
+					animation: 150,
+					ghostClass: 'sortable-ghost',
+					dragClass: 'sortable-drag',
+					handle: '.photo-card-modal',
+					forceFallback: false,
+					onEnd: function(evt) {
+						console.log('[form] SortableJS reorder: from', evt.oldIndex, 'to', evt.newIndex);
+						if (evt.oldIndex !== evt.newIndex) {
+							const [movedItem] = storedFiles.splice(evt.oldIndex, 1);
+							storedFiles.splice(evt.newIndex, 0, movedItem);
+							
+							// Sync draftPhotos with new order
+							draftPhotos = storedFiles.map((item, idx) => ({
+								path: item.path || `temp-${idx}`,
+								url: item.url || item.previewUrl,
+								order: idx,
+								note: item.note || ''
+							}));
+							
+							renderPhotos();
+							saveDraft();
+							saveDraftPhotos();
+						}
+					}
+				});
+			}
 		}
 		
 		const countMsg = document.getElementById('photo-count-msg');
@@ -407,103 +415,39 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (countMsg) countMsg.textContent = n > 0 ? `${n} photo${n > 1 ? 's' : ''} added` : '';
 	}
 
-	// ── DRAG AND DROP HANDLERS ────────────────────
+	// ── DRAG AND DROP HANDLERS (Desktop HTML5 - DEPRECATED, use SortableJS instead) ────────────────────
 	function handleDragStart(e) {
-		draggedCard = this;
-		draggedFromIndex = parseInt(this.dataset.index);
-		e.dataTransfer.effectAllowed = 'move';
-		this.style.opacity = '0.5';
+		// Deprecated - SortableJS handles all dragging
+		console.log('[form] Note: Using SortableJS for drag, not HTML5 drag API');
 	}
 
 	function handleDragOver(e) {
-		if (e.preventDefault) e.preventDefault();
-		e.dataTransfer.dropEffect = 'move';
-		if (this !== draggedCard) {
-			this.style.borderTop = '3px solid var(--gold)';
-		}
-		return false;
+		// Deprecated
 	}
 
 	function handleDrop(e) {
-		if (e.stopPropagation) e.stopPropagation();
-		if (draggedCard !== this && draggedFromIndex !== null) {
-			const dropIndex = parseInt(this.dataset.index);
-			const [draggedItem] = storedFiles.splice(draggedFromIndex, 1);
-			storedFiles.splice(dropIndex, 0, draggedItem);
-			
-			// Sync draftPhotos with new order
-			draftPhotos = storedFiles.map((item, idx) => ({
-				path: item.path || `temp-${idx}`,
-				url: item.url || item.previewUrl,
-				order: idx,
-				note: item.note || ''
-			}));
-			
-			renderPhotos();
-			saveDraft();
-			saveDraftPhotos();
-		}
-		return false;
+		// Deprecated
 	}
 
 	function handleDragEnd(e) {
-		this.style.opacity = '1';
-		document.querySelectorAll('.photo-card-modal').forEach(card => {
-			card.style.borderTop = '';
-		});
-		draggedCard = null;
-		draggedFromIndex = null;
+		// Deprecated
 	}
 
-	// ── TOUCH DRAG FOR MOBILE ────────────────────
+	// ── TOUCH DRAG FOR MOBILE (DEPRECATED - SortableJS handles all dragging) ────────────────────
 	let touchStartY = 0;
 	let touchStartIndex = null;
 
 	function handleTouchStart(e) {
-		touchStartY = e.touches[0].clientY;
-		touchStartIndex = parseInt(this.dataset.index);
-		this.style.opacity = '0.7';
+		// Deprecated - SortableJS handles touch events with forceFallback
+		console.log('[form] Using SortableJS for touch drag');
 	}
 
 	function handleTouchMove(e) {
-		const touchY = e.touches[0].clientY;
-		const diff = touchY - touchStartY;
-		const threshold = 50; // pixels to trigger reorder
-
-		if (Math.abs(diff) > threshold) {
-			const cardHeight = this.offsetHeight;
-			if (diff > 0 && touchStartIndex < storedFiles.length - 1) {
-				// Swiped down - move down
-				const [item] = storedFiles.splice(touchStartIndex, 1);
-				storedFiles.splice(touchStartIndex + 1, 0, item);
-				touchStartIndex += 1;
-				renderPhotos();
-			} else if (diff < 0 && touchStartIndex > 0) {
-				// Swiped up - move up
-				const [item] = storedFiles.splice(touchStartIndex, 1);
-				storedFiles.splice(touchStartIndex - 1, 0, item);
-				touchStartIndex -= 1;
-				renderPhotos();
-			}
-			touchStartY = touchY;
-		}
+		// Deprecated - SortableJS handles this
 	}
 
 	function handleTouchEnd(e) {
-		this.style.opacity = '1';
-		touchStartY = 0;
-		touchStartIndex = null;
-		
-		// Sync draftPhotos with current order
-		draftPhotos = storedFiles.map((item, idx) => ({
-			path: item.path || `temp-${idx}`,
-			url: item.url || item.previewUrl,
-			order: idx,
-			note: item.note || ''
-		}));
-		
-		saveDraft();
-		saveDraftPhotos();
+		// Deprecated - SortableJS handles this
 	}
 
 	// Manage Photos button click handler
