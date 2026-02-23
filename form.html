@@ -316,12 +316,13 @@
         <div class="card-title">Property Basics <span class="tag-required">Required</span></div>
 
         <div class="field">
-          <label>Monthly Rent</label>
+          <label>Monthly Rent (What You Want to Charge)</label>
           <div class="input-prefix">
             <span>$</span>
-            <input type="number" id="rent" placeholder="0" min="0" />
+            <input type="number" id="rent" placeholder="0" min="0" step="1" />
             <span>/ mo</span>
           </div>
+          <span style="font-size:0.75rem;color:var(--ink-muted);margin-top:4px;display:block;">This is the monthly rent amount you're charging the tenant for this space</span>
         </div>
 
         <div class="field">
@@ -545,7 +546,39 @@
           <label>Security Deposit <span style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
           <div class="input-prefix">
             <span>$</span>
-            <input type="number" id="deposit" placeholder="0" min="0" />
+            <input type="number" id="deposit" placeholder="0" min="0" step="1" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Price Reduction (Optional) <span style="color:var(--ink-muted);font-weight:400;font-size:0.9rem">Automatically lower price if no takers</span></div>
+        <p style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;line-height:1.5;">If your listing doesn't get interest, you can set up automatic price reductions after a certain time period. For example: reduce by $50 after 14 days.</p>
+        <div class="field">
+          <label>Enable Price Reduction <span style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn" id="price-reduction-enable" data-val="no">No</button>
+            <button type="button" class="toggle-btn" id="price-reduction-enable" data-val="yes">Yes</button>
+          </div>
+        </div>
+        <div id="price-reduction-section" style="display:none;margin-top:16px;">
+          <div class="two-col">
+            <div class="field">
+              <label>Days Before Reduction <span style="color:var(--ink-muted)">(Required)</span></label>
+              <input type="number" id="reduction-days" placeholder="14" min="1" step="1" />
+            </div>
+            <div class="field">
+              <label>Reduction Amount <span style="color:var(--ink-muted)">(Required)</span></label>
+              <div class="input-prefix">
+                <span>$</span>
+                <input type="number" id="reduction-amount" placeholder="50" min="0" step="1" />
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-top:12px;">
+            <label style="color:var(--ink-soft);font-size:0.85rem;">How many times can the price reduce?</label>
+            <input type="number" id="reduction-times" placeholder="1" min="1" max="10" step="1" value="1" style="max-width:150px;" />
+            <span style="font-size:0.75rem;color:var(--ink-muted);display:block;margin-top:4px;">Maximum 10 times</span>
           </div>
         </div>
       </div>

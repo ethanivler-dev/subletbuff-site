@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		const img = document.createElement('img');
 		img.className = 'card-img';
+		img.loading = 'lazy';
+		img.decoding = 'async';
 		img.src = (item && item.photo_urls && item.photo_urls[0]) ? item.photo_urls[0] : 'https://via.placeholder.com/400';
 		img.alt = (item && item.neighborhood) ? (item.neighborhood + ' photo') : 'Listing photo';
 		link.appendChild(img);
@@ -86,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!grid) return;
 		if (!supabaseClient) return;
 		try {
-			const { data, error } = await supabaseClient.from('listings').select('*').eq('status', 'approved');
+			const { data, error } = await supabaseClient.from('listings').select('id,monthly_rent,photo_urls,neighborhood,address,photo_notes').eq('status', 'approved').order('created_at', { ascending: false }).limit(50);
 			if (error) { console.error('[home] Supabase query error', error); return; }
 			grid.innerHTML = '';
 			if (Array.isArray(data)) {

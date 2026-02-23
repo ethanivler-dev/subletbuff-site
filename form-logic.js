@@ -1,6 +1,8 @@
 // Wrap form logic in DOMContentLoaded and guard element access
 document.addEventListener('DOMContentLoaded', () => {
-	console.log('[form] script loaded v20260222c');
+	console.log('[form] script loaded v20260222b');
+	// Temporarily uncomment to verify script is running:
+	// alert('Form script loaded!');
 
 	// Global runtime logging so errors and promise rejections are visible
 	window.addEventListener('error', (ev) => {
@@ -34,14 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	const formEl = document.getElementById('listing-form');
 	if (!formEl) {
-		console.warn('[form] listing-form not found — continuing for photo handling');
-	}
-	if (formEl) {
+		console.warn('[form] listing-form not found on this page — skipping form-specific setup');
+		// Don't return early — continue to set up photo handling if elements exist
+	} else {
 		formEl.addEventListener('keydown', function(e) {
-		if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-			e.preventDefault();
-		}
-	});
+			if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+				e.preventDefault();
+			}
+		});
 	}
 
 	const hamburger  = document.getElementById('nav-hamburger');
@@ -64,24 +66,20 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// ── Photo storage & duplicate/size blocker ────────────────
-	// storedFiles holds objects: { file: File, note: string }
+	// storedFiles holds objects: { file: File, previewUrl: string, note: string }
 	let storedFiles = [];
 	const strip = document.getElementById('photo-strip');
 	const uploadZone = document.getElementById('upload-zone');
-	const photoModal = document.getElementById('photo-modal-overlay');
-	const photoMiniStrip = document.getElementById('photo-mini-strip');
-	const managePhotosBtn = document.getElementById('manage-photos-btn');
-	const photoModalCloseBtn = document.getElementById('photo-modal-close');
-	const photoModalDoneBtn = document.getElementById('photo-modal-done');
-	const photoModalCountNum = document.getElementById('photo-modal-count-num');
+	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
 
-	// Reordering Logic - use Sortable provided indices directly
+	// Reordering Logic - use Sortable's provided indices directly
 	if (strip && window.Sortable) {
 		Sortable.create(strip, {
 			animation: 150,
 			onEnd: (evt) => {
 				const { oldIndex, newIndex } = evt;
 				if (oldIndex === newIndex) return;
+				// Move item in storedFiles array
 				const [movedItem] = storedFiles.splice(oldIndex, 1);
 				storedFiles.splice(newIndex, 0, movedItem);
 				renderPhotos();
@@ -101,203 +99,88 @@ document.addEventListener('DOMContentLoaded', () => {
 		renderPhotos();
 	}
 
-	function openPhotoModal() {
-		if (photoModal) {
-			photoModal.classList.add('open');
-			document.body.style.overflow = 'hidden';
-		}
-	}
-	
-	function closePhotoModal() {
-		if (photoModal) {
-			photoModal.classList.remove('open');
-			document.body.style.overflow = '';
-		}
-	}
-	
-	function setCoverPhoto(index) {
-		if (index > 0 && index < storedFiles.length) {
-			const [item] = storedFiles.splice(index, 1);
-			storedFiles.unshift(item);
-			renderPhotos();
-		}
-	}
-	
-	function renderMiniStrip() {
-		if (!photoMiniStrip) return;
-		photoMiniStrip.innerHTML = '';
-		storedFiles.forEach((entry, i) => {
-			const thumb = document.createElement('div');
-			thumb.className = 'photo-mini-thumb';
-			const img = document.createElement('img');
-			img.src = entry.previewUrl || URL.createObjectURL(entry.file);
-			img.alt = `Photo ${i + 1}`;
-			const num = document.createElement('div');
-			num.className = 'photo-mini-num';
-			num.textContent = (i + 1).toString();
-			thumb.appendChild(img);
-			thumb.appendChild(num);
-			photoMiniStrip.appendChild(thumb);
-		});
-		if (managePhotosBtn) {
-			managePhotosBtn.style.display = storedFiles.length > 0 ? 'inline-block' : 'none';
-		}
-	}
-	
 	function renderPhotos() {
+		console.log('[form] renderPhotos called, storedFiles:', storedFiles.length);
 		const countMsg = document.getElementById('photo-count-msg');
-		
-		// Update mini strip
-		renderMiniStrip();
-		
-		// Update modal count
-		if (photoModalCountNum) {
-			photoModalCountNum.textContent = storedFiles.length;
+		if (!strip) {
+			console.error('[form] renderPhotos: strip element not found!');
+			return;
 		}
-		
-		// Render in modal grid
-		if (!strip) return;
 		strip.innerHTML = '';
-		
 		storedFiles.forEach((entry, i) => {
 			const file = entry.file;
-			const card = document.createElement('div');
-			card.className = 'photo-card-modal' + (i === 0 ? ' is-cover' : '');
-			card.dataset.index = i;
-			
-			// Header with number and actions
-			const header = document.createElement('div');
-			header.className = 'photo-card-header';
-			
-			const numberWrap = document.createElement('div');
-			numberWrap.className = 'photo-number';
-			
-			const badge = document.createElement('div');
-			badge.className = 'photo-number-badge';
-			badge.textContent = (i + 1).toString();
-			numberWrap.appendChild(badge);
-			
-			if (i === 0) {
-				const coverLabel = document.createElement('span');
-				coverLabel.className = 'photo-cover-label';
-				coverLabel.textContent = 'Cover Photo';
-				numberWrap.appendChild(coverLabel);
-			}
-			
-			const actions = document.createElement('div');
-			actions.className = 'photo-card-actions';
-			
-			const upBtn = document.createElement('button');
-			upBtn.type = 'button';
-			upBtn.innerHTML = '↑';
-			upBtn.title = 'Move up';
-			upBtn.addEventListener('click', () => moveUp(i));
-			
-			const downBtn = document.createElement('button');
-			downBtn.type = 'button';
-			downBtn.innerHTML = '↓';
-			downBtn.title = 'Move down';
-			downBtn.addEventListener('click', () => moveDown(i));
-			
-			const delBtn = document.createElement('button');
-			delBtn.type = 'button';
-			delBtn.className = 'photo-delete-btn';
-			delBtn.innerHTML = '✕';
-			delBtn.title = 'Remove photo';
-			delBtn.addEventListener('click', () => {
-				storedFiles.splice(i, 1);
-				renderPhotos();
-				if (storedFiles.length >= 3) clearFieldError('upload-zone');
-			});
-			
-			actions.appendChild(upBtn);
-			actions.appendChild(downBtn);
-			actions.appendChild(delBtn);
-			
-			header.appendChild(numberWrap);
-			header.appendChild(actions);
-			
-			// Image
-			const img = document.createElement('img');
-			img.className = 'photo-card-img';
-			img.src = entry.previewUrl || URL.createObjectURL(file);
-			img.alt = file.name || `Photo ${i + 1}`;
-			
-			// Note textarea
-			const noteInput = document.createElement('textarea');
-			noteInput.className = 'photo-card-note';
-			noteInput.placeholder = 'Describe this photo (e.g., "Spacious living room with natural light")';
-			noteInput.value = entry.note || '';
-			noteInput.addEventListener('input', (e) => {
-				storedFiles[i].note = e.target.value;
-				saveDraft();
-			});
-			
-			// Set as cover button (only for non-cover photos)
-			const setCoverBtn = document.createElement('button');
-			setCoverBtn.type = 'button';
-			setCoverBtn.className = 'photo-set-cover';
-			setCoverBtn.textContent = '★ Set as Cover Photo';
-			setCoverBtn.addEventListener('click', () => setCoverPhoto(i));
-			
-			card.appendChild(header);
-			card.appendChild(img);
-			card.appendChild(noteInput);
-			if (i !== 0) {
-				card.appendChild(setCoverBtn);
-			}
-			
-			strip.appendChild(card);
+				const wrap = document.createElement('div');
+				wrap.className = 'photo-thumb-wrap';
+				wrap.dataset.index = i; // Needed for sortable sync
+
+				const idxBadge = document.createElement('div');
+				idxBadge.className = 'photo-number-badge' + (i === 0 ? ' cover' : '');
+				idxBadge.textContent = (i + 1).toString();
+
+				const img = document.createElement('img');
+				img.src = entry.previewUrl || URL.createObjectURL(file);
+				img.alt = file.name || `photo-${i+1}`;
+
+				const del = document.createElement('button'); del.type = 'button'; del.className = 'photo-delete'; del.innerHTML = '✕';
+				del.addEventListener('click', () => { storedFiles.splice(i, 1); renderPhotos(); if (storedFiles.length >= 3) clearFieldError('upload-zone'); });
+
+				const noteInput = document.createElement('textarea');
+				noteInput.className = 'photo-note';
+				noteInput.placeholder = 'Photo note (optional)';
+				noteInput.value = entry.note || '';
+				noteInput.addEventListener('input', (e) => { storedFiles[i].note = e.target.value; saveDraft(); });
+
+				wrap.appendChild(idxBadge);
+				wrap.appendChild(img);
+				wrap.appendChild(del);
+				wrap.appendChild(noteInput);
+				strip.appendChild(wrap);
 		});
-		
 		const n = storedFiles.length;
 		if (countMsg) countMsg.textContent = n > 0 ? `${n} photo${n > 1 ? 's' : ''} added` : '';
 	}
-	
-	// Modal event listeners
-	if (managePhotosBtn) {
-		managePhotosBtn.addEventListener('click', openPhotoModal);
-	}
-	if (photoModalCloseBtn) {
-		photoModalCloseBtn.addEventListener('click', closePhotoModal);
-	}
-	if (photoModalDoneBtn) {
-		photoModalDoneBtn.addEventListener('click', closePhotoModal);
-	}
-	if (photoModal) {
-		photoModal.addEventListener('click', (e) => {
-			if (e.target === photoModal) closePhotoModal();
-		});
-	}
 
 	function addFilesToStore(fileList) {
-		const filesAdded = [];
+		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
+		const initialCount = storedFiles.length;
 		Array.from(fileList).forEach(f => {
+			console.log('[form] Processing file:', f.name, f.size);
 			if (f.size > 20 * 1024 * 1024) {
 				alert(`The file "${f.name}" is too large. Please select photos under 20MB.`);
 				return;
 			}
 			const isDuplicate = storedFiles.some(sf => sf.file.name === f.name && sf.file.size === f.size);
 			if (!isDuplicate) {
-				const entry = { file: f, previewUrl: URL.createObjectURL(f), note: '' };
-				storedFiles.push(entry);
-				filesAdded.push(entry);
+				const previewUrl = URL.createObjectURL(f);
+				console.log('[form] Adding file to storedFiles:', f.name, previewUrl);
+				storedFiles.push({ file: f, previewUrl: previewUrl, note: '' });
+			} else {
+				console.log('[form] Skipping duplicate:', f.name);
 			}
 		});
+		console.log('[form] storedFiles count:', initialCount, '->', storedFiles.length);
 		renderPhotos();
 		if (strip && storedFiles.length >= 3) clearFieldError('upload-zone');
-		// Auto-open modal when photos are added
-		if (filesAdded.length > 0 && photoModal) {
-			openPhotoModal();
-		}
 	}
 
+	// Be resilient: input id historically was 'photo-input' in backups or may be nested.
 	const photoInput = document.getElementById('photoInput') || document.getElementById('photo-input') || (uploadZone && uploadZone.querySelector('input[type=file]'));
+	console.log('[form] photoInput found:', !!photoInput, photoInput?.id);
 	if (photoInput) {
-		photoInput.addEventListener('change', function () {
-			addFilesToStore(this.files);
+		photoInput.addEventListener('change', function (e) {
+			e.stopPropagation();
+			console.log('[form] photoInput change fired, files:', this.files?.length);
+			if (this.files && this.files.length > 0) {
+				console.log('[form] Calling addFilesToStore with', this.files.length, 'files');
+				addFilesToStore(this.files);
+			} else {
+				console.warn('[form] No files in change event');
+			}
 			this.value = '';
 		});
+		console.log('[form] photoInput change listener attached successfully');
+	} else {
+		console.error('[form] CRITICAL: photo input element not found!');
 	}
 
 	// Drag & drop support onto the upload zone
@@ -579,6 +462,38 @@ document.querySelectorAll('input[name="furnished"]').forEach(r => r.addEventList
 	});
 });
 
+// ── Price Reduction Feature ────────────────────────
+const priceReductionBtns = document.querySelectorAll('#price-reduction-enable');
+const priceReductionSection = document.getElementById('price-reduction-section');
+if (priceReductionBtns && priceReductionSection) {
+	priceReductionBtns.forEach(btn => {
+		btn.addEventListener('click', () => {
+			priceReductionBtns.forEach(b => b.classList.remove('active'));
+			btn.classList.add('active');
+			const val = btn.dataset.val;
+			priceReductionSection.style.display = val === 'yes' ? 'block' : 'none';
+			saveDraft();
+		});
+	});
+}
+
+// ── Input Validation: Prevent negative values ────────────────────────
+['rent', 'deposit', 'reduction-amount', 'reduction-days', 'reduction-times'].forEach(id => {
+	const input = document.getElementById(id);
+	if (input) {
+		input.addEventListener('change', function() {
+			if (this.value && (isNaN(this.value) || parseFloat(this.value) < 0)) {
+				this.value = '0';
+			}
+		});
+		input.addEventListener('input', function() {
+			if (this.value.startsWith('-')) {
+				this.value = this.value.substring(1);
+			}
+		});
+	}
+});
+
 function showFieldError(id, msg) {
 	const el = document.getElementById(id); if (!el) return;
 	el.style.borderColor = 'var(--red)';
@@ -633,7 +548,12 @@ function saveDraft() {
 		leaseSublease: document.getElementById('lease-sublease').checked,
 		leaseTakeover: document.getElementById('lease-takeover').checked,
 		deposit: document.getElementById('deposit').value,
-		prefContact: prefEmailBtn.classList.contains('active') ? 'email' : 'text'
+		prefContact: prefEmailBtn.classList.contains('active') ? 'email' : 'text',
+		priceReductionEnabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
+		reductionDays: document.getElementById('reduction-days').value,
+		reductionAmount: document.getElementById('reduction-amount').value,
+		reductionTimes: document.getElementById('reduction-times').value,
+		photoNotes: storedFiles.map(f => f.note)
 	};
 	localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
 	showAutosaveBadge();
@@ -700,6 +620,20 @@ function loadDraft() {
     
 		if(draft.prefContact === 'email') { prefEmailBtn.classList.add('active'); prefTextBtn.classList.remove('active'); } 
 		else { prefTextBtn.classList.add('active'); prefEmailBtn.classList.remove('active'); }
+
+		if(draft.priceReductionEnabled) {
+			const yesBtn = Array.from(document.querySelectorAll('#price-reduction-enable')).find(b => b.dataset.val === 'yes');
+			if(yesBtn) {
+				yesBtn.classList.add('active');
+				document.getElementById('price-reduction-section').style.display = 'block';
+			}
+		} else {
+			const noBtn = Array.from(document.querySelectorAll('#price-reduction-enable')).find(b => b.dataset.val === 'no');
+			if(noBtn) noBtn.classList.add('active');
+		}
+		if(draft.reductionDays) document.getElementById('reduction-days').value = draft.reductionDays;
+		if(draft.reductionAmount) document.getElementById('reduction-amount').value = draft.reductionAmount;
+		if(draft.reductionTimes) document.getElementById('reduction-times').value = draft.reductionTimes;
 	} catch(e) { console.error("Draft load failed:", e); }
 }
 
@@ -747,6 +681,10 @@ function buildPayload(photoUrls = []) {
 		description: document.getElementById('description').value,
 		lease_type: [document.getElementById('lease-sublease').checked ? 'Sublease' : '', document.getElementById('lease-takeover').checked ? 'Lease Takeover' : ''].filter(Boolean).join(', ') || null,
 		security_deposit: depositVal ? parseInt(depositVal) : null,
+		price_reduction_enabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
+		price_reduction_days: document.getElementById('reduction-days').value ? parseInt(document.getElementById('reduction-days').value) : null,
+		price_reduction_amount: document.getElementById('reduction-amount').value ? parseInt(document.getElementById('reduction-amount').value) : null,
+		price_reduction_times: document.getElementById('reduction-times').value ? parseInt(document.getElementById('reduction-times').value) : null,
 		photo_urls: photoUrls,
 		status: 'pending',
 		verified: false
@@ -855,54 +793,65 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 
 		const folderName = currentListingId ? currentListingId : `submission-${Date.now()}`;
 
-		// Reordered Photo Loop
-const photosMeta = [];
+		// Reordered Photo Loop -> build uploadedUrls and photos_meta (reflecting visual order)
+		const photosMeta = [];
 		for (let i = 0; i < storedFiles.length; i++) {
 			const file = storedFiles[i].file;
+			const note = storedFiles[i].note || '';
 			const fileExt = file.name.split('.').pop();
 			const filePath = `${folderName}/${i}_${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-			const { data: uploadData, error: uploadError } = await supabaseClient.storage
-				.from(BUCKET_NAME)
-				.upload(filePath, file);
 
-			if (uploadError) {
-				console.error('[form] Supabase storage upload error', uploadError);
-				throw new Error('Image upload failed: ' + uploadError.message);
+			try {
+				console.error('[form] uploading to storage:', { bucket: BUCKET_NAME, path: filePath, name: file.name });
+				const { data: uploadData, error: uploadError } = await supabaseClient.storage
+					.from(BUCKET_NAME)
+					.upload(filePath, file);
+
+				if (uploadError) {
+					console.error('[form] Supabase storage upload error', uploadError);
+					throw uploadError;
+				}
+
+				const { data: publicUrlData } = supabaseClient.storage
+					.from(BUCKET_NAME)
+					.getPublicUrl(filePath);
+
+				const publicUrl = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : null;
+				uploadedUrls.push(publicUrl);
+				photosMeta.push({ path: filePath, url: publicUrl, order: i, note });
+			} catch (uErr) {
+				console.error('[form] upload failed for', file.name, uErr);
+				throw new Error('Image upload failed: ' + (uErr?.message || uErr));
 			}
-
-			const { data: publicUrlData } = supabaseClient.storage
-				.from(BUCKET_NAME)
-				.getPublicUrl(filePath);
-
-			uploadedUrls.push(publicUrlData.publicUrl);
-photosMeta.push({
-  path: filePath,
-  url: publicUrlData.publicUrl,
-  order: i,
-  note: (storedFiles[i] && storedFiles[i].note) ? storedFiles[i].note : ''
-});
 		}
 
 		submitBtn.textContent = 'Saving Listing...';
-		const payload = buildPayload(uploadedUrls); 
-    
-payload.photos_meta = photosMeta;
-		if (currentListingId) {
-			const { error } = await supabaseClient
-				.from('listings')
-				.update(payload)
-				.eq('id', currentListingId); 
-			if (error) { console.error('[form] Supabase update error', error); throw new Error('Database update error: ' + error.message); }
-		} else {
-			const { data, error } = await supabaseClient
-				.from('listings')
-				.insert([payload])
-				.select(); 
-			if (error) { console.error('[form] Supabase insert error', error); throw new Error('Database insert error: ' + error.message); }
-			if (data && data.length > 0) {
-				currentListingId = data[0].id;
+		const payload = buildPayload(uploadedUrls);
+		// attach photos_meta (array of {path, url, order, note}) built from the current visual order
+		payload.photos_meta = photosMeta;
+
+		try {
+			if (currentListingId) {
+				console.error('[form] updating listing', currentListingId, { photosCount: photosMeta.length });
+				const { error } = await supabaseClient
+					.from('listings')
+					.update(payload)
+					.eq('id', currentListingId);
+				if (error) { console.error('[form] Supabase update error', error); throw error; }
+			} else {
+				console.error('[form] inserting listing', { photosCount: photosMeta.length });
+				const { data, error } = await supabaseClient
+					.from('listings')
+					.insert([payload])
+					.select();
+				if (error) { console.error('[form] Supabase insert error', error); throw error; }
+				if (data && data.length > 0) {
+					currentListingId = data[0].id;
+				}
 			}
+		} catch(dbErr) {
+			console.error('[form] database write failed', dbErr);
+			throw new Error('Database write error: ' + (dbErr?.message || dbErr));
 		}
 
 
