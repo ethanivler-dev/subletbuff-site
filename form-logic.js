@@ -201,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		const n = storedFiles.length;
 		if (countMsg) countMsg.textContent = n > 0 ? `${n} photo${n > 1 ? 's' : ''} added` : '';
 	}
-	}
 
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
