@@ -1,3 +1,5 @@
+console.log('[admin] admin-logic.js loaded');
+
 document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_ZZ4mKcw6_e9diz7oFfbVag_YA9zkqFW';
@@ -11,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const appRoot = document.getElementById('admin-app-root');
   const authRoot = document.getElementById('admin-auth-root');
   const flashEl = document.getElementById('admin-flash');
+  const statusEl = document.getElementById('admin-status');
 
   const editOverlay = document.getElementById('admin-edit-overlay');
   const editForm = document.getElementById('admin-edit-form');
@@ -41,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSession = null;
   let activeAdminId = null;
   let editingRowId = null;
+  let isLoggingOut = false;
 
   const ui = {
     subtitle: null,
@@ -60,6 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
     flashEl.style.color = color || '#4A4035';
   }
 
+  function setStatus(message, color) {
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.style.color = color || '#4A4035';
+  }
+
   function setModalMessage(message, color) {
     if (!modalMsg) return;
     modalMsg.textContent = message || '';
@@ -69,11 +79,31 @@ document.addEventListener('DOMContentLoaded', () => {
   function showAuthRoot(show) {
     if (!authRoot) return;
     authRoot.classList.toggle('admin-hidden', !show);
+    if (show) setStatus('');
   }
 
   function showAppRoot(show) {
     if (!appRoot) return;
     appRoot.classList.toggle('admin-hidden', !show);
+    if (show) setStatus('');
+  }
+
+  function fallbackToLogin(message) {
+    const text = message || 'Unable to load admin portal. Please sign in again.';
+    try {
+      showAppRoot(false);
+      showAuthRoot(true);
+      renderAuthUI(text);
+      setStatus(text, '#C0392B');
+    } catch (err) {
+      console.error('[admin] fallback render failed', err);
+      if (authRoot) {
+        authRoot.classList.remove('admin-hidden');
+        authRoot.innerHTML = '<h1 style="margin:0 0 8px;font-family:Playfair Display,serif;font-size:1.8rem;">Admin Sign In</h1><p style="margin:0;color:#8A7D6B;">' + text + '</p>';
+      }
+      if (appRoot) appRoot.classList.add('admin-hidden');
+      setStatus(text, '#C0392B');
+    }
   }
 
   function normalizeModeLabel(mode) {
@@ -573,13 +603,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ui.logoutBtn = document.createElement('button');
     ui.logoutBtn.type = 'button';
-    ui.logoutBtn.id = 'admin-logout-btn';
+    ui.logoutBtn.id = 'admin-logout';
     ui.logoutBtn.textContent = 'Log Out';
-    ui.logoutBtn.addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
-      setFlash('Logged out.', '#4A4035');
-      await bootstrap();
-    });
     authLine.appendChild(ui.logoutBtn);
 
     controls.appendChild(authLine);
@@ -731,14 +756,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logoutBtn = document.createElement('button');
     logoutBtn.type = 'button';
-    logoutBtn.id = 'admin-logout-btn';
+    logoutBtn.id = 'admin-logout';
     logoutBtn.textContent = 'Log Out';
-    logoutBtn.addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
+    authRoot.appendChild(logoutBtn);
+  }
+
+  async function handleLogout() {
+    if (!supabaseClient || isLoggingOut) return;
+    isLoggingOut = true;
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        console.error('[admin] logout error', error);
+        setFlash('Logout failed. Please try again.', '#C0392B');
+        return;
+      }
       setFlash('Logged out.', '#4A4035');
       await bootstrap();
-    });
-    authRoot.appendChild(logoutBtn);
+    } catch (err) {
+      console.error('[admin] logout exception', err);
+      setFlash('Logout failed. Please try again.', '#C0392B');
+    } finally {
+      isLoggingOut = false;
+    }
   }
 
   async function isAllowedAdmin(userId) {
@@ -758,14 +798,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function bootstrap() {
+    setStatus('Loading...', '#4A4035');
     if (!supabaseClient) {
-      if (document.body) document.body.textContent = 'Supabase client not available.';
+      fallbackToLogin('Supabase client not available.');
       return;
     }
 
     const { data, error } = await supabaseClient.auth.getSession();
     if (error) {
-      renderAuthUI('Auth error: ' + error.message);
+      fallbackToLogin('Auth error: ' + error.message);
       return;
     }
 
@@ -774,12 +815,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!activeSession || !activeAdminId) {
       renderAuthUI('');
+      setStatus('Please sign in.');
       return;
     }
 
     const allowed = await isAllowedAdmin(activeAdminId);
     if (!allowed) {
       renderUnauthorizedUI('You are logged in but not authorized as an admin.');
+      setStatus('Not authorized.', '#C0392B');
       return;
     }
 
@@ -787,6 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showAppRoot(true);
     buildAppUI();
     await loadCurrentMode();
+    setStatus('');
   }
 
   if (editOverlay) {
@@ -809,9 +853,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (supabaseClient && supabaseClient.auth && supabaseClient.auth.onAuthStateChange) {
     supabaseClient.auth.onAuthStateChange(async () => {
-      await bootstrap();
+      try {
+        await bootstrap();
+      } catch (err) {
+        console.error('[admin] onAuthStateChange bootstrap error', err);
+        fallbackToLogin('Session update error. Please sign in again.');
+      }
     });
   }
 
-  bootstrap();
+  document.addEventListener('click', async (event) => {
+    const logoutBtn = event.target && event.target.closest ? event.target.closest('#admin-logout') : null;
+    if (!logoutBtn) return;
+    event.preventDefault();
+    await handleLogout();
+  });
+
+  bootstrap().catch((err) => {
+    console.error('[admin] bootstrap failed', err);
+    fallbackToLogin('Initialization error. Please sign in again.');
+  });
 });

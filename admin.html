@@ -74,10 +74,17 @@
 		}
 		#admin-login-btn { background: #3D8A58; color: white; }
 		#admin-magic-btn { background: #E0D5C0; color: #1C1810; }
-		#admin-logout-btn { background: white; color: #C0392B; border: 1px solid #C0392B; }
+		#admin-logout { background: white; color: #C0392B; border: 1px solid #C0392B; }
 		#admin-auth-msg, #admin-flash {
 			margin-top: 12px;
 			font-size: 0.88rem;
+			color: #4A4035;
+			min-height: 18px;
+		}
+		#admin-status {
+			max-width: 1000px;
+			margin: 0 auto 12px;
+			font-size: 0.9rem;
 			color: #4A4035;
 			min-height: 18px;
 		}
@@ -171,8 +178,9 @@
 	</style>
 </head>
 <body>
-	<div id="admin-auth-root" class="admin-auth-wrap admin-hidden"></div>
+	<div id="admin-auth-root" class="admin-auth-wrap"></div>
 	<div id="admin-app-root" class="admin-hidden"></div>
+	<div id="admin-status">Loading...</div>
 	<div id="admin-flash"></div>
 
 	<div id="admin-edit-overlay" class="admin-modal-overlay" aria-hidden="true">
@@ -272,6 +280,6 @@
 	</div>
 
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-	<script src="/admin-logic.js"></script>
+	<script src="/admin-logic.js?v=1"></script>
 </body>
 </html>
