@@ -842,7 +842,7 @@ if (priceReductionBtns && priceReductionSection) {
 }
 
 // ── Input Validation: Prevent negative values ────────────────────────
-['rent', 'deposit', 'reduction-amount', 'reduction-days', 'reduction-times'].forEach(id => {
+['rent', 'deposit', 'reduction-amount', 'reduction-days'].forEach(id => {
 	const input = document.getElementById(id);
 	if (input) {
 		input.addEventListener('change', function() {
@@ -916,7 +916,6 @@ function saveDraft() {
 		priceReductionEnabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
 		reductionDays: document.getElementById('reduction-days').value,
 		reductionAmount: document.getElementById('reduction-amount').value,
-		reductionTimes: document.getElementById('reduction-times').value,
 		photoNotes: storedFiles.map(f => f.note)
 	};
 	localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
@@ -997,7 +996,6 @@ function loadDraft() {
 		}
 		if(draft.reductionDays) document.getElementById('reduction-days').value = draft.reductionDays;
 		if(draft.reductionAmount) document.getElementById('reduction-amount').value = draft.reductionAmount;
-		if(draft.reductionTimes) document.getElementById('reduction-times').value = draft.reductionTimes;
 	} catch(e) { console.error("Draft load failed:", e); }
 }
 
@@ -1048,7 +1046,6 @@ function buildPayload(photoUrls = []) {
 		price_reduction_enabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
 		price_reduction_days: document.getElementById('reduction-days').value ? parseInt(document.getElementById('reduction-days').value) : null,
 		price_reduction_amount: document.getElementById('reduction-amount').value ? parseInt(document.getElementById('reduction-amount').value) : null,
-		price_reduction_times: document.getElementById('reduction-times').value ? parseInt(document.getElementById('reduction-times').value) : null,
 		photo_urls: photoUrls,
 		status: 'pending',
 		verified: false

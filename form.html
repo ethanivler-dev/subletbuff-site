@@ -221,8 +221,8 @@
   .confirm-error-banner { display: none; margin-top: 14px; padding: 10px 14px; background: #fdf2f2; border: 1.5px solid var(--red); border-radius: var(--radius-sm); font-size: .8125rem; color: var(--red); font-weight: 500; display: flex; align-items: center; gap: 8px; }
   .confirm-error-banner.hidden { display: none !important; }
   .confirm-error-banner svg { flex-shrink: 0; }
-  .submit-row { display: flex; justify-content: center; margin-top: 32px; }
-  .btn-submit { background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; letter-spacing: .03em; padding: 15px 64px; border: none; border-radius: var(--radius-md); cursor: pointer; box-shadow: var(--shadow-btn); transition: all var(--transition); }
+  .submit-row { display: flex; justify-content: center; margin-top: 32px; width: 100%; }
+  .btn-submit { background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; letter-spacing: .03em; padding: 15px 64px; border: none; border-radius: var(--radius-md); cursor: pointer; box-shadow: var(--shadow-btn); transition: all var(--transition); max-width: 500px; width: 100%; }
   .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(184,146,42,0.45); }
   .btn-submit:active { transform: translateY(0); }
   #success-screen { display: none; max-width: 560px; margin: 30px auto; text-align: center; animation: fadeUp .5s ease both; }
@@ -599,11 +599,6 @@
                 </div>
               </div>
             </div>
-            <div class="field" style="margin-top:12px;">
-              <label style="color:var(--ink-soft);font-size:0.85rem;">How many times can the price reduce?</label>
-              <input type="number" id="reduction-times" placeholder="1" min="1" max="10" step="1" value="1" style="max-width:150px;" />
-              <span style="font-size:0.75rem;color:var(--ink-muted);display:block;margin-top:4px;">Maximum 10 times</span>
-            </div>
           </div>
         </div>
       </div>
@@ -620,15 +615,10 @@
               </div>
             </div>
           </div>
-          <div class="field" style="margin-top:12px;">
-            <label style="color:var(--ink-soft);font-size:0.85rem;">How many times can the price reduce?</label>
-            <input type="number" id="reduction-times" placeholder="1" min="1" max="10" step="1" value="1" style="max-width:150px;" />
-            <span style="font-size:0.75rem;color:var(--ink-muted);display:block;margin-top:4px;">Maximum 10 times</span>
-          </div>
         </div>
       </div>
 
-      <div class="card half-width">
+      <div class="card">
         <div class="card-title">Confirmation</div>
         <div class="confirm-item" id="ci-allowed">
           <input type="checkbox" id="confirm-allowed" />
