@@ -1,6 +1,6 @@
 // Wrap form logic in DOMContentLoaded and guard element access
 document.addEventListener('DOMContentLoaded', () => {
-	console.log('[form] script loaded');
+	console.log('[form] script loaded v20260222c');
 
 	// Global runtime logging so errors and promise rejections are visible
 	window.addEventListener('error', (ev) => {
@@ -149,13 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
 				return;
 			}
 			const isDuplicate = storedFiles.some(sf => sf.file.name === f.name && sf.file.size === f.size);
-			if (!isDuplicate) storedFiles.push({ file: f, note: '' });
+			if (!isDuplicate) storedFiles.push({ file: f, previewUrl: URL.createObjectURL(f), note: '' });
 		});
 		renderPhotos();
 		if (strip && storedFiles.length >= 3) clearFieldError('upload-zone');
 	}
 
-	const photoInput = document.getElementById('photo-input');
+	const photoInput = document.getElementById('photoInput') || document.getElementById('photo-input') || (uploadZone && uploadZone.querySelector('input[type=file]'));
 	if (photoInput) {
 		photoInput.addEventListener('change', function () {
 			addFilesToStore(this.files);
