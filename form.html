@@ -138,7 +138,10 @@
   .upload-min { font-size: .78rem; color: var(--gold); font-weight: 500; margin-top: 6px; }
 
   /* ── PHOTO STRIP & REORDERING ── */
-  #photo-mini-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  #photo-mini-strip { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; margin-top: 12px; align-items: center; height: 52px; }
+  .collapsed-thumb { width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; display: block; }
+  .collapsed-thumb.is-cover { border-color: var(--gold); outline: 2px solid var(--gold-light); outline-offset: 1px; }
+  .collapsed-more-badge { width: 48px; height: 48px; border-radius: var(--radius-sm); background: var(--gold-pale); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: var(--gold); flex-shrink: 0; }
   .photo-mini-thumb { position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); }
   .photo-mini-thumb img { width: 100%; height: 100%; object-fit: cover; }
   .photo-mini-thumb .photo-mini-num { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.7); color: white; font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
@@ -601,6 +604,10 @@
                 </div>
               </div>
             </div>
+            <div class="field" style="margin-top:14px;">
+              <label>Maximum Number of Reductions <span style="color:var(--ink-muted)">(Required)</span></label>
+              <input type="number" id="reduction-count" placeholder="1" min="1" step="1" value="1" />
+            </div>
           </div>
         </div>
       </div>
@@ -610,14 +617,6 @@
         <label class="lease-check" id="lease-check-sublease"><input type="checkbox" id="lease-sublease" /> Sublease</label>
         <label class="lease-check" id="lease-check-takeover"><input type="checkbox" id="lease-takeover" /> Lease Takeover</label>
         <span class="error-msg" id="lease-type-error" style="display:none">Please select at least one lease type.</span>
-              <label>Reduction Amount <span style="color:var(--ink-muted)">(Required)</span></label>
-              <div class="input-prefix">
-                <span>$</span>
-                <input type="number" id="reduction-amount" placeholder="50" min="0" step="1" />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div class="card">

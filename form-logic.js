@@ -227,6 +227,35 @@ document.addEventListener('DOMContentLoaded', () => {
 	// Safe initial render — photo errors must NOT prevent form button listeners below from attaching
 	try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos init error (non-fatal)', e); }
 
+	function renderCollapsedPhotos() {
+		const miniStrip = document.getElementById('photo-mini-strip');
+		if (!miniStrip) return;
+		miniStrip.innerHTML = '';
+		if (!Array.isArray(photoDraft) || photoDraft.length === 0) return;
+
+		const MAX_VISIBLE = 4;
+		const shown = photoDraft.slice(0, MAX_VISIBLE);
+		const extra = photoDraft.length - MAX_VISIBLE;
+
+		shown.forEach((entry, i) => {
+			const imgSrc = entry.previewUrl || entry.url || '';
+			const img = document.createElement('img');
+			img.className = 'collapsed-thumb' + (i === 0 ? ' is-cover' : '');
+			img.src = imgSrc;
+			img.alt = `photo-${i + 1}`;
+			img.title = i === 0 ? 'Cover photo' : `Photo ${i + 1}`;
+			miniStrip.appendChild(img);
+		});
+
+		if (extra > 0) {
+			const badge = document.createElement('div');
+			badge.className = 'collapsed-more-badge';
+			badge.textContent = `+${extra}`;
+			badge.title = `${extra} more photo${extra > 1 ? 's' : ''}`;
+			miniStrip.appendChild(badge);
+		}
+	}
+
 	function renderPhotos() {
 		// Guard: ensure photoDraft is always an array
 		if (!Array.isArray(photoDraft)) photoDraft = [];
@@ -250,43 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		// DO NOT auto-open modal - only open via user click on Manage Photos button
 		
-		// Render mini strip for upload preview (compact, no editing)
+		// Render collapsed mini strip for upload preview (compact thumbnails, no editing)
 		if (miniStrip) {
-			miniStrip.innerHTML = '';
-			photoDraft.forEach((entry, i) => {
-				// Guard: safe image source — never call createObjectURL on null
-				const imgSrc = entry.previewUrl || entry.url || '';
-
-				const wrap = document.createElement('div');
-				wrap.className = 'photo-thumb-wrap';
-				wrap.dataset.index = i;
-
-				const idxBadge = document.createElement('div');
-				idxBadge.className = 'photo-number-badge' + (i === 0 ? ' cover' : '');
-				idxBadge.textContent = (i + 1).toString();
-
-				const img = document.createElement('img');
-				img.src = imgSrc;
-				img.alt = `photo-${i+1}`;
-
-				const del = document.createElement('button');
-				del.type = 'button';
-				del.className = 'photo-delete';
-				del.innerHTML = '✕';
-				del.addEventListener('click', () => {
-					photoDraft.splice(i, 1);
-					photoDraft.forEach((p, idx) => { p.order = idx; });
-					saveDraftPhotos();
-					try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error', e); }
-					saveDraft();
-					if (photoDraft.length >= 3) clearFieldError('upload-zone');
-				});
-
-				wrap.appendChild(idxBadge);
-				wrap.appendChild(img);
-				wrap.appendChild(del);
-				miniStrip.appendChild(wrap);
-			});
+			renderCollapsedPhotos();
 		}
 		
 		// Render modal strip with photo cards (sortable grid)
@@ -850,7 +845,7 @@ if (priceReductionBtns && priceReductionSection) {
 }
 
 // ── Input Validation: Prevent negative values ────────────────────────
-['rent', 'deposit', 'reduction-amount', 'reduction-days'].forEach(id => {
+['rent', 'deposit', 'reduction-amount', 'reduction-days', 'reduction-count'].forEach(id => {
 	const input = document.getElementById(id);
 	if (input) {
 		input.addEventListener('change', function() {
@@ -924,6 +919,7 @@ function saveDraft() {
 		priceReductionEnabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
 		reductionDays: document.getElementById('reduction-days').value,
 		reductionAmount: document.getElementById('reduction-amount').value,
+		reductionCount: document.getElementById('reduction-count').value,
 		photoNotes: photoDraft.map(p => p.note)
 	};
 	localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
@@ -1004,6 +1000,7 @@ function loadDraft() {
 		}
 		if(draft.reductionDays) document.getElementById('reduction-days').value = draft.reductionDays;
 		if(draft.reductionAmount) document.getElementById('reduction-amount').value = draft.reductionAmount;
+		if(draft.reductionCount) document.getElementById('reduction-count').value = draft.reductionCount;
 	} catch(e) { console.error("Draft load failed:", e); }
 }
 
@@ -1054,6 +1051,7 @@ function buildPayload(photoUrls = []) {
 		price_reduction_enabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
 		price_reduction_days: document.getElementById('reduction-days').value ? parseInt(document.getElementById('reduction-days').value) : null,
 		price_reduction_amount: document.getElementById('reduction-amount').value ? parseInt(document.getElementById('reduction-amount').value) : null,
+		price_reduction_count: document.getElementById('reduction-count').value ? parseInt(document.getElementById('reduction-count').value) : null,
 		photo_urls: photoUrls,
 		status: 'pending',
 		verified: false
