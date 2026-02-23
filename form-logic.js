@@ -101,17 +101,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	function renderPhotos() {
 		console.log('[form] renderPhotos called, storedFiles:', storedFiles.length);
-		const countMsg = document.getElementById('photo-count-msg');
-		if (!strip) {
-			console.error('[form] renderPhotos: strip element not found!');
+		const miniStrip = document.getElementById('photo-mini-strip');
+		const modalStrip = document.getElementById('photo-strip');
+		if (!miniStrip && !modalStrip) {
+			console.error('[form] renderPhotos: neither photo-mini-strip nor photo-strip found!');
 			return;
 		}
-		strip.innerHTML = '';
-		storedFiles.forEach((entry, i) => {
-			const file = entry.file;
+		
+		// Render mini strip for upload preview
+		if (miniStrip) {
+			miniStrip.innerHTML = '';
+			storedFiles.forEach((entry, i) => {
+				const file = entry.file;
 				const wrap = document.createElement('div');
 				wrap.className = 'photo-thumb-wrap';
-				wrap.dataset.index = i; // Needed for sortable sync
+				wrap.dataset.index = i;
 
 				const idxBadge = document.createElement('div');
 				idxBadge.className = 'photo-number-badge' + (i === 0 ? ' cover' : '');
@@ -121,34 +125,105 @@ document.addEventListener('DOMContentLoaded', () => {
 				img.src = entry.previewUrl || URL.createObjectURL(file);
 				img.alt = file.name || `photo-${i+1}`;
 
-				const del = document.createElement('button'); del.type = 'button'; del.className = 'photo-delete'; del.innerHTML = '✕';
-				del.addEventListener('click', () => { storedFiles.splice(i, 1); renderPhotos(); if (storedFiles.length >= 3) clearFieldError('upload-zone'); });
+				const del = document.createElement('button');
+				del.type = 'button';
+				del.className = 'photo-delete';
+				del.innerHTML = '✕';
+				del.addEventListener('click', () => {
+					storedFiles.splice(i, 1);
+					renderPhotos();
+					saveDraft();
+					if (storedFiles.length >= 3) clearFieldError('upload-zone');
+				});
 
 				const noteInput = document.createElement('textarea');
 				noteInput.className = 'photo-note';
 				noteInput.placeholder = 'Photo note (optional)';
 				noteInput.value = entry.note || '';
-				noteInput.addEventListener('input', (e) => { storedFiles[i].note = e.target.value; saveDraft(); });
+				noteInput.addEventListener('input', (e) => {
+					storedFiles[i].note = e.target.value;
+					saveDraft();
+				});
 
 				wrap.appendChild(idxBadge);
 				wrap.appendChild(img);
 				wrap.appendChild(del);
 				wrap.appendChild(noteInput);
-				strip.appendChild(wrap);
-		});
+				miniStrip.appendChild(wrap);
+			});
+		}
+		
+		// Render modal strip for reordering
+		if (modalStrip) {
+			modalStrip.innerHTML = '';
+			storedFiles.forEach((entry, i) => {
+				const file = entry.file;
+				const wrap = document.createElement('div');
+				wrap.className = 'photo-thumb-wrap';
+				wrap.dataset.index = i;
+
+				const idxBadge = document.createElement('div');
+				idxBadge.className = 'photo-number-badge' + (i === 0 ? ' cover' : '');
+				idxBadge.textContent = (i + 1).toString();
+
+				const img = document.createElement('img');
+				img.src = entry.previewUrl || URL.createObjectURL(file);
+				img.alt = file.name || `photo-${i+1}`;
+
+				const del = document.createElement('button');
+				del.type = 'button';
+				del.className = 'photo-delete';
+				del.innerHTML = '✕';
+				del.addEventListener('click', () => {
+					storedFiles.splice(i, 1);
+					renderPhotos();
+					saveDraft();
+				});
+
+				const noteInput = document.createElement('textarea');
+				noteInput.className = 'photo-note';
+				noteInput.placeholder = 'Photo note (optional)';
+				noteInput.value = entry.note || '';
+				noteInput.addEventListener('input', (e) => {
+					storedFiles[i].note = e.target.value;
+					saveDraft();
+				});
+
+				wrap.appendChild(idxBadge);
+				wrap.appendChild(img);
+				wrap.appendChild(del);
+				wrap.appendChild(noteInput);
+				modalStrip.appendChild(wrap);
+			});
+		}
+		
+		const countMsg = document.getElementById('photo-count-msg');
 		const n = storedFiles.length;
 		if (countMsg) countMsg.textContent = n > 0 ? `${n} photo${n > 1 ? 's' : ''} added` : '';
+	}
 	}
 
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
 		const initialCount = storedFiles.length;
+		const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+		
 		Array.from(fileList).forEach(f => {
-			console.log('[form] Processing file:', f.name, f.size);
+			console.log('[form] Processing file:', f.name, f.type, f.size);
+			
+			// Validate file type
+			if (!validImageTypes.includes(f.type)) {
+				alert(`The file "${f.name}" is not a valid image. Please upload only photos (JPG, PNG, GIF, WebP, etc.).`);
+				return;
+			}
+			
+			// Validate file size
 			if (f.size > 20 * 1024 * 1024) {
 				alert(`The file "${f.name}" is too large. Please select photos under 20MB.`);
 				return;
 			}
+			
+			// Check for duplicates
 			const isDuplicate = storedFiles.some(sf => sf.file.name === f.name && sf.file.size === f.size);
 			if (!isDuplicate) {
 				const previewUrl = URL.createObjectURL(f);
@@ -160,7 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 		console.log('[form] storedFiles count:', initialCount, '->', storedFiles.length);
 		renderPhotos();
-		if (strip && storedFiles.length >= 3) clearFieldError('upload-zone');
+		saveDraft();
+		if (storedFiles.length >= 3) clearFieldError('upload-zone');
 	}
 
 	// Be resilient: input id historically was 'photo-input' in backups or may be nested.
