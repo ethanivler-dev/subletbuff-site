@@ -138,15 +138,16 @@ nav.ss-nav .nav-links a.active {
 
 .listings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, 360px);
   gap: 24px;
-  max-width: 1700px;
+  max-width: 1950px;
   margin: 40px auto;
   padding: 0 24px;
+  justify-content: center;
 }
 
 .listing-card {
-  width: 100%;
+  width: 360px;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 12px;
