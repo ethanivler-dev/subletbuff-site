@@ -65,11 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (m) m.style.display = visible ? '' : 'none';
 	}
 
-	// ── Photo storage & immediate upload ────────────────
-	// storedFiles: in-memory during session {file: File, previewUrl: string, note: string}
-	// draftPhotos: persisted to localStorage {path: string, url: string, order: number, note: string}
-	let storedFiles = [];
-	let draftPhotos = []; // persistent copy
+	// ── Photo storage ────────────────────────────────────
+	// Single array - in-memory and persisted. Schema: { path, url, order, note, file?, previewUrl? }
+	let photoDraft = [];
 	const strip = document.getElementById('photo-strip');
 	const uploadZone = document.getElementById('upload-zone');
 	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
@@ -115,39 +113,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	// ── DRAFT PHOTO PERSISTENCE ────────────────────────
 	function saveDraftPhotos() {
-		// Save draftPhotos to localStorage
-		localStorage.setItem(PHOTOS_DRAFT_KEY, JSON.stringify(draftPhotos));
-		console.log('[form] draft photos saved:', draftPhotos.length);
+		const toSave = (photoDraft || []).map(({ path, url, order, note }) => ({ path, url, order, note }));
+		try { localStorage.setItem(PHOTOS_DRAFT_KEY, JSON.stringify(toSave)); } catch(e) { console.error('[form] saveDraftPhotos failed', e); }
+		console.log('[form] draft photos saved:', toSave.length);
 	}
 
 	function loadDraftPhotos() {
-		// Restore photos from localStorage
 		const raw = localStorage.getItem(PHOTOS_DRAFT_KEY);
-		if (!raw) {
-			draftPhotos = [];
-			return;
-		}
+		if (!raw) { photoDraft = []; return; }
 		try {
-			draftPhotos = JSON.parse(raw);
-			console.log('[form] draft photos restored:', draftPhotos.length);
-			// Rebuild storedFiles from draftPhotos (no File objects, just preview)
-			storedFiles = draftPhotos.map(p => ({
-				file: null, // File objects can't be restored
-				previewUrl: p.url,
-				note: p.note,
-				path: p.path,
-				url: p.url
-			}));
+			const saved = JSON.parse(raw);
+			photoDraft = Array.isArray(saved) ? saved.map((p, i) => ({
+				path: p.path || '',
+				url: p.url || '',
+				order: p.order != null ? p.order : i,
+				note: p.note || '',
+				file: null,        // File objects can't be persisted
+				previewUrl: p.url || ''
+			})) : [];
+			console.log('[form] draft photos restored:', photoDraft.length);
 		} catch (e) {
 			console.error('[form] failed to load draft photos:', e);
-			draftPhotos = [];
-			storedFiles = [];
+			photoDraft = [];
 		}
 	}
 
 	function clearDraftPhotos() {
-		draftPhotos = [];
-		localStorage.removeItem(PHOTOS_DRAFT_KEY);
+		photoDraft = [];
+		try { localStorage.removeItem(PHOTOS_DRAFT_KEY); } catch(e) {}
 		console.log('[form] draft photos cleared');
 	}
 
@@ -201,11 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	function updatePhotoModalCount() {
 		const countEl = document.getElementById('photo-modal-count-num');
-		if (countEl) countEl.textContent = storedFiles.length;
+		if (countEl) countEl.textContent = (photoDraft || []).length;
 	}
 
 	// Render UI after loading draft photos from localStorage
-	renderPhotos();
+	// NOTE: moved to AFTER modal listeners so a photo error can't prevent them attaching
 
 	// Prevent closing on background click (overlay)
 	if (photoModalOverlay) {
@@ -231,8 +224,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	// Safe initial render — photo errors must NOT prevent form button listeners below from attaching
+	try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos init error (non-fatal)', e); }
+
 	function renderPhotos() {
-		console.log('[form] renderPhotos called, storedFiles:', storedFiles.length, 'draftPhotos:', draftPhotos.length);
+		// Guard: ensure photoDraft is always an array
+		if (!Array.isArray(photoDraft)) photoDraft = [];
+		console.log('[form] renderPhotos called, photoDraft:', photoDraft.length);
 		const miniStrip = document.getElementById('photo-mini-strip');
 		const modalStrip = document.getElementById('photo-strip');
 		const managePhotosBtn = document.getElementById('manage-photos-btn');
@@ -244,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		
 		// Show/hide manage photos button
 		if (managePhotosBtn) {
-			managePhotosBtn.style.display = storedFiles.length > 0 ? 'inline-block' : 'none';
+			managePhotosBtn.style.display = photoDraft.length > 0 ? 'inline-block' : 'none';
 		}
 
 		// Update modal count
@@ -255,8 +253,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		// Render mini strip for upload preview (compact, no editing)
 		if (miniStrip) {
 			miniStrip.innerHTML = '';
-			storedFiles.forEach((entry, i) => {
-				const file = entry.file;
+			photoDraft.forEach((entry, i) => {
+				// Guard: safe image source — never call createObjectURL on null
+				const imgSrc = entry.previewUrl || entry.url || '';
+
 				const wrap = document.createElement('div');
 				wrap.className = 'photo-thumb-wrap';
 				wrap.dataset.index = i;
@@ -266,22 +266,20 @@ document.addEventListener('DOMContentLoaded', () => {
 				idxBadge.textContent = (i + 1).toString();
 
 				const img = document.createElement('img');
-				img.src = entry.previewUrl || URL.createObjectURL(file);
-				img.alt = file.name || `photo-${i+1}`;
+				img.src = imgSrc;
+				img.alt = `photo-${i+1}`;
 
 				const del = document.createElement('button');
 				del.type = 'button';
 				del.className = 'photo-delete';
 				del.innerHTML = '✕';
 				del.addEventListener('click', () => {
-					storedFiles.splice(i, 1);
-					draftPhotos.splice(i, 1);
-					// Re-sync order numbers after deletion
-					draftPhotos.forEach((photo, idx) => { photo.order = idx; });
-					renderPhotos();
-					saveDraft();
+					photoDraft.splice(i, 1);
+					photoDraft.forEach((p, idx) => { p.order = idx; });
 					saveDraftPhotos();
-					if (storedFiles.length >= 3) clearFieldError('upload-zone');
+					try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error', e); }
+					saveDraft();
+					if (photoDraft.length >= 3) clearFieldError('upload-zone');
 				});
 
 				wrap.appendChild(idxBadge);
@@ -294,8 +292,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		// Render modal strip with photo cards (sortable grid)
 		if (modalStrip) {
 			modalStrip.innerHTML = '';
-			storedFiles.forEach((entry, i) => {
-				const file = entry.file;
+			photoDraft.forEach((entry, i) => {
+				// Guard: safe image source — never call createObjectURL on null
+				const imgSrc = entry.previewUrl || entry.url || '';
+
 				const card = document.createElement('div');
 				card.className = 'photo-card-modal' + (i === 0 ? ' is-cover' : '');
 				card.dataset.index = i;
@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				numberSection.appendChild(badge);
 				if (label.textContent) numberSection.appendChild(label);
 
-				// Actions (delete, set as cover)
+				// Actions (delete)
 				const actions = document.createElement('div');
 				actions.className = 'photo-card-actions';
 
@@ -333,13 +333,11 @@ document.addEventListener('DOMContentLoaded', () => {
 				deleteBtn.title = 'Delete photo';
 				deleteBtn.addEventListener('click', (e) => {
 					e.stopPropagation();
-					storedFiles.splice(i, 1);
-					draftPhotos.splice(i, 1);
-					// Re-sync order numbers after deletion
-					draftPhotos.forEach((photo, idx) => { photo.order = idx; });
-					renderPhotos();
-					saveDraft();
+					photoDraft.splice(i, 1);
+					photoDraft.forEach((p, idx) => { p.order = idx; });
 					saveDraftPhotos();
+					try { renderPhotos(); } catch(e2) { console.error('[form] renderPhotos error', e2); }
+					saveDraft();
 				});
 
 				actions.appendChild(deleteBtn);
@@ -351,8 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				// Image preview
 				const img = document.createElement('img');
 				img.className = 'photo-card-img';
-				img.src = entry.previewUrl || URL.createObjectURL(file);
-				img.alt = file.name || `photo-${i+1}`;
+				img.src = imgSrc;
+				img.alt = `photo-${i+1}`;
 				img.draggable = false;
 				card.appendChild(img);
 
@@ -370,9 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				noteInput.placeholder = 'Add details about this photo (optional)';
 				noteInput.value = entry.note || '';
 				noteInput.addEventListener('input', (e) => {
-					storedFiles[i].note = e.target.value;
-					// Sync to draft
-					if (draftPhotos[i]) draftPhotos[i].note = e.target.value;
+					if (photoDraft[i]) photoDraft[i].note = e.target.value;
 					saveDraft();
 					saveDraftPhotos();
 				});
@@ -386,18 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
 					setCoverBtn.textContent = 'Set as Cover Photo';
 					setCoverBtn.addEventListener('click', (e) => {
 						e.stopPropagation();
-						const [coverCard] = storedFiles.splice(i, 1);
-						storedFiles.unshift(coverCard);
-						// Sync draftPhotos order
-						draftPhotos = storedFiles.map((item, idx) => ({
-							path: item.path || `temp-${idx}`,
-							url: item.url || item.previewUrl,
-							order: idx,
-							note: item.note || ''
-						}));
-						renderPhotos();
-						saveDraft();
+						const [coverItem] = photoDraft.splice(i, 1);
+						photoDraft.unshift(coverItem);
+						photoDraft.forEach((p, idx) => { p.order = idx; });
 						saveDraftPhotos();
+						try { renderPhotos(); } catch(e2) { console.error('[form] renderPhotos error', e2); }
+						saveDraft();
 					});
 					card.appendChild(setCoverBtn);
 				}
@@ -416,20 +406,12 @@ document.addEventListener('DOMContentLoaded', () => {
 					onEnd: function(evt) {
 						console.log('[form] SortableJS reorder: from', evt.oldIndex, 'to', evt.newIndex);
 						if (evt.oldIndex !== evt.newIndex) {
-							const [movedItem] = storedFiles.splice(evt.oldIndex, 1);
-							storedFiles.splice(evt.newIndex, 0, movedItem);
-							
-							// Sync draftPhotos with new order
-							draftPhotos = storedFiles.map((item, idx) => ({
-								path: item.path || `temp-${idx}`,
-								url: item.url || item.previewUrl,
-								order: idx,
-								note: item.note || ''
-							}));
-							
-							renderPhotos();
-							saveDraft();
+							const [movedItem] = photoDraft.splice(evt.oldIndex, 1);
+							photoDraft.splice(evt.newIndex, 0, movedItem);
+							photoDraft.forEach((p, idx) => { p.order = idx; });
 							saveDraftPhotos();
+							try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error', e); }
+							saveDraft();
 						}
 					}
 				});
@@ -437,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		
 		const countMsg = document.getElementById('photo-count-msg');
-		const n = storedFiles.length;
+		const n = (photoDraft || []).length;
 		if (countMsg) countMsg.textContent = n > 0 ? `${n} photo${n > 1 ? 's' : ''} added` : '';
 	}
 
@@ -480,8 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const managePhotosBtn = document.getElementById('manage-photos-btn');
 	if (managePhotosBtn) {
 		managePhotosBtn.addEventListener('click', () => {
-			// Empty-state check: if no photos, trigger file picker and show message
-			if (storedFiles.length === 0) {
+			if ((photoDraft || []).length === 0) {
 				const photoInput = document.getElementById('photoInput');
 				if (photoInput) {
 					photoInput.click();
@@ -512,8 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				return;
 			}
 			
-			// Check for duplicates in storedFiles
-			const isDuplicate = storedFiles.some(sf => sf.file && sf.file.name === f.name && sf.file.size === f.size);
+			// Check for duplicates in photoDraft
+			const isDuplicate = photoDraft.some(sf => sf.file && sf.file.name === f.name && sf.file.size === f.size);
 			if (!isDuplicate) {
 				filesToUpload.push(f);
 			} else {
@@ -527,25 +508,17 @@ document.addEventListener('DOMContentLoaded', () => {
 				const { path, url } = await uploadPhotoToStorage(file);
 				const previewUrl = URL.createObjectURL(file);
 				
-				// Add to storedFiles for immediate UI
-				storedFiles.push({ 
-					file: file, 
-					previewUrl: previewUrl, 
-					note: '',
+				// Add to photoDraft (single source of truth)
+				photoDraft.push({ 
 					path: path,
-					url: url
+					url: url,
+					order: photoDraft.length,
+					note: '',
+					file: file,
+					previewUrl: previewUrl
 				});
 				
-				// Add to draftPhotos (persisted version)
-				const order = draftPhotos.length;
-				draftPhotos.push({ 
-					path: path, 
-					url: url, 
-					order: order, 
-					note: '' 
-				});
-				
-				console.log('[form] photo added to draft:', { path, order });
+				console.log('[form] photo added to photoDraft:', { path, order: photoDraft.length - 1 });
 			} catch (err) {
 				console.error('[form] upload error for', file.name, err);
 				alert(`Failed to upload ${file.name}: ${err.message}`);
@@ -554,11 +527,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		// After all uploads complete, update UI
 		Promise.all(uploadPromises).then(() => {
-			console.log('[form] all uploads complete, storedFiles:', storedFiles.length, 'draft:', draftPhotos.length);
+			console.log('[form] all uploads complete, photoDraft:', photoDraft.length);
 			saveDraftPhotos();
-			renderPhotos();
+			try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error after upload', e); }
 			saveDraft();
-			if (draftPhotos.length >= 3) clearFieldError('upload-zone');
+			if (photoDraft.length >= 3) clearFieldError('upload-zone');
 		});
 	}
 
@@ -951,7 +924,7 @@ function saveDraft() {
 		priceReductionEnabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
 		reductionDays: document.getElementById('reduction-days').value,
 		reductionAmount: document.getElementById('reduction-amount').value,
-		photoNotes: storedFiles.map(f => f.note)
+		photoNotes: photoDraft.map(p => p.note)
 	};
 	localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
 	showAutosaveBadge();
@@ -1135,7 +1108,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		}
 	}
   
-	if (storedFiles.length < 3) {
+	if (photoDraft.length < 3) {
 		valid = false;
 		const zone = document.getElementById('upload-zone');
 		zone.style.borderColor = 'var(--red)';
@@ -1187,12 +1160,12 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		const BUCKET_NAME = 'listing-photos'; 
 		const uploadedUrls = [];
 
-		// Use persisted draftPhotos (already uploaded during photo selection)
+		// Use photoDraft (already uploaded during photo selection)
 		// Do NOT re-upload; just build photos_meta from draft
 		const photosMeta = [];
-		if (draftPhotos && draftPhotos.length > 0) {
-			console.log('[form] building photos_meta from draftPhotos:', draftPhotos.length);
-			draftPhotos.forEach((photo, idx) => {
+		if (photoDraft && photoDraft.length > 0) {
+			console.log('[form] building photos_meta from photoDraft:', photoDraft.length);
+			photoDraft.forEach((photo, idx) => {
 				uploadedUrls.push(photo.url);
 				photosMeta.push({
 					path: photo.path,
@@ -1202,7 +1175,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 				});
 			});
 		} else {
-			console.warn('[form] no draft photos found, draftPhotos:', draftPhotos);
+			console.warn('[form] no draft photos found, photoDraft:', photoDraft);
 		}
 
 		submitBtn.textContent = 'Saving Listing...';
@@ -1245,7 +1218,6 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
   
 	localStorage.removeItem(DRAFT_KEY);
 	clearDraftPhotos(); // Clear photo draft after successful submit
-	storedFiles = []; // Reset in-memory photos
 	document.getElementById('listing-form').style.display = 'none';
 	document.getElementById('success-screen').classList.add('visible');
 	document.querySelector('.page-title').style.display = 'none';
