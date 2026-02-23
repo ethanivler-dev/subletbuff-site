@@ -65,39 +65,94 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (m) m.style.display = visible ? '' : 'none';
 	}
 
-	// ── Photo storage & duplicate/size blocker ────────────────
-	// storedFiles holds objects: { file: File, previewUrl: string, note: string }
+	// ── Photo storage & immediate upload ────────────────
+	// storedFiles: in-memory during session {file: File, previewUrl: string, note: string}
+	// draftPhotos: persisted to localStorage {path: string, url: string, order: number, note: string}
 	let storedFiles = [];
+	let draftPhotos = []; // persistent copy
 	const strip = document.getElementById('photo-strip');
 	const uploadZone = document.getElementById('upload-zone');
+	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
 	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
 
-	// Reordering Logic - use Sortable's provided indices directly
-	if (strip && window.Sortable) {
-		Sortable.create(strip, {
-			animation: 150,
-			onEnd: (evt) => {
-				const { oldIndex, newIndex } = evt;
-				if (oldIndex === newIndex) return;
-				// Move item in storedFiles array
-				const [movedItem] = storedFiles.splice(oldIndex, 1);
-				storedFiles.splice(newIndex, 0, movedItem);
-				renderPhotos();
-				saveDraft();
+	// ── IMMEDIATE UPLOAD TO STORAGE ────────────────────────
+	async function uploadPhotoToStorage(file) {
+		if (!supabaseClient) {
+			console.error('[form] Supabase client not available for upload');
+			throw new Error('Database connection unavailable');
+		}
+		try {
+			const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+			const fileExt = file.name.split('.').pop();
+			const filePath = `temp-uploads/${fileName}.${fileExt}`;
+
+			console.log('[form] uploading to storage:', { path: filePath, name: file.name, size: file.size });
+			
+			const { data: uploadData, error: uploadError } = await supabaseClient.storage
+				.from('listing-photos')
+				.upload(filePath, file);
+
+			if (uploadError) {
+				console.error('[form] Storage upload error', uploadError);
+				throw uploadError;
 			}
-		});
+
+			const { data: publicUrlData } = supabaseClient.storage
+				.from('listing-photos')
+				.getPublicUrl(filePath);
+
+			if (!publicUrlData || !publicUrlData.publicUrl) {
+				throw new Error('Failed to get public URL');
+			}
+
+			console.log('[form] upload successful:', { path: filePath, url: publicUrlData.publicUrl });
+			return { path: filePath, url: publicUrlData.publicUrl };
+		} catch (err) {
+			console.error('[form] uploadPhotoToStorage failed:', err);
+			throw err;
+		}
 	}
 
-	function moveUp(i) {
-		if (i <= 0) return;
-		[storedFiles[i - 1], storedFiles[i]] = [storedFiles[i], storedFiles[i - 1]];
-		renderPhotos();
+	// ── DRAFT PHOTO PERSISTENCE ────────────────────────
+	function saveDraftPhotos() {
+		// Save draftPhotos to localStorage
+		localStorage.setItem(PHOTOS_DRAFT_KEY, JSON.stringify(draftPhotos));
+		console.log('[form] draft photos saved:', draftPhotos.length);
 	}
-	function moveDown(i) {
-		if (i >= storedFiles.length - 1) return;
-		[storedFiles[i + 1], storedFiles[i]] = [storedFiles[i], storedFiles[i + 1]];
-		renderPhotos();
+
+	function loadDraftPhotos() {
+		// Restore photos from localStorage
+		const raw = localStorage.getItem(PHOTOS_DRAFT_KEY);
+		if (!raw) {
+			draftPhotos = [];
+			return;
+		}
+		try {
+			draftPhotos = JSON.parse(raw);
+			console.log('[form] draft photos restored:', draftPhotos.length);
+			// Rebuild storedFiles from draftPhotos (no File objects, just preview)
+			storedFiles = draftPhotos.map(p => ({
+				file: null, // File objects can't be restored
+				previewUrl: p.url,
+				note: p.note,
+				path: p.path,
+				url: p.url
+			}));
+		} catch (e) {
+			console.error('[form] failed to load draft photos:', e);
+			draftPhotos = [];
+			storedFiles = [];
+		}
 	}
+
+	function clearDraftPhotos() {
+		draftPhotos = [];
+		localStorage.removeItem(PHOTOS_DRAFT_KEY);
+		console.log('[form] draft photos cleared');
+	}
+
+	// Load draft photos on page init (before renderPhotos)
+	loadDraftPhotos();
 
 	// ── MODAL MANAGEMENT ────────────────────
 	const photoModalOverlay = document.getElementById('photo-modal-overlay');
@@ -194,8 +249,12 @@ document.addEventListener('DOMContentLoaded', () => {
 				del.innerHTML = '✕';
 				del.addEventListener('click', () => {
 					storedFiles.splice(i, 1);
+					draftPhotos.splice(i, 1);
+					// Re-sync order numbers after deletion
+					draftPhotos.forEach((photo, idx) => { photo.order = idx; });
 					renderPhotos();
 					saveDraft();
+					saveDraftPhotos();
 					if (storedFiles.length >= 3) clearFieldError('upload-zone');
 				});
 
@@ -205,6 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				noteInput.value = entry.note || '';
 				noteInput.addEventListener('input', (e) => {
 					storedFiles[i].note = e.target.value;
+					// Sync to draft
+					if (draftPhotos[i]) draftPhotos[i].note = e.target.value;
 					saveDraft();
 				});
 
@@ -258,8 +319,12 @@ document.addEventListener('DOMContentLoaded', () => {
 				deleteBtn.addEventListener('click', (e) => {
 					e.stopPropagation();
 					storedFiles.splice(i, 1);
+					draftPhotos.splice(i, 1);
+					// Re-sync order numbers after deletion
+					draftPhotos.forEach((photo, idx) => { photo.order = idx; });
 					renderPhotos();
 					saveDraft();
+					saveDraftPhotos();
 				});
 
 				actions.appendChild(deleteBtn);
@@ -291,7 +356,10 @@ document.addEventListener('DOMContentLoaded', () => {
 				noteInput.value = entry.note || '';
 				noteInput.addEventListener('input', (e) => {
 					storedFiles[i].note = e.target.value;
+					// Sync to draft
+					if (draftPhotos[i]) draftPhotos[i].note = e.target.value;
 					saveDraft();
+					saveDraftPhotos();
 				});
 				card.appendChild(noteInput);
 
@@ -305,8 +373,16 @@ document.addEventListener('DOMContentLoaded', () => {
 						e.stopPropagation();
 						const [coverCard] = storedFiles.splice(i, 1);
 						storedFiles.unshift(coverCard);
+						// Sync draftPhotos order
+						draftPhotos = storedFiles.map((item, idx) => ({
+							path: item.path || `temp-${idx}`,
+							url: item.url || item.previewUrl,
+							order: idx,
+							note: item.note || ''
+						}));
 						renderPhotos();
 						saveDraft();
+						saveDraftPhotos();
 					});
 					card.appendChild(setCoverBtn);
 				}
@@ -354,8 +430,18 @@ document.addEventListener('DOMContentLoaded', () => {
 			const dropIndex = parseInt(this.dataset.index);
 			const [draggedItem] = storedFiles.splice(draggedFromIndex, 1);
 			storedFiles.splice(dropIndex, 0, draggedItem);
+			
+			// Sync draftPhotos with new order
+			draftPhotos = storedFiles.map((item, idx) => ({
+				path: item.path || `temp-${idx}`,
+				url: item.url || item.previewUrl,
+				order: idx,
+				note: item.note || ''
+			}));
+			
 			renderPhotos();
 			saveDraft();
+			saveDraftPhotos();
 		}
 		return false;
 	}
@@ -407,7 +493,17 @@ document.addEventListener('DOMContentLoaded', () => {
 		this.style.opacity = '1';
 		touchStartY = 0;
 		touchStartIndex = null;
+		
+		// Sync draftPhotos with current order
+		draftPhotos = storedFiles.map((item, idx) => ({
+			path: item.path || `temp-${idx}`,
+			url: item.url || item.previewUrl,
+			order: idx,
+			note: item.note || ''
+		}));
+		
 		saveDraft();
+		saveDraftPhotos();
 	}
 
 	// Manage Photos button click handler
@@ -420,38 +516,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
-		const initialCount = storedFiles.length;
 		const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
-		
+		const filesToUpload = [];
+
+		// First validate all files
 		Array.from(fileList).forEach(f => {
-			console.log('[form] Processing file:', f.name, f.type, f.size);
+			console.log('[form] Validating file:', f.name, f.type, f.size);
 			
-			// Validate file type
 			if (!validImageTypes.includes(f.type)) {
 				alert(`The file "${f.name}" is not a valid image. Please upload only photos (JPG, PNG, GIF, WebP, etc.).`);
 				return;
 			}
 			
-			// Validate file size
 			if (f.size > 20 * 1024 * 1024) {
 				alert(`The file "${f.name}" is too large. Please select photos under 20MB.`);
 				return;
 			}
 			
-			// Check for duplicates
-			const isDuplicate = storedFiles.some(sf => sf.file.name === f.name && sf.file.size === f.size);
+			// Check for duplicates in storedFiles
+			const isDuplicate = storedFiles.some(sf => sf.file && sf.file.name === f.name && sf.file.size === f.size);
 			if (!isDuplicate) {
-				const previewUrl = URL.createObjectURL(f);
-				console.log('[form] Adding file to storedFiles:', f.name, previewUrl);
-				storedFiles.push({ file: f, previewUrl: previewUrl, note: '' });
+				filesToUpload.push(f);
 			} else {
 				console.log('[form] Skipping duplicate:', f.name);
 			}
 		});
-		console.log('[form] storedFiles count:', initialCount, '->', storedFiles.length);
-		renderPhotos();
-		saveDraft();
-		if (storedFiles.length >= 3) clearFieldError('upload-zone');
+
+		// Upload all valid files immediately
+		const uploadPromises = filesToUpload.map(async (file) => {
+			try {
+				const { path, url } = await uploadPhotoToStorage(file);
+				const previewUrl = URL.createObjectURL(file);
+				
+				// Add to storedFiles for immediate UI
+				storedFiles.push({ 
+					file: file, 
+					previewUrl: previewUrl, 
+					note: '',
+					path: path,
+					url: url
+				});
+				
+				// Add to draftPhotos (persisted version)
+				const order = draftPhotos.length;
+				draftPhotos.push({ 
+					path: path, 
+					url: url, 
+					order: order, 
+					note: '' 
+				});
+				
+				console.log('[form] photo added to draft:', { path, order });
+			} catch (err) {
+				console.error('[form] upload error for', file.name, err);
+				alert(`Failed to upload ${file.name}: ${err.message}`);
+			}
+		});
+
+		// After all uploads complete, update UI
+		Promise.all(uploadPromises).then(() => {
+			console.log('[form] all uploads complete, storedFiles:', storedFiles.length, 'draft:', draftPhotos.length);
+			saveDraftPhotos();
+			renderPhotos();
+			saveDraft();
+			if (draftPhotos.length >= 3) clearFieldError('upload-zone');
+		});
 	}
 
 	// Be resilient: input id historically was 'photo-input' in backups or may be nested.
@@ -1082,43 +1211,27 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		const BUCKET_NAME = 'listing-photos'; 
 		const uploadedUrls = [];
 
-		const folderName = currentListingId ? currentListingId : `submission-${Date.now()}`;
-
-		// Reordered Photo Loop -> build uploadedUrls and photos_meta (reflecting visual order)
+		// Use persisted draftPhotos (already uploaded during photo selection)
+		// Do NOT re-upload; just build photos_meta from draft
 		const photosMeta = [];
-		for (let i = 0; i < storedFiles.length; i++) {
-			const file = storedFiles[i].file;
-			const note = storedFiles[i].note || '';
-			const fileExt = file.name.split('.').pop();
-			const filePath = `${folderName}/${i}_${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-			try {
-				console.error('[form] uploading to storage:', { bucket: BUCKET_NAME, path: filePath, name: file.name });
-				const { data: uploadData, error: uploadError } = await supabaseClient.storage
-					.from(BUCKET_NAME)
-					.upload(filePath, file);
-
-				if (uploadError) {
-					console.error('[form] Supabase storage upload error', uploadError);
-					throw uploadError;
-				}
-
-				const { data: publicUrlData } = supabaseClient.storage
-					.from(BUCKET_NAME)
-					.getPublicUrl(filePath);
-
-				const publicUrl = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : null;
-				uploadedUrls.push(publicUrl);
-				photosMeta.push({ path: filePath, url: publicUrl, order: i, note });
-			} catch (uErr) {
-				console.error('[form] upload failed for', file.name, uErr);
-				throw new Error('Image upload failed: ' + (uErr?.message || uErr));
-			}
+		if (draftPhotos && draftPhotos.length > 0) {
+			console.log('[form] building photos_meta from draftPhotos:', draftPhotos.length);
+			draftPhotos.forEach((photo, idx) => {
+				uploadedUrls.push(photo.url);
+				photosMeta.push({
+					path: photo.path,
+					url: photo.url,
+					order: idx,
+					note: photo.note
+				});
+			});
+		} else {
+			console.warn('[form] no draft photos found, draftPhotos:', draftPhotos);
 		}
 
 		submitBtn.textContent = 'Saving Listing...';
 		const payload = buildPayload(uploadedUrls);
-		// attach photos_meta (array of {path, url, order, note}) built from the current visual order
+		// attach photos_meta (array of {path, url, order, note}) built from the draft
 		payload.photos_meta = photosMeta;
 
 		try {
@@ -1155,6 +1268,8 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 	}
   
 	localStorage.removeItem(DRAFT_KEY);
+	clearDraftPhotos(); // Clear photo draft after successful submit
+	storedFiles = []; // Reset in-memory photos
 	document.getElementById('listing-form').style.display = 'none';
 	document.getElementById('success-screen').classList.add('visible');
 	document.querySelector('.page-title').style.display = 'none';
