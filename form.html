@@ -156,14 +156,14 @@
   .photo-modal-header p { font-size: 0.875rem; color: var(--ink-muted); margin: 0; }
   .photo-modal-close { position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--white); color: var(--ink-muted); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
   .photo-modal-close:hover { background: var(--red); color: white; border-color: var(--red); }
-  .photo-modal-body { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px 28px; min-height: 0; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .photo-modal-body { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px 28px; min-height: 0; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: flex; flex-direction: column; }
+  .photo-grid-modal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; overflow: visible; }
   .photo-modal-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
   .photo-modal-count { font-size: 0.875rem; color: var(--ink-muted); }
   .photo-modal-done { padding: 12px 32px; background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all var(--transition); }
   .photo-modal-done:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(184,146,42,0.4); }
   
   /* ── PHOTO GRID IN MODAL ── */
-  .photo-grid-modal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
   .photo-card-modal { background: var(--cream); border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 16px; position: relative; transition: all var(--transition); }
   .photo-card-modal:hover { border-color: var(--gold-light); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
   .photo-card-modal.is-cover { border-color: var(--gold); border-width: 2px; background: var(--gold-pale); }
@@ -277,7 +277,7 @@
     <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg" alt="SubletBuff" style="height:40px;width:auto;" />
   </a>
   <div class="nav-links" id="nav-links-desktop">
-    <a href="#">Home</a>
+    <a href="/">Home</a>
     <a href="#">How It Works</a>
     <a href="#">Listings</a>
     <a href="/form-submission" class="active" id="nav-post-link">Post a Listing</a>
@@ -288,7 +288,7 @@
     </svg>
   </button>
   <div class="nav-mobile-menu" id="nav-mobile-menu">
-    <a href="#">Home</a>
+    <a href="/">Home</a>
     <a href="#">How It Works</a>
     <a href="#">Listings</a>
     <a href="/form-submission" class="active" id="nav-post-link-mobile">Post a Listing</a>
@@ -576,7 +576,7 @@
     <p class="footer-note">Only CU Boulder students with @colorado.edu email addresses can post listings. Listings are manually reviewed before being posted.</p>
   <!-- Photo Manager -->
   <div class="photo-manager">
-    <div class="photo-manager__header">
+    <div class="photo-manager__header" style="display:none;">
       <div>
         <div class="photo-manager__title">Photos</div>
         <div class="photo-manager__subtitle">Drag to reorder. Add notes per photo. #1 is your cover.</div>
