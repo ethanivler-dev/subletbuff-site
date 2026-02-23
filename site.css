@@ -434,15 +434,16 @@ nav.ss-nav .nav-links a.active {
 }
 /* ── HOME HERO ── */
 .home {
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 48px 24px 20px; /* aligns with your grid padding */
+  padding: 48px 0 20px;
   box-sizing: border-box;
 }
 
 .home-hero {
   text-align: center;
-  padding: 28px 0 12px;
+  padding: 28px 24px 12px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .home-title {
