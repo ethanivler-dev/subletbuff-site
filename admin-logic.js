@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewWrap = document.createElement('div');
     previewWrap.style.marginTop = '12px';
     const previewLink = document.createElement('a');
-    previewLink.href = '/?preview=' + encodeURIComponent(item.id);
+    previewLink.href = '/listing.html?id=' + encodeURIComponent(item.id);
     previewLink.target = '_blank';
     previewLink.style.cssText = 'font-size: 0.8rem; color: #B8922A; font-weight: 600; text-decoration: none; border: 1px solid #B8922A; padding: 5px 12px; border-radius: 6px;';
     previewLink.textContent = 'View Full Preview ↗';
@@ -708,6 +708,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function renderUnauthorizedUI(message) {
+    if (!authRoot || !activeSession || !activeSession.user) return;
+
+    showAppRoot(false);
+    showAuthRoot(true);
+
+    authRoot.innerHTML = '';
+
+    const title = document.createElement('h1');
+    title.textContent = 'Admin Access';
+    authRoot.appendChild(title);
+
+    const sub = document.createElement('p');
+    sub.textContent = message || 'Not authorized for admin access.';
+    authRoot.appendChild(sub);
+
+    const who = document.createElement('div');
+    who.style.cssText = 'font-size:0.9rem; color:#4A4035; margin-bottom:12px;';
+    who.textContent = 'Signed in as: ' + (activeSession.user.email || activeSession.user.id);
+    authRoot.appendChild(who);
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.type = 'button';
+    logoutBtn.id = 'admin-logout-btn';
+    logoutBtn.textContent = 'Log Out';
+    logoutBtn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      setFlash('Logged out.', '#4A4035');
+      await bootstrap();
+    });
+    authRoot.appendChild(logoutBtn);
+  }
+
   async function isAllowedAdmin(userId) {
     if (!userId) return false;
     const { data, error } = await supabaseClient
@@ -746,8 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const allowed = await isAllowedAdmin(activeAdminId);
     if (!allowed) {
-      renderAuthUI('You are logged in but not authorized as an admin.');
-      await supabaseClient.auth.signOut();
+      renderUnauthorizedUI('You are logged in but not authorized as an admin.');
       return;
     }
 
