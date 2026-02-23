@@ -445,7 +445,7 @@
       <div class="card">
         <div class="card-title">Upload Photos <span class="tag-required">Required</span></div>
         <div class="upload-zone" id="upload-zone">
-          <input type="file" id="photo-input" accept="image/jpeg,image/png" multiple />
+          <input type="file" id="photoInput" accept="image/jpeg,image/png" multiple />
           <div class="upload-icon">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 13V4M10 4l-3 3M10 4l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -498,6 +498,22 @@
       <button type="submit" class="btn-submit">Submit Listing</button>
     </div>
     <p class="footer-note">Only CU Boulder students with @colorado.edu email addresses can post listings. Listings are manually reviewed before being posted.</p>
+  <!-- Photo Manager -->
+  <div class="photo-manager">
+    <div class="photo-manager__header">
+      <div>
+        <div class="photo-manager__title">Photos</div>
+        <div class="photo-manager__subtitle">Drag to reorder. Add notes per photo. #1 is your cover.</div>
+      </div>
+      <div class="photo-manager__meta">
+        <span id="photoCount">0</span> / <span id="photoLimit">12</span>
+      </div>
+    </div>
+
+    <div id="photoScroller" class="photo-scroller">
+      <div id="photoGrid" class="photo-grid"></div>
+    </div>
+  </div>
   </form>
 
   <div id="success-screen">
