@@ -267,8 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewWrap = document.createElement('div');
     previewWrap.style.marginTop = '12px';
     const previewLink = document.createElement('a');
-    previewLink.href = '/listing.html?id=' + encodeURIComponent(item.id);
+    previewLink.href = '/listing.html?id=' + encodeURIComponent(item.id) + (state.mode === 'pending' ? '&preview=1' : '');
     previewLink.target = '_blank';
+    previewLink.rel = 'noopener noreferrer';
     previewLink.style.cssText = 'font-size: 0.8rem; color: #B8922A; font-weight: 600; text-decoration: none; border: 1px solid #B8922A; padding: 5px 12px; border-radius: 6px;';
     previewLink.textContent = 'View Full Preview ↗';
     previewWrap.appendChild(previewLink);

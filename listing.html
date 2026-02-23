@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubletBuff | Listing</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/site.css" />
+  <link rel="stylesheet" href="/listing.css" />
+</head>
+<body>
+  <main class="listing-page">
+    <header class="listing-topbar">
+      <a class="listing-back-link" href="/listings.html">← Back to Listings</a>
+
+      <div class="listing-share-wrap">
+        <button type="button" id="listing-share-btn" class="listing-share-btn">Share ▾</button>
+        <div id="listing-share-menu" class="listing-share-menu listing-hidden" role="menu" aria-hidden="true">
+          <button type="button" id="share-copy-link" role="menuitem">Copy Link</button>
+          <button type="button" id="share-open-tab" role="menuitem">Open in New Tab</button>
+          <button type="button" id="share-show-qr" role="menuitem">Show QR Code</button>
+        </div>
+      </div>
+    </header>
+
+    <div id="listing-status" class="listing-status">Loading listing...</div>
+
+    <section id="listing-content" class="listing-content listing-hidden">
+      <div class="listing-main-grid">
+        <div class="listing-main-column">
+          <section class="listing-gallery" aria-label="Listing photos">
+            <div class="listing-main-image-wrap" id="listing-main-image-wrap">
+              <button type="button" class="listing-gallery-arrow left" id="gallery-prev" aria-label="Previous image">‹</button>
+              <img id="listing-main-image" class="listing-main-image" alt="Listing photo" />
+              <div id="listing-no-photo" class="listing-no-photo listing-hidden">No photos provided.</div>
+              <button type="button" class="listing-gallery-arrow right" id="gallery-next" aria-label="Next image">›</button>
+              <div id="listing-zoom-panel" class="listing-zoom-panel listing-hidden" aria-hidden="true"></div>
+              <button type="button" id="listing-open-lightbox" class="listing-open-lightbox" aria-label="Open full screen image">Open</button>
+            </div>
+
+            <div class="listing-gallery-footer">
+              <div id="listing-image-counter" class="listing-image-counter">0 / 0</div>
+            </div>
+
+            <div id="listing-thumbnails" class="listing-thumbnails"></div>
+          </section>
+
+          <section id="listing-sections" class="listing-sections"></section>
+        </div>
+
+        <aside class="listing-sidebar" id="listing-sidebar">
+          <div class="listing-sidebar-card">
+            <div id="listing-rent" class="listing-rent">$0 / month</div>
+            <div id="listing-badges" class="listing-badges"></div>
+            <div id="listing-lease-dates" class="listing-lease-dates"></div>
+
+            <button type="button" id="listing-contact-cta" class="listing-contact-cta">Contact Lister</button>
+
+            <div class="listing-secondary-actions">
+              <button type="button" id="listing-copy-contact">Copy Contact Info</button>
+              <button type="button" id="listing-copy-email">Copy Email</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div id="listing-lightbox" class="listing-lightbox listing-hidden" aria-hidden="true">
+    <button type="button" id="lightbox-close" class="listing-lightbox-close" aria-label="Close lightbox">✕</button>
+    <button type="button" id="lightbox-prev" class="listing-lightbox-arrow left" aria-label="Previous image">‹</button>
+    <img id="lightbox-image" class="listing-lightbox-image" alt="Listing photo full screen" />
+    <button type="button" id="lightbox-next" class="listing-lightbox-arrow right" aria-label="Next image">›</button>
+    <div id="lightbox-counter" class="listing-lightbox-counter"></div>
+  </div>
+
+  <div id="listing-qr-modal" class="listing-qr-modal listing-hidden" aria-hidden="true">
+    <div class="listing-qr-card">
+      <button type="button" id="qr-close" class="listing-qr-close" aria-label="Close QR modal">✕</button>
+      <h3>Share Listing</h3>
+      <img id="qr-image" alt="QR code for this listing" />
+      <p>Scan to open this listing.</p>
+    </div>
+  </div>
+
+  <div id="listing-toast" class="listing-toast listing-hidden" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/listing-logic.js"></script>
+</body>
+</html>

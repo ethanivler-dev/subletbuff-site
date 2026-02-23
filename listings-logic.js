@@ -85,6 +85,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function createCard(listing) {
     const card = document.createElement('article');
     card.className = 'listing-card listings-card';
+    card.style.cursor = 'pointer';
+    card.tabIndex = 0;
+
+    const openDetail = () => {
+      if (!listing || !listing.id) return;
+      window.open(`/listing.html?id=${encodeURIComponent(listing.id)}`, '_blank', 'noopener,noreferrer');
+    };
+
+    card.addEventListener('click', openDetail);
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openDetail();
+      }
+    });
 
     const photoWrap = document.createElement('div');
     photoWrap.className = 'listings-photo-wrap';
