@@ -136,19 +136,17 @@ nav.ss-nav .nav-links a.active {
   border-left-color: var(--gold);
 }
 
-/* Fixed-size cards so images don't resize with the tab width */
 .listings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 360px);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 24px;
-  max-width: 1200px;
+  max-width: 1700px;
   margin: 40px auto;
   padding: 0 24px;
-  justify-content: center;
 }
 
 .listing-card {
-  width: 360px;
+  width: 100%;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 12px;
