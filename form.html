@@ -226,7 +226,10 @@
   .confirm-error-banner { display: none; margin-top: 14px; padding: 10px 14px; background: #fdf2f2; border: 1.5px solid var(--red); border-radius: var(--radius-sm); font-size: .8125rem; color: var(--red); font-weight: 500; display: flex; align-items: center; gap: 8px; }
   .confirm-error-banner.hidden { display: none !important; }
   .confirm-error-banner svg { flex-shrink: 0; }
-  .submit-row { display: flex; justify-content: center; margin-top: 32px; width: 100%; }
+  .submit-row { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 32px; width: 100%; flex-wrap: wrap; }
+  .btn-reset { background: transparent; border: 1.5px solid var(--border); color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500; padding: 15px 32px; border-radius: var(--radius-md); cursor: pointer; transition: all var(--transition); flex-shrink: 0; }
+  .btn-reset:hover { border-color: var(--red); color: var(--red); }
+  .btn-reset.confirm { border-color: var(--red); color: var(--red); background: rgba(192,57,43,0.06); }
   .btn-submit { background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; letter-spacing: .03em; padding: 15px 64px; border: none; border-radius: var(--radius-md); cursor: pointer; box-shadow: var(--shadow-btn); transition: all var(--transition); max-width: 500px; width: 100%; pointer-events: auto; }
   .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(184,146,42,0.45); }
   .btn-submit:active { transform: translateY(0); }
@@ -431,7 +434,7 @@
       <div class="card">
         <div class="card-title">Contact Information</div>
         <div class="field">
-          <label>Phone Number <span style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
+          <label>Phone Number <span id="phone-optional-tag" style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
           <input type="tel" id="phone" placeholder="(303) 555-0000" />
         </div>
         <div class="field">
@@ -485,7 +488,7 @@
           </select>
         </div>
         <div class="field">
-          <label>Gender Preference for Roommates</label>
+          <label>Gender Preference for Space</label>
           <select id="gender-pref">
             <option value="">No preference</option>
             <option value="Male only">Male only</option>
@@ -525,7 +528,7 @@
       <div class="card">
         <div class="card-title">Upload Photos <span class="tag-required">Required</span></div>
         <div class="upload-zone" id="upload-zone">
-          <input type="file" id="photoInput" accept="image/jpeg,image/png" multiple />
+          <input type="file" id="photoInput" accept="image/*" multiple />
           <div class="upload-icon">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 13V4M10 4l-3 3M10 4l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -534,7 +537,7 @@
           </div>
           <div style="font-size:.875rem;font-weight:500;color:var(--ink-soft)">Click to upload or drag files here to add photos</div>
           <div class="upload-hint">Drag to reorder photos · ≤20MB each</div>
-          <div class="upload-min">Minimum 3 photos</div>
+          <div class="upload-min">Minimum 3 · Maximum 10 photos</div>
         </div>
         <!-- Mini preview strip showing thumbnails -->
         <div id="photo-mini-strip"></div>
@@ -554,7 +557,7 @@
             <div id="photo-strip" class="photo-grid-modal"></div>
           </div>
           <div class="photo-modal-footer">
-            <div class="photo-modal-count"><span id="photo-modal-count-num">0</span> photos added · Minimum 3 required</div>
+            <div class="photo-modal-count"><span id="photo-modal-count-num">0</span> / 10 photos added · Minimum 3 required</div>
             <button type="button" class="photo-modal-done" id="photo-modal-done">Done</button>
           </div>
         </div>
@@ -614,9 +617,9 @@
 
       <div class="card">
         <div class="card-title">Lease Type <span class="tag-required">Required</span></div>
-        <label class="lease-check" id="lease-check-sublease"><input type="checkbox" id="lease-sublease" /> Sublease</label>
-        <label class="lease-check" id="lease-check-takeover"><input type="checkbox" id="lease-takeover" /> Lease Takeover</label>
-        <span class="error-msg" id="lease-type-error" style="display:none">Please select at least one lease type.</span>
+        <label class="lease-check" id="lease-check-sublease"><input type="radio" name="lease-type" id="lease-sublease" value="Sublease" /> Sublease</label>
+        <label class="lease-check" id="lease-check-takeover"><input type="radio" name="lease-type" id="lease-takeover" value="Lease Takeover" /> Lease Takeover</label>
+        <span class="error-msg" id="lease-type-error" style="display:none">Please select a lease type.</span>
       </div>
 
       <div class="card">
@@ -640,6 +643,7 @@
       </div>
 
     </div><div class="submit-row">
+      <button type="button" id="reset-form-btn" class="btn-reset">Reset Form</button>
       <button type="submit" class="btn-submit">Submit Listing</button>
     </div>
     <p class="footer-note">Only CU Boulder students with @colorado.edu email addresses can post listings. Listings are manually reviewed before being posted.</p>

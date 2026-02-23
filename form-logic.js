@@ -469,25 +469,38 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	const MAX_PHOTOS = 10;
+
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
-		const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+
+		if (photoDraft.length >= MAX_PHOTOS) {
+			showToastMessage(`Maximum ${MAX_PHOTOS} photos allowed.`);
+			return;
+		}
+
+		const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/avif', 'image/bmp', 'image/tiff', 'image/svg+xml'];
 		const filesToUpload = [];
 
 		// First validate all files
 		Array.from(fileList).forEach(f => {
-			console.log('[form] Validating file:', f.name, f.type, f.size);
-			
-			if (!validImageTypes.includes(f.type)) {
-				alert(`The file "${f.name}" is not a valid image. Please upload only photos (JPG, PNG, GIF, WebP, etc.).`);
+			if (photoDraft.length + filesToUpload.length >= MAX_PHOTOS) {
+				showToastMessage(`Maximum ${MAX_PHOTOS} photos allowed. Some photos were not added.`);
 				return;
 			}
-			
+
+			console.log('[form] Validating file:', f.name, f.type, f.size);
+
+			if (!validImageTypes.includes(f.type) && !f.type.startsWith('image/')) {
+				alert(`The file "${f.name}" is not a valid image. Please upload only photos (JPG, PNG, GIF, WebP, HEIC, etc.).`);
+				return;
+			}
+
 			if (f.size > 20 * 1024 * 1024) {
 				alert(`The file "${f.name}" is too large. Please select photos under 20MB.`);
 				return;
 			}
-			
+
 			// Check for duplicates in photoDraft
 			const isDuplicate = photoDraft.some(sf => sf.file && sf.file.name === f.name && sf.file.size === f.size);
 			if (!isDuplicate) {
@@ -791,6 +804,13 @@ const prefTextBtn  = document.getElementById('pref-text');
 [prefEmailBtn, prefTextBtn].forEach(btn => btn.addEventListener('click', () => {
 	[prefEmailBtn, prefTextBtn].forEach(b => b.classList.remove('active'));
 	btn.classList.add('active');
+	const optionalTag = document.getElementById('phone-optional-tag');
+	if (btn === prefTextBtn) {
+		if (optionalTag) optionalTag.style.display = 'none';
+	} else {
+		if (optionalTag) optionalTag.style.display = '';
+		clearFieldError('phone');
+	}
 	saveDraft();
 }));
 
@@ -817,14 +837,11 @@ document.querySelectorAll('input[name="furnished"]').forEach(r => r.addEventList
 	});
 });
 
-['lease-sublease','lease-takeover'].forEach(id => {
-	document.getElementById(id).addEventListener('change', () => {
-		const either = document.getElementById('lease-sublease').checked || document.getElementById('lease-takeover').checked;
-		if (either) {
-			document.getElementById('lease-type-error').style.display = 'none';
-			document.getElementById('lease-check-sublease').classList.remove('error');
-			document.getElementById('lease-check-takeover').classList.remove('error');
-		}
+document.querySelectorAll('input[name="lease-type"]').forEach(radio => {
+	radio.addEventListener('change', () => {
+		document.getElementById('lease-type-error').style.display = 'none';
+		document.getElementById('lease-check-sublease').classList.remove('error');
+		document.getElementById('lease-check-takeover').classList.remove('error');
 		saveDraft();
 	});
 });
@@ -877,6 +894,32 @@ document.getElementById('rent').addEventListener('input', () => clearFieldError(
 document.getElementById('address').addEventListener('input', () => clearFieldError('address'));
 document.getElementById('description').addEventListener('input', () => clearFieldError('description'));
 
+const phoneInput = document.getElementById('phone');
+const phoneRegex = /^(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
+
+function validatePhone(required) {
+	const v = phoneInput ? phoneInput.value.trim() : '';
+	if (!v) {
+		if (required) {
+			showFieldError('phone', 'Phone number is required when preferred contact is Text.');
+			return false;
+		}
+		clearFieldError('phone');
+		return true;
+	}
+	if (!phoneRegex.test(v)) {
+		showFieldError('phone', 'Please enter a valid US phone number (e.g. 303-555-0000).');
+		return false;
+	}
+	clearFieldError('phone');
+	return true;
+}
+
+if (phoneInput) {
+	phoneInput.addEventListener('blur', () => validatePhone(prefTextBtn.classList.contains('active')));
+	phoneInput.addEventListener('input', () => clearFieldError('phone'));
+}
+
 let autosaveTimer;
 function showAutosaveBadge() {
 	const badge = document.getElementById('autosave-badge');
@@ -912,8 +955,7 @@ function saveDraft() {
 		pets: [...document.querySelectorAll('.pet-tag.active')].map(t => t.dataset.pet),
 		petNotes: document.getElementById('pet-notes').value,
 		description: document.getElementById('description').value,
-		leaseSublease: document.getElementById('lease-sublease').checked,
-		leaseTakeover: document.getElementById('lease-takeover').checked,
+		leaseType: document.querySelector('input[name="lease-type"]:checked')?.value || '',
 		deposit: document.getElementById('deposit').value,
 		prefContact: prefEmailBtn.classList.contains('active') ? 'email' : 'text',
 		priceReductionEnabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
@@ -981,8 +1023,10 @@ function loadDraft() {
 		if(draft.petNotes) document.getElementById('pet-notes').value = draft.petNotes;
 		if(draft.description) document.getElementById('description').value = draft.description;
     
-		if(draft.leaseSublease) document.getElementById('lease-sublease').checked = true;
-		if(draft.leaseTakeover) document.getElementById('lease-takeover').checked = true;
+		if(draft.leaseType) {
+			const radio = document.querySelector(`input[name="lease-type"][value="${draft.leaseType}"]`);
+			if(radio) radio.checked = true;
+		}
 		if(draft.deposit) document.getElementById('deposit').value = draft.deposit;
     
 		if(draft.prefContact === 'email') { prefEmailBtn.classList.add('active'); prefTextBtn.classList.remove('active'); } 
@@ -1046,7 +1090,7 @@ function buildPayload(photoUrls = []) {
 		gender_preference: document.getElementById('gender-pref').value || null,
 		pets: petsVal === 'yes' ? [pets, petsNotes].filter(Boolean).join('; ') : 'No',
 		description: document.getElementById('description').value,
-		lease_type: [document.getElementById('lease-sublease').checked ? 'Sublease' : '', document.getElementById('lease-takeover').checked ? 'Lease Takeover' : ''].filter(Boolean).join(', ') || null,
+		lease_type: document.querySelector('input[name="lease-type"]:checked')?.value || null,
 		security_deposit: depositVal ? parseInt(depositVal) : null,
 		price_reduction_enabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
 		price_reduction_days: document.getElementById('reduction-days').value ? parseInt(document.getElementById('reduction-days').value) : null,
@@ -1086,6 +1130,9 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 
 	if (!addrInput.value.trim()) { showFieldError('address', 'Please enter the street address.'); valid = false; } else clearFieldError('address');
 	if (!document.getElementById('description').value.trim()) { showFieldError('description', 'Please add a listing description.'); valid = false; } else clearFieldError('description');
+
+	// Phone validation (required if Text is preferred contact)
+	if (!validatePhone(prefTextBtn.classList.contains('active'))) valid = false;
   
 	// 4. Date and 30-Day Validation
 	if (!validateDates(true)) {
@@ -1114,7 +1161,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		if (!p.querySelector('.error-msg')) { const err = document.createElement('span'); err.className = 'error-msg'; err.textContent = 'Please upload at least 3 photos.'; zone.after(err); }
 	} else { document.getElementById('upload-zone').style.borderColor = ''; document.getElementById('upload-zone').parentElement.querySelectorAll('.error-msg').forEach(e => e.remove()); }
 
-	const leaseChecked = document.getElementById('lease-sublease').checked || document.getElementById('lease-takeover').checked;
+	const leaseChecked = document.querySelector('input[name="lease-type"]:checked');
 	if (!leaseChecked) {
 		valid = false;
 		document.getElementById('lease-type-error').style.display = 'block';
@@ -1239,6 +1286,65 @@ document.getElementById('btn-edit').addEventListener('click', () => {
 	setNavPostLinkVisibility(true);
 	window.scrollTo({ top: 0, behavior: 'smooth' });
 });
+
+// ── RESET FORM BUTTON ─────────────
+let resetConfirmPending = false;
+let resetConfirmTimer = null;
+const resetFormBtn = document.getElementById('reset-form-btn');
+if (resetFormBtn) {
+	resetFormBtn.addEventListener('click', () => {
+		if (!resetConfirmPending) {
+			resetConfirmPending = true;
+			resetFormBtn.textContent = 'Confirm Reset?';
+			resetFormBtn.classList.add('confirm');
+			resetConfirmTimer = setTimeout(() => {
+				resetConfirmPending = false;
+				resetFormBtn.textContent = 'Reset Form';
+				resetFormBtn.classList.remove('confirm');
+			}, 3000);
+		} else {
+			clearTimeout(resetConfirmTimer);
+			resetConfirmPending = false;
+			// Reset the form
+			if (formEl) formEl.reset();
+			photoDraft = [];
+			clearDraftPhotos();
+			localStorage.removeItem(DRAFT_KEY);
+			try { renderPhotos(); } catch(e) {}
+			// Reset toggle/contact buttons
+			document.querySelectorAll('.toggle-btn.active').forEach(b => b.classList.remove('active'));
+			[prefEmailBtn, prefTextBtn].forEach(b => b.classList.remove('active'));
+			// Restore phone optional tag
+			const optionalTag = document.getElementById('phone-optional-tag');
+			if (optionalTag) optionalTag.style.display = '';
+			// Close expanded sections
+			document.getElementById('furnished-expand').classList.remove('open');
+			document.getElementById('pets-expand').classList.remove('open');
+			document.getElementById('price-reduction-section').style.display = 'none';
+			// Reset neighborhood
+			document.getElementById('neighborhood-badge').classList.remove('visible');
+			document.getElementById('neighborhood').value = '';
+			// Clear lease errors
+			document.getElementById('lease-type-error').style.display = 'none';
+			document.getElementById('lease-check-sublease').classList.remove('error');
+			document.getElementById('lease-check-takeover').classList.remove('error');
+			// Clear confirm errors
+			['confirm-allowed', 'confirm-leaseholder', 'confirm-tos'].forEach(id => {
+				const el = document.getElementById(id);
+				if (el) el.closest('.confirm-item').classList.remove('error');
+			});
+			document.getElementById('confirm-error-banner').classList.add('hidden');
+			// Clear email/field errors
+			if (emailError) emailError.style.display = 'none';
+			if (emailInput) emailInput.style.borderColor = '';
+			clearFieldError('phone');
+			// Reset button state
+			resetFormBtn.textContent = 'Reset Form';
+			resetFormBtn.classList.remove('confirm');
+			showToastMessage('Form has been reset.');
+		}
+	});
+}
 
 document.getElementById('btn-verify').addEventListener('click', () => {
 	const code = document.getElementById('verify-code').value.trim();
