@@ -693,7 +693,17 @@
   </div>
 </main>
 
-<script src="https://unpkg.com/heic2any/dist/heic2any.min.js"></script>
-<script src="/form-logic.js?v=20260223f"></script>
+<script src="https://unpkg.com/heic2any/dist/heic2any.min.js"
+  onload="console.log('heic2any loaded OK:', typeof window.heic2any)"
+  onerror="console.error('FAILED to load heic2any from CDN')"></script>
+<script>
+  // Verify heic2any is available before form-logic.js runs
+  if (typeof window.heic2any !== 'function') {
+    console.error('heic2any is NOT a function after script tag. typeof:', typeof window.heic2any);
+  } else {
+    console.log('heic2any exists:', typeof window.heic2any);
+  }
+</script>
+<script src="/form-logic.js?v=20260223g"></script>
 </body>
 </html>
