@@ -1,6 +1,6 @@
 // Wrap form logic in DOMContentLoaded and guard element access
 document.addEventListener('DOMContentLoaded', () => {
-	console.log('[form] script loaded v20260222b');
+	console.log('[form] script loaded v20260223c');
 	// Temporarily uncomment to verify script is running:
 	// alert('Form script loaded!');
 
@@ -210,10 +210,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-	// Close button handler
+	// Close button handler — same behavior as Done: save then close
 	const photoModalCloseBtn = document.getElementById('photo-modal-close');
 	if (photoModalCloseBtn) {
-		photoModalCloseBtn.addEventListener('click', closePhotoModal);
+		photoModalCloseBtn.addEventListener('click', () => {
+			saveDraftPhotos();
+			saveDraft();
+			closePhotoModal();
+		});
 	}
 
 	// Done button handler
@@ -244,6 +248,18 @@ document.addEventListener('DOMContentLoaded', () => {
 			img.src = imgSrc;
 			img.alt = `photo-${i + 1}`;
 			img.title = i === 0 ? 'Cover photo' : `Photo ${i + 1}`;
+			img.onerror = async () => {
+				if (window.heic2any) {
+					try {
+						const resp = await fetch(imgSrc);
+						const blob = await resp.blob();
+						const converted = await heic2any({ blob, toType: 'image/jpeg', quality: 0.85 });
+						const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+						img.onerror = null;
+						img.src = URL.createObjectURL(jpegBlob);
+					} catch (e) { /* silent */ }
+				}
+			};
 			miniStrip.appendChild(img);
 		});
 
@@ -347,6 +363,24 @@ document.addEventListener('DOMContentLoaded', () => {
 				img.src = imgSrc;
 				img.alt = `photo-${i+1}`;
 				img.draggable = false;
+				// If the browser can't render the image (e.g. HEIC on non-Apple browsers),
+				// try converting via heic2any from the storage URL.
+				img.onerror = async () => {
+					if (window.heic2any) {
+						try {
+							const resp = await fetch(imgSrc);
+							const blob = await resp.blob();
+							const converted = await heic2any({ blob, toType: 'image/jpeg', quality: 0.85 });
+							const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+							const jpegUrl = URL.createObjectURL(jpegBlob);
+							img.onerror = null;
+							img.src = jpegUrl;
+							if (photoDraft[i]) photoDraft[i].previewUrl = jpegUrl;
+						} catch (e) {
+							img.alt = 'Preview unavailable';
+						}
+					}
+				};
 				card.appendChild(img);
 
 				// Note textarea (modal-only editing)
@@ -514,10 +548,27 @@ document.addEventListener('DOMContentLoaded', () => {
 		const uploadPromises = filesToUpload.map(async (file) => {
 			try {
 				const { path, url } = await uploadPhotoToStorage(file);
-				const previewUrl = URL.createObjectURL(file);
-				
+
+				// HEIC/HEIF files can't be displayed natively in most browsers —
+				// convert to JPEG for the in-page preview using heic2any if available.
+				let previewUrl;
+				const isHeic = file.type === 'image/heic' || file.type === 'image/heif' ||
+					/\.(heic|heif)$/i.test(file.name);
+				if (isHeic && window.heic2any) {
+					try {
+						const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+						const blob = Array.isArray(converted) ? converted[0] : converted;
+						previewUrl = URL.createObjectURL(blob);
+					} catch (heicErr) {
+						console.warn('[form] HEIC conversion failed, using storage URL:', heicErr);
+						previewUrl = url;
+					}
+				} else {
+					previewUrl = URL.createObjectURL(file);
+				}
+
 				// Add to photoDraft (single source of truth)
-				photoDraft.push({ 
+				photoDraft.push({
 					path: path,
 					url: url,
 					order: photoDraft.length,
