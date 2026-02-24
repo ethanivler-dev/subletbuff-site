@@ -68,10 +68,47 @@ document.addEventListener('DOMContentLoaded', () => {
 	// ── Photo storage ────────────────────────────────────
 	// Single array - in-memory and persisted. Schema: { path, url, order, note, file?, previewUrl? }
 	let photoDraft = [];
+	const PHOTO_DEBUG = false;
+	const photoDebug = (...args) => { if (PHOTO_DEBUG) console.log(...args); };
 	const strip = document.getElementById('photo-strip');
 	const uploadZone = document.getElementById('upload-zone');
 	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
 	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
+
+	function revokePreviewUrlIfNeeded(previewUrl) {
+		if (typeof previewUrl === 'string' && previewUrl.startsWith('blob:')) {
+			URL.revokeObjectURL(previewUrl);
+		}
+	}
+
+	function cleanupPhotoEntry(entry) {
+		if (!entry) return;
+		revokePreviewUrlIfNeeded(entry.previewUrl);
+	}
+
+	function isHeicFile(file) {
+		if (!file) return false;
+		const type = String(file.type || '').toLowerCase();
+		const name = String(file.name || '').toLowerCase();
+		return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
+	}
+
+	async function canRenderImageNatively(file) {
+		const objectUrl = URL.createObjectURL(file);
+		try {
+			await new Promise((resolve, reject) => {
+				const img = new Image();
+				img.onload = () => resolve(true);
+				img.onerror = () => reject(new Error('Image decode failed'));
+				img.src = objectUrl;
+			});
+			return true;
+		} catch {
+			return false;
+		} finally {
+			revokePreviewUrlIfNeeded(objectUrl);
+		}
+	}
 
 	// Converts a HEIC/HEIF file to a JPEG Blob.
 	// Tries native browser decoding first (Safari, macOS Chrome), then heic2any library.
@@ -97,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		// Method 2: heic2any WASM library
 		if (window.heic2any) {
 			try {
-				const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+				const converted = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
 				console.log('[form] HEIC decoded via heic2any:', file.name);
 				return Array.isArray(converted) ? converted[0] : converted;
 			} catch (e) {
@@ -200,6 +237,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	function clearDraftPhotos() {
+		if (Array.isArray(photoDraft)) {
+			photoDraft.forEach(cleanupPhotoEntry);
+		}
 		photoDraft = [];
 		try { localStorage.removeItem(PHOTOS_DRAFT_KEY); } catch(e) {}
 		console.log('[form] draft photos cleared');
@@ -393,6 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				deleteBtn.title = 'Delete photo';
 				deleteBtn.addEventListener('click', (e) => {
 					e.stopPropagation();
+					cleanupPhotoEntry(photoDraft[i]);
 					photoDraft.splice(i, 1);
 					photoDraft.forEach((p, idx) => { p.order = idx; });
 					saveDraftPhotos();
@@ -536,6 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	const MAX_PHOTOS = 10;
+	const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
@@ -547,22 +589,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/avif', 'image/bmp', 'image/tiff', 'image/svg+xml'];
 		const filesToUpload = [];
+		const incomingFiles = Array.from(fileList || []);
+		const incomingHeicNames = incomingFiles.filter(isHeicFile).map(f => f.name);
+		const remainingSlots = Math.max(0, MAX_PHOTOS - photoDraft.length);
+		let skippedForMax = 0;
+		let skippedForDuplicate = 0;
+
+		photoDebug('[form][photo-debug] files selected:', incomingFiles.length);
+		photoDebug('[form][photo-debug] HEIC files:', incomingHeicNames.length ? incomingHeicNames : 'none');
+
+		/*
+		How it works:
+		1) Intake all selected/dropped files in order.
+		2) Keep originals for upload; generate previewUrl separately.
+		3) Enforce max-photo limit by importing only available slots.
+		4) Keep cover-photo logic intact (index 0 stays cover; reorder still works).
+		*/
 
 		// First validate all files
-		Array.from(fileList).forEach(f => {
-			if (photoDraft.length + filesToUpload.length >= MAX_PHOTOS) {
-				showToastMessage(`Maximum ${MAX_PHOTOS} photos allowed. Some photos were not added.`);
+		incomingFiles.forEach((f) => {
+			if (filesToUpload.length >= remainingSlots) {
+				skippedForMax += 1;
 				return;
 			}
 
-			console.log('[form] Validating file:', f.name, f.type, f.size);
+			photoDebug('[form][photo-debug] validating file:', f.name, f.type, f.size);
 
 			if (!validImageTypes.includes(f.type) && !f.type.startsWith('image/')) {
 				alert(`The file "${f.name}" is not a valid image. Please upload only photos (JPG, PNG, GIF, WebP, HEIC, etc.).`);
 				return;
 			}
 
-			if (f.size > 5 * 1024 * 1024) {
+			if (f.size > MAX_FILE_SIZE_BYTES) {
 				alert(`The file "${f.name}" is too large. Please select photos under 5MB.`);
 				return;
 			}
@@ -572,32 +630,58 @@ document.addEventListener('DOMContentLoaded', () => {
 			if (!isDuplicate) {
 				filesToUpload.push(f);
 			} else {
-				console.log('[form] Skipping duplicate:', f.name);
+				skippedForDuplicate += 1;
+				photoDebug('[form][photo-debug] skipping duplicate:', f.name);
 			}
 		});
 
+		if (skippedForMax > 0) {
+			showToastMessage(`Only ${remainingSlots} photo${remainingSlots === 1 ? '' : 's'} could be added (max ${MAX_PHOTOS}). ${skippedForMax} skipped.`);
+		}
+		if (skippedForDuplicate > 0) {
+			showToastMessage(`${skippedForDuplicate} duplicate photo${skippedForDuplicate === 1 ? '' : 's'} skipped.`);
+		}
+		if (filesToUpload.length === 0) return;
+
 		// Upload all valid files immediately
 		const uploadPromises = filesToUpload.map(async (file) => {
+			let previewUrl = '';
 			try {
-				// HEIC/HEIF: convert to JPEG *before* uploading so both storage and
-				// previews are always a browser-renderable format.
-				let fileToUpload = file;
-				let previewBlobUrl = null;
-				const isHeic = file.type === 'image/heic' || file.type === 'image/heif' ||
-					/\.(heic|heif)$/i.test(file.name);
+				const isHeic = isHeicFile(file);
+				let heicConversionSucceeded = false;
+				let heicPreviewMethod = 'not-heic';
+				if (isHeic) heicPreviewMethod = 'heic-detected';
 				if (isHeic) {
-					const jpegBlob = await convertHeicToJpegBlob(file);
-					if (jpegBlob) {
-						const baseName = file.name.replace(/\.(heic|heif)$/i, '');
-						fileToUpload = new File([jpegBlob], `${baseName}.jpg`, { type: 'image/jpeg' });
-						previewBlobUrl = URL.createObjectURL(jpegBlob);
+					if (await canRenderImageNatively(file)) {
+						previewUrl = URL.createObjectURL(file);
+						heicConversionSucceeded = true;
+						heicPreviewMethod = 'native-render';
 					} else {
-						previewBlobUrl = makeHeicPlaceholder(file.name);
+						const jpegBlob = await convertHeicToJpegBlob(file);
+						if (jpegBlob) {
+							previewUrl = URL.createObjectURL(jpegBlob);
+							heicConversionSucceeded = true;
+							heicPreviewMethod = 'heic2any-or-canvas-conversion';
+						} else {
+							previewUrl = makeHeicPlaceholder(file.name);
+							heicPreviewMethod = 'placeholder';
+							showToastMessage('HEIC preview unavailable on this browser. Photo will still upload.');
+						}
 					}
+				} else {
+					previewUrl = URL.createObjectURL(file);
 				}
 
-				const { path, url } = await uploadPhotoToStorage(fileToUpload);
-				const previewUrl = previewBlobUrl || URL.createObjectURL(fileToUpload);
+				if (isHeic) {
+					photoDebug('[form][photo-debug] HEIC preview result:', {
+						file: file.name,
+						success: heicConversionSucceeded,
+						method: heicPreviewMethod
+					});
+				}
+
+				// Keep original file for storage/upload and submission payload logic.
+				const { path, url } = await uploadPhotoToStorage(file);
 
 				// Add to photoDraft (single source of truth)
 				photoDraft.push({
@@ -605,12 +689,13 @@ document.addEventListener('DOMContentLoaded', () => {
 					url: url,
 					order: photoDraft.length,
 					note: '',
-					file: fileToUpload,
+					file: file,
 					previewUrl: previewUrl
 				});
 
 				console.log('[form] photo added to photoDraft:', { path, order: photoDraft.length - 1 });
 			} catch (err) {
+				revokePreviewUrlIfNeeded(previewUrl);
 				console.error('[form] upload error for', file.name, err);
 				alert(`Failed to upload ${file.name}: ${err.message}`);
 			}
@@ -630,12 +715,17 @@ document.addEventListener('DOMContentLoaded', () => {
 	const photoInput = document.getElementById('photoInput') || document.getElementById('photo-input') || (uploadZone && uploadZone.querySelector('input[type=file]'));
 	console.log('[form] photoInput found:', !!photoInput, photoInput?.id);
 	if (photoInput) {
+		if (!photoInput.multiple) photoInput.multiple = true;
 		photoInput.addEventListener('change', function (e) {
 			e.stopPropagation();
-			console.log('[form] photoInput change fired, files:', this.files?.length);
-			if (this.files && this.files.length > 0) {
-				console.log('[form] Calling addFilesToStore with', this.files.length, 'files');
-				addFilesToStore(this.files);
+			const selectedFiles = Array.from(this.files || []);
+			console.log('[form] photoInput change fired, files:', selectedFiles.length);
+			photoDebug('[form][photo-debug] input selected files count:', selectedFiles.length);
+			if (selectedFiles.length > 0) {
+				const filesToAdd = [];
+				selectedFiles.forEach((file) => filesToAdd.push(file));
+				console.log('[form] Calling addFilesToStore with', filesToAdd.length, 'files');
+				addFilesToStore(filesToAdd);
 			} else {
 				console.warn('[form] No files in change event');
 			}
@@ -652,7 +742,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		uploadZone.addEventListener('dragleave', e => { uploadZone.classList.remove('dragover'); });
 		uploadZone.addEventListener('drop', e => {
 			e.preventDefault(); uploadZone.classList.remove('dragover');
-			if (e.dataTransfer && e.dataTransfer.files) addFilesToStore(e.dataTransfer.files);
+			const droppedFiles = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+			photoDebug('[form][photo-debug] dropped files count:', droppedFiles.length);
+			if (droppedFiles.length > 0) addFilesToStore(droppedFiles);
 		});
 	}
 
@@ -1420,7 +1512,6 @@ if (resetFormBtn) {
 			resetConfirmPending = false;
 			// Reset the form
 			if (formEl) formEl.reset();
-			photoDraft = [];
 			clearDraftPhotos();
 			localStorage.removeItem(DRAFT_KEY);
 			try { renderPhotos(); } catch(e) {}
