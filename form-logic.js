@@ -1,6 +1,6 @@
 // Wrap form logic in DOMContentLoaded and guard element access
 document.addEventListener('DOMContentLoaded', () => {
-	console.log('[form] script loaded v20260223d');
+	console.log('[form] script loaded v20260223e');
 	// Temporarily uncomment to verify script is running:
 	// alert('Form script loaded!');
 
@@ -72,6 +72,36 @@ document.addEventListener('DOMContentLoaded', () => {
 	const uploadZone = document.getElementById('upload-zone');
 	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
 	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
+
+	// Generates a JPEG data-URL placeholder for HEIC files that can't be previewed in this browser.
+	function makeHeicPlaceholder(fileName) {
+		const canvas = document.createElement('canvas');
+		canvas.width = 300; canvas.height = 200;
+		const ctx = canvas.getContext('2d');
+		ctx.fillStyle = '#f5f0e8';
+		ctx.fillRect(0, 0, 300, 200);
+		// Camera body
+		ctx.fillStyle = '#c4b99a';
+		ctx.beginPath();
+		if (ctx.roundRect) ctx.roundRect(90, 65, 120, 80, 8);
+		else { ctx.rect(90, 65, 120, 80); }
+		ctx.fill();
+		// Lens
+		ctx.fillStyle = '#f5f0e8';
+		ctx.beginPath(); ctx.arc(150, 105, 22, 0, Math.PI * 2); ctx.fill();
+		ctx.fillStyle = '#b8b0a5';
+		ctx.beginPath(); ctx.arc(150, 105, 15, 0, Math.PI * 2); ctx.fill();
+		// Label
+		ctx.fillStyle = '#8c7d6b';
+		ctx.font = '12px sans-serif';
+		ctx.textAlign = 'center';
+		const display = fileName.length > 28 ? fileName.slice(0, 25) + '…' : fileName;
+		ctx.fillText(display, 150, 165);
+		ctx.fillStyle = '#aaa098';
+		ctx.font = '11px sans-serif';
+		ctx.fillText('Photo added · preview not available', 150, 182);
+		return canvas.toDataURL('image/jpeg', 0.8);
+	}
 
 	// ── IMMEDIATE UPLOAD TO STORAGE ────────────────────────
 	async function uploadPhotoToStorage(file) {
@@ -534,10 +564,12 @@ document.addEventListener('DOMContentLoaded', () => {
 							previewBlobUrl = URL.createObjectURL(jpegBlob);
 							console.log('[form] HEIC converted to JPEG before upload:', file.name);
 						} catch (heicErr) {
-							console.warn('[form] HEIC pre-conversion failed, uploading original:', heicErr);
+							console.warn('[form] HEIC pre-conversion failed, using placeholder:', heicErr);
+							previewBlobUrl = makeHeicPlaceholder(file.name);
 						}
 					} else {
-						console.warn('[form] heic2any not available for HEIC conversion');
+						console.warn('[form] heic2any not available, using placeholder for:', file.name);
+						previewBlobUrl = makeHeicPlaceholder(file.name);
 					}
 				}
 
@@ -740,7 +772,7 @@ async function lookupNeighborhood() {
 	if (document.getElementById('neighborhood').value) return;
 	const badge = document.getElementById('neighborhood-badge');
 	const txt   = document.getElementById('neighborhood-text');
-	txt.textContent = 'Detecting neighborhood…';
+	txt.textContent = 'Finding your neighborhood...';
 	badge.classList.add('visible');
 	try {
 		const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr + ', Boulder, CO')}&format=json&addressdetails=1&limit=1`, { headers: { 'Accept-Language': 'en' } });
@@ -758,7 +790,7 @@ async function lookupNeighborhood() {
 			badge.classList.remove('visible');
 		}
 	} catch(e) {
-		txt.textContent = 'Lookup unavailable';
+		badge.classList.remove('visible');
 	}
 }
 
