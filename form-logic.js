@@ -100,25 +100,33 @@ document.addEventListener('DOMContentLoaded', () => {
 		return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
 	}
 
-	async function normalizeFileForPreview(file) {
-		const heic = isHeicFile(file);
-		if (heic) {
-			if (!window.heic2any) {
-				throw new Error('HEIC conversion library unavailable.');
-			}
-			const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
-			const jpegBlob = Array.isArray(out) ? out[0] : out;
-			const jpegFile = new File(
-				[jpegBlob],
-				file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-				{ type: 'image/jpeg' }
-			);
-			const previewUrl = URL.createObjectURL(jpegBlob);
-			return { uploadFile: jpegFile, previewUrl };
+	async function normalizeFile(file) {
+		const isHeic =
+			file.type.includes('heic') ||
+			file.type.includes('heif') ||
+			/\.(heic|heif)$/i.test(file.name);
+
+		if (!isHeic) {
+			return file;
 		}
 
-		const previewUrl = URL.createObjectURL(file);
-		return { uploadFile: file, previewUrl };
+		if (!window.heic2any) {
+			throw new Error('HEIC conversion library (heic2any) unavailable.');
+		}
+
+		const output = await window.heic2any({
+			blob: file,
+			toType: 'image/jpeg',
+			quality: 0.9
+		});
+
+		const jpegBlob = Array.isArray(output) ? output[0] : output;
+
+		return new File(
+			[jpegBlob],
+			file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+			{ type: 'image/jpeg' }
+		);
 	}
 
 	// ── IMMEDIATE UPLOAD TO STORAGE ────────────────────────
@@ -594,24 +602,26 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		if (filesToUpload.length === 0) return;
 
+		// Debug: log file types about to be normalized + uploaded
+		console.log('Uploading file types:', filesToUpload.map(f => f.type || 'unknown (' + f.name + ')'));
+
 		// Upload all valid files immediately
 		const uploadPromises = filesToUpload.map(async (file) => {
 			let previewUrl = '';
 			try {
-				const isHeic = isHeicFile(file);
-				const normalized = await normalizeFileForPreview(file);
-				const uploadFile = normalized.uploadFile;
-				previewUrl = normalized.previewUrl;
+				// Normalize: HEIC → JPEG, everything else passes through
+				const normalized = await normalizeFile(file);
+				previewUrl = URL.createObjectURL(normalized);
 
-				if (isHeic) {
-					photoDebug('[form][photo-debug] HEIC preview result:', {
-						file: file.name,
-						success: true,
-						method: 'heic2any-jpeg'
-					});
-				}
+				// Debug: confirm no HEIC is about to be uploaded
+				console.log('[form] uploading normalized file:', {
+					originalName: file.name,
+					normalizedName: normalized.name,
+					type: normalized.type,
+					size: normalized.size
+				});
 
-				const { path, url } = await uploadPhotoToStorage(uploadFile);
+				const { path, url } = await uploadPhotoToStorage(normalized);
 
 				// Add to photoDraft (single source of truth)
 				photoDraft.push({
@@ -619,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					url: url,
 					order: photoDraft.length,
 					note: '',
-					file: uploadFile,
+					file: normalized,
 					originalName: file.name,
 					previewUrl: previewUrl
 				});
@@ -635,6 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		// After all uploads complete, update UI
 		Promise.all(uploadPromises).then(() => {
 			console.log('[form] all uploads complete, photoDraft:', photoDraft.length);
+			console.log('Uploading file types:', photoDraft.map(p => p.file && p.file.type));
 			saveDraftPhotos();
 			try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error after upload', e); }
 			saveDraft();
