@@ -1102,6 +1102,15 @@ function buildPayload(photoUrls = []) {
 	};
 }
 
+function buildFullAddressForGeocode() {
+	const street = String(addrInput?.value || '').trim();
+	const unit = String(document.getElementById('unit-number')?.value || '').trim();
+	const unitPart = unit ? `Unit ${unit}` : '';
+	const base = [street, unitPart].filter(Boolean).join(', ');
+	if (!base) return '';
+	return `${base}, Boulder, CO`;
+}
+
 // ── SUBMIT TO SUPABASE ─────────────
 document.getElementById('listing-form').addEventListener('submit', async e => {
 	e.preventDefault();
@@ -1245,6 +1254,24 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 				if (error) { console.error('[form] Supabase insert error', error); throw error; }
 				if (data && data.length > 0) {
 					currentListingId = data[0].id;
+					const fullAddress = buildFullAddressForGeocode();
+					if (fullAddress && currentListingId) {
+						try {
+							const { data: geocodeData, error: geocodeError } = await supabaseClient.functions.invoke('geocode-listing', {
+								body: {
+									listing_id: currentListingId,
+									address: fullAddress
+								}
+							});
+							if (geocodeError) {
+								console.error('[form] geocode-listing invoke failed (non-blocking):', geocodeError.message || geocodeError);
+							} else if (!geocodeData || geocodeData.ok !== true) {
+								console.error('[form] geocode-listing returned non-ok response (non-blocking):', geocodeData);
+							}
+						} catch (geocodeInvokeErr) {
+							console.error('[form] geocode-listing invoke threw (non-blocking):', geocodeInvokeErr);
+						}
+					}
 				}
 			}
 		} catch(dbErr) {
