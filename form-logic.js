@@ -496,8 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				return;
 			}
 
-			if (f.size > 20 * 1024 * 1024) {
-				alert(`The file "${f.name}" is too large. Please select photos under 20MB.`);
+			if (f.size > 5 * 1024 * 1024) {
+				alert(`The file "${f.name}" is too large. Please select photos under 5MB.`);
 				return;
 			}
 
@@ -632,7 +632,7 @@ function fetchSuggestionsGoogle(q) {
 		},
 		(predictions, status) => {
 			if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
-				suggestions.classList.remove('open'); return;
+				fetchSuggestionsNominatim(q); return;
 			}
 			suggestions.innerHTML = predictions.map(p => {
 				const main = p.structured_formatting.main_text;
@@ -682,16 +682,19 @@ suggestions.addEventListener('click', e => {
 				const specificTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1'];
 				for (const targetType of specificTypes) {
 					const matchedComponent = place.address_components.find(c => c.types.includes(targetType));
-					if (matchedComponent) { 
-						nbhd = matchedComponent.long_name; 
-						break; 
+					if (matchedComponent) {
+						nbhd = matchedComponent.long_name;
+						break;
 					}
 				}
 				if (!nbhd) {
 					const localityComp = place.address_components.find(c => c.types.includes('locality'));
 					if (localityComp) nbhd = localityComp.long_name;
 				}
-				setNeighborhood(nbhd || 'Boulder');
+				if (nbhd) setNeighborhood(nbhd);
+				else lookupNeighborhood();
+			} else {
+				lookupNeighborhood();
 			}
 		});
 	} else if (item.dataset.nbhd) {
@@ -716,11 +719,15 @@ async function lookupNeighborhood() {
 		const data = await res.json();
 		if (data && data[0]) {
 			const a    = data[0].address;
-			const nbhd = a.neighbourhood || a.suburb || a.city_district || a.quarter || 'Boulder';
-			setNeighborhood(nbhd);
-			saveDraft();
+			const nbhd = a.neighbourhood || a.suburb || a.city_district || a.quarter;
+			if (nbhd) {
+				setNeighborhood(nbhd);
+				saveDraft();
+			} else {
+				badge.classList.remove('visible');
+			}
 		} else {
-			txt.textContent = 'Could not detect — check address';
+			badge.classList.remove('visible');
 		}
 	} catch(e) {
 		txt.textContent = 'Lookup unavailable';
@@ -794,8 +801,7 @@ document.getElementById('end-date').addEventListener('change', () => validateDat
 		const btn = e.target.closest('.toggle-btn'); if (!btn) return;
 		document.getElementById(id).querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
 		btn.classList.add('active');
-		if (id === 'unit-type') document.getElementById('room-until-field').style.display = btn.dataset.val === 'room-shared' ? 'block' : 'none';
-		saveDraft();
+saveDraft();
 	});
 });
 
@@ -949,8 +955,7 @@ function saveDraft() {
 		bestTime: document.getElementById('best-time').value,
 		housingType: document.querySelector('#housing-type .toggle-btn.active')?.dataset.val || '',
 		unitType: document.querySelector('#unit-type .toggle-btn.active')?.dataset.val || '',
-		roomUntil: document.getElementById('room-until').value,
-		genderPref: document.getElementById('gender-pref').value,
+genderPref: document.getElementById('gender-pref').value,
 		petsProp: document.querySelector('input[name="pets-prop"]:checked')?.value || '',
 		pets: [...document.querySelectorAll('.pet-tag.active')].map(t => t.dataset.pet),
 		petNotes: document.getElementById('pet-notes').value,
@@ -1004,10 +1009,8 @@ function loadDraft() {
 				const btn = document.querySelector(`#unit-type .toggle-btn[data-val="${draft.unitType}"]`);
 				if(btn) {
 						btn.classList.add('active');
-						if (draft.unitType === 'room-shared') document.getElementById('room-until-field').style.display = 'block';
-				}
+					}
 		}
-		if(draft.roomUntil) document.getElementById('room-until').value = draft.roomUntil;
 		if(draft.genderPref) document.getElementById('gender-pref').value = draft.genderPref;
     
 		if(draft.petsProp) {

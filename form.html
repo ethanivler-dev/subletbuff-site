@@ -479,14 +479,6 @@
             <button type="button" class="toggle-btn" data-val="shared-room">Shared Room</button>
           </div>
         </div>
-        <div class="field" id="room-until-field" style="display:none">
-          <label>Room Available Until</label>
-          <select id="room-until">
-            <option value="">Select…</option>
-            <option>Summer 2025</option><option>Fall 2025</option>
-            <option>Spring 2026</option><option>Summer 2026</option>
-          </select>
-        </div>
         <div class="field">
           <label>Gender Preference for Space</label>
           <select id="gender-pref">
@@ -528,7 +520,7 @@
       <div class="card">
         <div class="card-title">Upload Photos <span class="tag-required">Required</span></div>
         <div class="upload-zone" id="upload-zone">
-          <input type="file" id="photoInput" accept="image/*" multiple />
+          <input type="file" id="photoInput" accept="image/*,.heic,.heif,.avif,.webp" multiple />
           <div class="upload-icon">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 13V4M10 4l-3 3M10 4l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -536,7 +528,7 @@
             </svg>
           </div>
           <div style="font-size:.875rem;font-weight:500;color:var(--ink-soft)">Click to upload or drag files here to add photos</div>
-          <div class="upload-hint">Drag to reorder photos · ≤20MB each</div>
+          <div class="upload-hint">Drag to reorder photos · ≤5MB each · JPG, PNG, HEIC, WebP &amp; more</div>
           <div class="upload-min">Minimum 3 · Maximum 10 photos</div>
         </div>
         <!-- Mini preview strip showing thumbnails -->
