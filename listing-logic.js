@@ -1,3 +1,13 @@
+/*
+ROUTES + FILE PURPOSES
+- File: listing-logic.js
+- Belongs to: /listing.html
+- Query params: id=<listing_uuid>, optional preview=1
+- Visibility rules: public for approved listings; preview requires authenticated admin in public.admins
+- Allowed listing visibility: approved (public) and pending/approved in admin preview mode
+*/
+const BUILD_VERSION = '2026-02-23a';
+
 document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_ZZ4mKcw6_e9diz7oFfbVag_YA9zkqFW';
@@ -42,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
     galleryNext: document.getElementById('gallery-next'),
     imgCounter: document.getElementById('listing-image-counter'),
     openLightbox: document.getElementById('listing-open-lightbox'),
-    zoomPanel: document.getElementById('listing-zoom-panel'),
 
     lightbox: document.getElementById('listing-lightbox'),
     lightboxImage: document.getElementById('lightbox-image'),
@@ -56,7 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
     listing: null,
     photos: [],
     activePhotoIndex: 0,
-    touchStartX: null
+    touchStartX: null,
+    canViewPrivateAddress: false
   };
 
   function setStatus(message, isError) {
@@ -98,6 +108,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (['true', 'yes', 'y', '1'].includes(s)) return 'Yes';
     if (['false', 'no', 'n', '0'].includes(s)) return 'No';
     return String(value);
+  }
+
+  function getFurnishedLabel(value) {
+    if (value == null || value === '') return null;
+    if (typeof value === 'boolean') return value ? 'Furnished' : 'Unfurnished';
+    const normalized = String(value).trim().toLowerCase();
+    if (!normalized) return null;
+    if (normalized.includes('yes') || normalized.includes('true') || normalized.includes('furnished')) {
+      return 'Furnished';
+    }
+    if (normalized.includes('no') || normalized.includes('false') || normalized.includes('unfurnished')) {
+      return 'Unfurnished';
+    }
+    return null;
   }
 
   function prettifyKey(key) {
@@ -198,10 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (el.lightboxCounter) {
       el.lightboxCounter.textContent = `${safeIndex + 1} / ${state.photos.length}`;
-    }
-
-    if (el.zoomPanel) {
-      el.zoomPanel.style.backgroundImage = `url('${src}')`;
     }
 
     renderThumbnails();
@@ -370,24 +390,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return data;
   }
 
-  function buildContactHref(listing) {
+  function getContactAction(listing) {
     const pref = String(listing.preferred_contact || '').toLowerCase();
-    const email = listing.email || '';
-    const phone = listing.phone || '';
+    const email = String(listing.email || '').trim();
+    const phone = String(listing.phone || '').trim();
 
+    if ((pref.includes('email') || pref.includes('mail')) && email) {
+      return { href: `mailto:${email}`, label: 'Email Lister' };
+    }
     if ((pref.includes('text') || pref.includes('sms')) && phone) {
-      return `sms:${phone}`;
+      return { href: `sms:${phone}`, label: 'Text Lister' };
     }
     if ((pref.includes('phone') || pref.includes('call')) && phone) {
-      return `tel:${phone}`;
+      return { href: `tel:${phone}`, label: 'Call Lister' };
     }
+
     if (email) {
-      return `mailto:${email}`;
+      return { href: `mailto:${email}`, label: 'Email Lister' };
     }
     if (phone) {
-      return `tel:${phone}`;
+      return { href: `tel:${phone}`, label: 'Call Lister' };
     }
-    return '#';
+
+    return { href: '#', label: 'Contact unavailable' };
   }
 
   function renderSidebar(listing) {
@@ -400,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
       listing.neighborhood,
       listing.beds ? `${listing.beds} beds` : null,
       listing.baths ? `${listing.baths} baths` : null,
-      normalizeBooleanLike(listing.furnished),
+      getFurnishedLabel(listing.furnished),
       listing.verified === true ? 'Verified' : null
     ].filter(Boolean);
 
@@ -420,19 +445,19 @@ document.addEventListener('DOMContentLoaded', () => {
       el.leaseDates.textContent = `Lease Dates: ${start} → ${end}`;
     }
 
-    const href = buildContactHref(listing);
+    const contactAction = getContactAction(listing);
     if (el.contactCta) {
-      if (href === '#') {
+      if (contactAction.href === '#') {
         el.contactCta.disabled = true;
-        el.contactCta.textContent = 'Contact unavailable';
+        el.contactCta.textContent = contactAction.label;
       } else {
         el.contactCta.disabled = false;
-        el.contactCta.textContent = 'Contact Lister';
+        el.contactCta.textContent = contactAction.label;
       }
 
       el.contactCta.onclick = () => {
-        if (href !== '#') {
-          window.location.href = href;
+        if (contactAction.href !== '#') {
+          window.location.href = contactAction.href;
         }
       };
     }
@@ -463,12 +488,15 @@ document.addEventListener('DOMContentLoaded', () => {
       'best_time', 'verified'
     ]);
 
+    const areaHint = listing.cross_streets || listing.general_area || listing.location_hint || listing.landmark || null;
     const details = createSection('Details', [
-      createKvRow('Address', [listing.address, listing.unit_number].filter(Boolean).join(', ')),
-      createKvRow('Neighborhood', listing.neighborhood),
+      state.canViewPrivateAddress ? createKvRow('Address', listing.address) : null,
+      state.canViewPrivateAddress ? createKvRow('Unit Number', listing.unit_number) : null,
+      createKvRow(state.canViewPrivateAddress ? 'Neighborhood' : 'Area', listing.neighborhood),
+      !state.canViewPrivateAddress ? createKvRow('Near', areaHint) : null,
       createKvRow('Beds', listing.beds),
       createKvRow('Baths', listing.baths),
-      createKvRow('Furnished', normalizeBooleanLike(listing.furnished)),
+      createKvRow('Furnished', getFurnishedLabel(listing.furnished)),
       createKvRow('Housing Type', listing.housing_type),
       createKvRow('Unit Type', listing.unit_type)
     ]);
@@ -485,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prefs = createSection('Preferences', [
       createKvRow('Pets', Array.isArray(listing.pets) ? listing.pets.join(', ') : listing.pets),
       createKvRow('Gender Preference', listing.gender_preference),
-      createKvRow('Verified', listing.verified === true ? 'Yes' : null)
+      createKvRow('Verified', listing.verified === true ? 'Verified' : null)
     ]);
 
     const description = createSection('Description', [
@@ -519,21 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el.openLightbox) el.openLightbox.addEventListener('click', openLightbox);
 
     if (el.mainImgWrap) {
-      el.mainImgWrap.addEventListener('mousemove', (event) => {
-        if (window.matchMedia('(max-width: 980px)').matches || !el.zoomPanel || state.photos.length === 0) return;
-
-        const rect = el.mainImgWrap.getBoundingClientRect();
-        const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-        const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-
-        el.zoomPanel.classList.remove('listing-hidden');
-        el.zoomPanel.style.backgroundPosition = `${x * 100}% ${y * 100}%`;
-      });
-
-      el.mainImgWrap.addEventListener('mouseleave', () => {
-        if (el.zoomPanel) el.zoomPanel.classList.add('listing-hidden');
-      });
-
       el.mainImgWrap.addEventListener('touchstart', (event) => {
         const touch = event.changedTouches && event.changedTouches[0];
         state.touchStartX = touch ? touch.clientX : null;
@@ -659,6 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const listing = await fetchListing();
       state.listing = listing;
+      state.canViewPrivateAddress = !!previewMode;
       state.photos = await fetchPhotos(listing);
 
       renderSidebar(listing);

@@ -31,26 +31,21 @@
 
     <section id="listing-content" class="listing-content listing-hidden">
       <div class="listing-main-grid">
-        <div class="listing-main-column">
-          <section class="listing-gallery" aria-label="Listing photos">
-            <div class="listing-main-image-wrap" id="listing-main-image-wrap">
-              <button type="button" class="listing-gallery-arrow left" id="gallery-prev" aria-label="Previous image">‹</button>
-              <img id="listing-main-image" class="listing-main-image" alt="Listing photo" />
-              <div id="listing-no-photo" class="listing-no-photo listing-hidden">No photos provided.</div>
-              <button type="button" class="listing-gallery-arrow right" id="gallery-next" aria-label="Next image">›</button>
-              <div id="listing-zoom-panel" class="listing-zoom-panel listing-hidden" aria-hidden="true"></div>
-              <button type="button" id="listing-open-lightbox" class="listing-open-lightbox" aria-label="Open full screen image">Open</button>
-            </div>
+        <section class="listing-gallery" aria-label="Listing photos">
+          <div class="listing-main-image-wrap" id="listing-main-image-wrap">
+            <button type="button" class="listing-gallery-arrow left" id="gallery-prev" aria-label="Previous image">‹</button>
+            <img id="listing-main-image" class="listing-main-image" alt="Listing photo" />
+            <div id="listing-no-photo" class="listing-no-photo listing-hidden">No photos provided.</div>
+            <button type="button" class="listing-gallery-arrow right" id="gallery-next" aria-label="Next image">›</button>
+            <button type="button" id="listing-open-lightbox" class="listing-open-lightbox" aria-label="Open full screen image">Open</button>
+          </div>
 
-            <div class="listing-gallery-footer">
-              <div id="listing-image-counter" class="listing-image-counter">0 / 0</div>
-            </div>
+          <div class="listing-gallery-footer">
+            <div id="listing-image-counter" class="listing-image-counter">0 / 0</div>
+          </div>
 
-            <div id="listing-thumbnails" class="listing-thumbnails"></div>
-          </section>
-
-          <section id="listing-sections" class="listing-sections"></section>
-        </div>
+          <div id="listing-thumbnails" class="listing-thumbnails"></div>
+        </section>
 
         <aside class="listing-sidebar" id="listing-sidebar">
           <div class="listing-sidebar-card">
@@ -66,6 +61,8 @@
             </div>
           </div>
         </aside>
+
+        <section id="listing-sections" class="listing-sections"></section>
       </div>
     </section>
   </main>
@@ -89,7 +86,7 @@
 
   <div id="listing-toast" class="listing-toast listing-hidden" aria-live="polite"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/listing-logic.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="/listing-logic.js?v=2026-02-23a" defer></script>
 </body>
 </html>

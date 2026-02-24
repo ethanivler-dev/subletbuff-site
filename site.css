@@ -222,6 +222,16 @@ nav.ss-nav .nav-links a.active {
   font-family: 'DM Sans', sans-serif;
 }
 
+.listings-distance-field strong {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.listings-field input[type="range"] {
+  accent-color: var(--gold);
+  padding: 0;
+}
+
 .listings-filter-actions {
   margin-top: 14px;
   display: flex;
@@ -306,6 +316,13 @@ nav.ss-nav .nav-links a.active {
   color: var(--ink-soft);
   margin-top: 8px;
   line-height: 1.45;
+}
+
+.listings-distance {
+  font-size: 0.82rem;
+  color: var(--gold);
+  margin-top: 8px;
+  font-weight: 600;
 }
 
 .listings-description {

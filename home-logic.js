@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const link = document.createElement('a');
 		link.className = 'listing-card';
 		const hrefId = item && item.id != null ? String(item.id) : '';
-		link.href = '/listing-details?id=' + encodeURIComponent(hrefId);
+		link.href = '/listing.html?id=' + encodeURIComponent(hrefId);
 
 		const img = document.createElement('img');
 		img.className = 'card-img';

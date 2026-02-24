@@ -1,6 +1,18 @@
+/*
+ROUTES + FILE PURPOSES
+- File: listings-logic.js
+- Belongs to: /listings.html
+- Query params: none required
+- Visibility rules: public browse page
+- Allowed listing visibility: approved listings only
+*/
+const BUILD_VERSION = '2026-02-23a';
+
 document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_ZZ4mKcw6_e9diz7oFfbVag_YA9zkqFW';
+  const CAMPUS_COORDS = { lat: 40.0076, lng: -105.2659 };
+  const DISTANCE_MAX_MILES = 10;
 
   const supabaseClient = (window.supabase && window.supabase.createClient)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -17,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const bedsEl = document.getElementById('filter-beds');
   const bathsEl = document.getElementById('filter-baths');
   const furnishedEl = document.getElementById('filter-furnished');
+  const distanceEl = document.getElementById('filter-distance');
+  const distanceValueEl = document.getElementById('filter-distance-value');
+  const sortEl = document.getElementById('filter-sort');
   const applyBtn = document.getElementById('apply-filters-btn');
   const clearBtn = document.getElementById('clear-filters-btn');
 
@@ -48,6 +63,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (['yes', 'y', 'true', '1', 'furnished'].includes(normalized)) return 'yes';
     if (['no', 'n', 'false', '0', 'unfurnished'].includes(normalized)) return 'no';
     return normalized;
+  }
+
+  function getFurnishedLabel(value) {
+    const normalized = normalizeFurnished(value);
+    if (normalized === 'yes') return 'Furnished';
+    if (normalized === 'no') return 'Unfurnished';
+    return 'Furnished: N/A';
+  }
+
+  function toRadians(value) {
+    return (value * Math.PI) / 180;
+  }
+
+  function haversineMiles(from, to) {
+    const earthRadiusMiles = 3958.8;
+    const dLat = toRadians(to.lat - from.lat);
+    const dLng = toRadians(to.lng - from.lng);
+    const lat1 = toRadians(from.lat);
+    const lat2 = toRadians(to.lat);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadiusMiles * c;
+  }
+
+  function parseCoordinate(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  }
+
+  function getListingCoordinates(listing) {
+    const lat = parseCoordinate(listing.lat);
+    const lng = parseCoordinate(listing.lng);
+    if (lat == null || lng == null) return null;
+    return { lat, lng };
+  }
+
+  function updateDistanceLabel() {
+    if (!distanceEl || !distanceValueEl) return;
+    const distance = Number(distanceEl.value);
+    if (!Number.isFinite(distance) || distance >= DISTANCE_MAX_MILES) {
+      distanceValueEl.textContent = 'Any';
+      return;
+    }
+    distanceValueEl.textContent = `≤ ${distance.toFixed(2).replace(/\.00$/, '')} mi`;
   }
 
   function parseDateSafe(value) {
@@ -130,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const details = document.createElement('div');
     details.className = 'listings-details';
-    details.textContent = `${listing.beds || 'N/A'} beds • ${listing.baths || 'N/A'} baths • ${normalizeFurnished(listing.furnished) === 'yes' ? 'Furnished' : normalizeFurnished(listing.furnished) === 'no' ? 'Unfurnished' : (listing.furnished || 'Furnished: N/A')}`;
+    details.textContent = `${listing.beds || 'N/A'} beds • ${listing.baths || 'N/A'} baths • ${getFurnishedLabel(listing.furnished)}`;
 
     const dates = document.createElement('div');
     dates.className = 'listings-dates';
@@ -146,6 +208,18 @@ document.addEventListener('DOMContentLoaded', () => {
     card.appendChild(details);
     card.appendChild(dates);
     card.appendChild(description);
+
+    if (Number.isFinite(listing._distanceMiles)) {
+      const distance = document.createElement('div');
+      distance.className = 'listings-distance';
+      distance.textContent = `${listing._distanceMiles.toFixed(2).replace(/\.00$/, '')} mi from campus`;
+      card.appendChild(distance);
+    } else {
+      const distance = document.createElement('div');
+      distance.className = 'listings-distance';
+      distance.textContent = 'Distance unknown';
+      card.appendChild(distance);
+    }
 
     return card;
   }
@@ -190,6 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const beds = bedsEl.value;
     const baths = bathsEl.value;
     const furnished = furnishedEl.value;
+    const sort = sortEl ? sortEl.value : 'newest';
+    const distanceLimit = distanceEl ? Number(distanceEl.value) : DISTANCE_MAX_MILES;
+    const useDistanceLimit = Number.isFinite(distanceLimit) && distanceLimit < DISTANCE_MAX_MILES;
 
     const filterStart = parseDateSafe(startDateEl.value);
     const filterEnd = parseDateSafe(endDateEl.value);
@@ -209,6 +286,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (baths && String(listing.baths || '') !== baths) return false;
       if (furnished && normalizeFurnished(listing.furnished) !== furnished) return false;
 
+      if (useDistanceLimit) {
+        if (!Number.isFinite(listing._distanceMiles) || listing._distanceMiles > distanceLimit) {
+          return false;
+        }
+      }
+
       if (useDateFilter) {
         const listingStart = parseDateSafe(listing.start_date);
         const listingEnd = parseDateSafe(listing.end_date);
@@ -226,6 +309,25 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     });
 
+    filtered.sort((a, b) => {
+      if (sort === 'closest' || sort === 'farthest') {
+        const aFinite = Number.isFinite(a._distanceMiles);
+        const bFinite = Number.isFinite(b._distanceMiles);
+
+        if (!aFinite && !bFinite) return 0;
+        if (!aFinite) return 1;
+        if (!bFinite) return -1;
+
+        return sort === 'closest'
+          ? (a._distanceMiles - b._distanceMiles)
+          : (b._distanceMiles - a._distanceMiles);
+      }
+
+      const aTime = new Date(a.created_at || 0).getTime();
+      const bTime = new Date(b.created_at || 0).getTime();
+      return bTime - aTime;
+    });
+
     renderListings(filtered);
   }
 
@@ -238,6 +340,9 @@ document.addEventListener('DOMContentLoaded', () => {
     bedsEl.value = '';
     bathsEl.value = '';
     furnishedEl.value = '';
+    if (distanceEl) distanceEl.value = String(DISTANCE_MAX_MILES);
+    if (sortEl) sortEl.value = 'newest';
+    updateDistanceLabel();
     renderListings(allListings);
   }
 
@@ -255,7 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
       gridEl.appendChild(createCard(listing));
     });
 
-    setStatus(`Showing ${listings.length} listing${listings.length === 1 ? '' : 's'}.`, 'loaded');
+    const hasDistance = listings.some((item) => Number.isFinite(item._distanceMiles));
+    const distanceNote = hasDistance ? ' Distance filter uses stored coordinates.' : ' Distance unavailable for some listings.';
+    setStatus(`Showing ${listings.length} listing${listings.length === 1 ? '' : 's'}.${distanceNote}`, 'loaded');
   }
 
   async function loadApprovedListings() {
@@ -278,7 +385,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      allListings = Array.isArray(data) ? data : [];
+      allListings = (Array.isArray(data) ? data : []).map((item) => {
+        const coords = getListingCoordinates(item);
+        const distanceMiles = coords ? haversineMiles(CAMPUS_COORDS, coords) : null;
+        return {
+          ...item,
+          _distanceMiles: Number.isFinite(distanceMiles) ? distanceMiles : null
+        };
+      });
       populateFilterOptions(allListings);
       renderListings(allListings);
     } catch (err) {
@@ -288,6 +402,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (applyBtn) applyBtn.addEventListener('click', applyFilters);
   if (clearBtn) clearBtn.addEventListener('click', clearFilters);
+  if (distanceEl) distanceEl.addEventListener('input', updateDistanceLabel);
+  if (sortEl) sortEl.addEventListener('change', applyFilters);
+
+  updateDistanceLabel();
 
   loadApprovedListings();
 });

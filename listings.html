@@ -98,6 +98,20 @@
             <option value="no">No</option>
           </select>
         </label>
+
+        <label class="listings-field listings-distance-field">
+          <span>Distance from campus <strong id="filter-distance-value">Any</strong></span>
+          <input type="range" id="filter-distance" min="0" max="10" step="0.25" value="10" />
+        </label>
+
+        <label class="listings-field">
+          <span>Sort</span>
+          <select id="filter-sort">
+            <option value="newest">Newest</option>
+            <option value="closest">Closest to campus</option>
+            <option value="farthest">Farthest from campus</option>
+          </select>
+        </label>
       </div>
 
       <div class="listings-filter-actions">
@@ -112,7 +126,7 @@
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/listings-logic.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="/listings-logic.js?v=2026-02-23a" defer></script>
 </body>
 </html>

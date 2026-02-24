@@ -1,3 +1,13 @@
+/*
+ROUTES + FILE PURPOSES
+- File: admin-logic.js
+- Belongs to: /admin.html
+- Query params: none required for portal operations
+- Visibility rules: admin-only portal (authenticated user + id exists in public.admins)
+- Allowed listing visibility: pending + approved + preview workflows for admins only
+*/
+const BUILD_VERSION = '2026-02-23a';
+
 console.log('[admin] admin-logic.js loaded');
 
 document.addEventListener('DOMContentLoaded', () => {
