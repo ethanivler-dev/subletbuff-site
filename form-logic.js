@@ -108,6 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		if (!isHeic) return file;
 
+		if (typeof window.heic2any !== 'function') {
+			throw new Error('heic2any missing');
+		}
+
 		try {
 			const output = await window.heic2any({
 				blob: file,
