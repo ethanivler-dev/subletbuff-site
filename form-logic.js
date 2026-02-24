@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const photoInlineMsg = document.getElementById('photo-inline-msg');
 	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
 	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
-	console.log('[form] heic2any available before handlers:', !!window.heic2any);
+	console.log('heic2any exists:', typeof window.heic2any);
 
 	function setPhotoInlineMessage(message) {
 		if (!photoInlineMsg) return;
@@ -106,27 +106,26 @@ document.addEventListener('DOMContentLoaded', () => {
 			file.type.includes('heif') ||
 			/\.(heic|heif)$/i.test(file.name);
 
-		if (!isHeic) {
-			return file;
+		if (!isHeic) return file;
+
+		try {
+			const output = await window.heic2any({
+				blob: file,
+				toType: 'image/jpeg',
+				quality: 0.9
+			});
+
+			const jpegBlob = Array.isArray(output) ? output[0] : output;
+
+			return new File(
+				[jpegBlob],
+				file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+				{ type: 'image/jpeg' }
+			);
+		} catch (err) {
+			console.error('HEIC conversion failed:', err);
+			throw new Error('This browser cannot convert HEIC. Please use JPG or PNG.');
 		}
-
-		if (!window.heic2any) {
-			throw new Error('HEIC conversion library (heic2any) unavailable.');
-		}
-
-		const output = await window.heic2any({
-			blob: file,
-			toType: 'image/jpeg',
-			quality: 0.9
-		});
-
-		const jpegBlob = Array.isArray(output) ? output[0] : output;
-
-		return new File(
-			[jpegBlob],
-			file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-			{ type: 'image/jpeg' }
-		);
 	}
 
 	// ── IMMEDIATE UPLOAD TO STORAGE ────────────────────────
@@ -613,13 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				const normalized = await normalizeFile(file);
 				previewUrl = URL.createObjectURL(normalized);
 
-				// Debug: confirm no HEIC is about to be uploaded
-				console.log('[form] uploading normalized file:', {
-					originalName: file.name,
-					normalizedName: normalized.name,
-					type: normalized.type,
-					size: normalized.size
-				});
+				console.log('FINAL UPLOAD:', normalized.name, normalized.type);
 
 				const { path, url } = await uploadPhotoToStorage(normalized);
 
