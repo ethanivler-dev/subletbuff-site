@@ -1,6 +1,6 @@
 // Wrap form logic in DOMContentLoaded and guard element access
 document.addEventListener('DOMContentLoaded', () => {
-	console.log('[form] script loaded v20260223e');
+	console.log('[form] script loaded v20260223f');
 	// Temporarily uncomment to verify script is running:
 	// alert('Form script loaded!');
 
@@ -73,25 +73,56 @@ document.addEventListener('DOMContentLoaded', () => {
 	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
 	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
 
-	// Generates a JPEG data-URL placeholder for HEIC files that can't be previewed in this browser.
+	// Converts a HEIC/HEIF file to a JPEG Blob.
+	// Tries native browser decoding first (Safari, macOS Chrome), then heic2any library.
+	// Returns null if conversion is not possible on this browser.
+	async function convertHeicToJpegBlob(file) {
+		// Method 1: native createImageBitmap — works in Safari and macOS Chrome/Edge which
+		// have OS-level HEIC codec support (same browsers where HEIC photos originate).
+		try {
+			const bitmap = await createImageBitmap(file);
+			const canvas = document.createElement('canvas');
+			canvas.width = bitmap.width;
+			canvas.height = bitmap.height;
+			canvas.getContext('2d').drawImage(bitmap, 0, 0);
+			bitmap.close();
+			const blob = await new Promise((res, rej) =>
+				canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob null')), 'image/jpeg', 0.85)
+			);
+			console.log('[form] HEIC decoded natively:', file.name);
+			return blob;
+		} catch (e) {
+			console.log('[form] native HEIC decode failed, trying heic2any:', e.message);
+		}
+		// Method 2: heic2any WASM library
+		if (window.heic2any) {
+			try {
+				const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+				console.log('[form] HEIC decoded via heic2any:', file.name);
+				return Array.isArray(converted) ? converted[0] : converted;
+			} catch (e) {
+				console.warn('[form] heic2any failed:', e.message);
+			}
+		}
+		return null; // both methods failed — caller should use placeholder
+	}
+
+	// Generates a canvas JPEG placeholder for HEIC files that cannot be decoded in this browser.
 	function makeHeicPlaceholder(fileName) {
 		const canvas = document.createElement('canvas');
 		canvas.width = 300; canvas.height = 200;
 		const ctx = canvas.getContext('2d');
 		ctx.fillStyle = '#f5f0e8';
 		ctx.fillRect(0, 0, 300, 200);
-		// Camera body
 		ctx.fillStyle = '#c4b99a';
 		ctx.beginPath();
 		if (ctx.roundRect) ctx.roundRect(90, 65, 120, 80, 8);
 		else { ctx.rect(90, 65, 120, 80); }
 		ctx.fill();
-		// Lens
 		ctx.fillStyle = '#f5f0e8';
 		ctx.beginPath(); ctx.arc(150, 105, 22, 0, Math.PI * 2); ctx.fill();
 		ctx.fillStyle = '#b8b0a5';
 		ctx.beginPath(); ctx.arc(150, 105, 15, 0, Math.PI * 2); ctx.fill();
-		// Label
 		ctx.fillStyle = '#8c7d6b';
 		ctx.font = '12px sans-serif';
 		ctx.textAlign = 'center';
@@ -555,20 +586,12 @@ document.addEventListener('DOMContentLoaded', () => {
 				const isHeic = file.type === 'image/heic' || file.type === 'image/heif' ||
 					/\.(heic|heif)$/i.test(file.name);
 				if (isHeic) {
-					if (window.heic2any) {
-						try {
-							const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
-							const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
-							const baseName = file.name.replace(/\.(heic|heif)$/i, '');
-							fileToUpload = new File([jpegBlob], `${baseName}.jpg`, { type: 'image/jpeg' });
-							previewBlobUrl = URL.createObjectURL(jpegBlob);
-							console.log('[form] HEIC converted to JPEG before upload:', file.name);
-						} catch (heicErr) {
-							console.warn('[form] HEIC pre-conversion failed, using placeholder:', heicErr);
-							previewBlobUrl = makeHeicPlaceholder(file.name);
-						}
+					const jpegBlob = await convertHeicToJpegBlob(file);
+					if (jpegBlob) {
+						const baseName = file.name.replace(/\.(heic|heif)$/i, '');
+						fileToUpload = new File([jpegBlob], `${baseName}.jpg`, { type: 'image/jpeg' });
+						previewBlobUrl = URL.createObjectURL(jpegBlob);
 					} else {
-						console.warn('[form] heic2any not available, using placeholder for:', file.name);
 						previewBlobUrl = makeHeicPlaceholder(file.name);
 					}
 				}
