@@ -10,7 +10,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places" async defer></script>
 
 <style>
@@ -302,7 +301,6 @@
 </head>
 
 <body>
-<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <div id="autosave-badge" class="autosave-badge">
@@ -536,6 +534,7 @@
         <!-- Mini preview strip showing thumbnails -->
         <div id="photo-mini-strip"></div>
         <div id="photo-count-msg" class="photo-count"></div>
+        <div id="photo-inline-msg" class="photo-count" aria-live="polite"></div>
         <button type="button" id="manage-photos-btn" class="manage-photos-btn" style="display:none;">Manage Photos</button>
       </div>
 
@@ -694,6 +693,7 @@
   </div>
 </main>
 
+<script src="https://unpkg.com/heic2any/dist/heic2any.min.js"></script>
 <script src="/form-logic.js?v=20260223f"></script>
 </body>
 </html>

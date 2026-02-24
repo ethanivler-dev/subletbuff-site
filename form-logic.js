@@ -72,8 +72,15 @@ document.addEventListener('DOMContentLoaded', () => {
 	const photoDebug = (...args) => { if (PHOTO_DEBUG) console.log(...args); };
 	const strip = document.getElementById('photo-strip');
 	const uploadZone = document.getElementById('upload-zone');
+	const photoInlineMsg = document.getElementById('photo-inline-msg');
 	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
 	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
+	console.log('[form] heic2any available before handlers:', !!window.heic2any);
+
+	function setPhotoInlineMessage(message) {
+		if (!photoInlineMsg) return;
+		photoInlineMsg.textContent = message || '';
+	}
 
 	function revokePreviewUrlIfNeeded(previewUrl) {
 		if (typeof previewUrl === 'string' && previewUrl.startsWith('blob:')) {
@@ -93,82 +100,25 @@ document.addEventListener('DOMContentLoaded', () => {
 		return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
 	}
 
-	async function canRenderImageNatively(file) {
-		const objectUrl = URL.createObjectURL(file);
-		try {
-			await new Promise((resolve, reject) => {
-				const img = new Image();
-				img.onload = () => resolve(true);
-				img.onerror = () => reject(new Error('Image decode failed'));
-				img.src = objectUrl;
-			});
-			return true;
-		} catch {
-			return false;
-		} finally {
-			revokePreviewUrlIfNeeded(objectUrl);
-		}
-	}
-
-	// Converts a HEIC/HEIF file to a JPEG Blob.
-	// Tries native browser decoding first (Safari, macOS Chrome), then heic2any library.
-	// Returns null if conversion is not possible on this browser.
-	async function convertHeicToJpegBlob(file) {
-		// Method 1: native createImageBitmap — works in Safari and macOS Chrome/Edge which
-		// have OS-level HEIC codec support (same browsers where HEIC photos originate).
-		try {
-			const bitmap = await createImageBitmap(file);
-			const canvas = document.createElement('canvas');
-			canvas.width = bitmap.width;
-			canvas.height = bitmap.height;
-			canvas.getContext('2d').drawImage(bitmap, 0, 0);
-			bitmap.close();
-			const blob = await new Promise((res, rej) =>
-				canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob null')), 'image/jpeg', 0.85)
-			);
-			console.log('[form] HEIC decoded natively:', file.name);
-			return blob;
-		} catch (e) {
-			console.log('[form] native HEIC decode failed, trying heic2any:', e.message);
-		}
-		// Method 2: heic2any WASM library
-		if (window.heic2any) {
-			try {
-				const converted = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
-				console.log('[form] HEIC decoded via heic2any:', file.name);
-				return Array.isArray(converted) ? converted[0] : converted;
-			} catch (e) {
-				console.warn('[form] heic2any failed:', e.message);
+	async function normalizeFileForPreview(file) {
+		const heic = isHeicFile(file);
+		if (heic) {
+			if (!window.heic2any) {
+				throw new Error('HEIC conversion library unavailable.');
 			}
+			const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+			const jpegBlob = Array.isArray(out) ? out[0] : out;
+			const jpegFile = new File(
+				[jpegBlob],
+				file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+				{ type: 'image/jpeg' }
+			);
+			const previewUrl = URL.createObjectURL(jpegBlob);
+			return { uploadFile: jpegFile, previewUrl };
 		}
-		return null; // both methods failed — caller should use placeholder
-	}
 
-	// Generates a canvas JPEG placeholder for HEIC files that cannot be decoded in this browser.
-	function makeHeicPlaceholder(fileName) {
-		const canvas = document.createElement('canvas');
-		canvas.width = 300; canvas.height = 200;
-		const ctx = canvas.getContext('2d');
-		ctx.fillStyle = '#f5f0e8';
-		ctx.fillRect(0, 0, 300, 200);
-		ctx.fillStyle = '#c4b99a';
-		ctx.beginPath();
-		if (ctx.roundRect) ctx.roundRect(90, 65, 120, 80, 8);
-		else { ctx.rect(90, 65, 120, 80); }
-		ctx.fill();
-		ctx.fillStyle = '#f5f0e8';
-		ctx.beginPath(); ctx.arc(150, 105, 22, 0, Math.PI * 2); ctx.fill();
-		ctx.fillStyle = '#b8b0a5';
-		ctx.beginPath(); ctx.arc(150, 105, 15, 0, Math.PI * 2); ctx.fill();
-		ctx.fillStyle = '#8c7d6b';
-		ctx.font = '12px sans-serif';
-		ctx.textAlign = 'center';
-		const display = fileName.length > 28 ? fileName.slice(0, 25) + '…' : fileName;
-		ctx.fillText(display, 150, 165);
-		ctx.fillStyle = '#aaa098';
-		ctx.font = '11px sans-serif';
-		ctx.fillText('Photo added · preview not available', 150, 182);
-		return canvas.toDataURL('image/jpeg', 0.8);
+		const previewUrl = URL.createObjectURL(file);
+		return { uploadFile: file, previewUrl };
 	}
 
 	// ── IMMEDIATE UPLOAD TO STORAGE ────────────────────────
@@ -581,9 +531,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
+		setPhotoInlineMessage('');
 
 		if (photoDraft.length >= MAX_PHOTOS) {
-			showToastMessage(`Maximum ${MAX_PHOTOS} photos allowed.`);
+			setPhotoInlineMessage(`Maximum ${MAX_PHOTOS} photos allowed.`);
 			return;
 		}
 
@@ -636,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 
 		if (skippedForMax > 0) {
-			showToastMessage(`Only ${remainingSlots} photo${remainingSlots === 1 ? '' : 's'} could be added (max ${MAX_PHOTOS}). ${skippedForMax} skipped.`);
+			setPhotoInlineMessage(`Only ${remainingSlots} photo${remainingSlots === 1 ? '' : 's'} could be added (max ${MAX_PHOTOS}). ${skippedForMax} skipped.`);
 		}
 		if (skippedForDuplicate > 0) {
 			showToastMessage(`${skippedForDuplicate} duplicate photo${skippedForDuplicate === 1 ? '' : 's'} skipped.`);
@@ -648,40 +599,19 @@ document.addEventListener('DOMContentLoaded', () => {
 			let previewUrl = '';
 			try {
 				const isHeic = isHeicFile(file);
-				let heicConversionSucceeded = false;
-				let heicPreviewMethod = 'not-heic';
-				if (isHeic) heicPreviewMethod = 'heic-detected';
-				if (isHeic) {
-					if (await canRenderImageNatively(file)) {
-						previewUrl = URL.createObjectURL(file);
-						heicConversionSucceeded = true;
-						heicPreviewMethod = 'native-render';
-					} else {
-						const jpegBlob = await convertHeicToJpegBlob(file);
-						if (jpegBlob) {
-							previewUrl = URL.createObjectURL(jpegBlob);
-							heicConversionSucceeded = true;
-							heicPreviewMethod = 'heic2any-or-canvas-conversion';
-						} else {
-							previewUrl = makeHeicPlaceholder(file.name);
-							heicPreviewMethod = 'placeholder';
-							showToastMessage('HEIC preview unavailable on this browser. Photo will still upload.');
-						}
-					}
-				} else {
-					previewUrl = URL.createObjectURL(file);
-				}
+				const normalized = await normalizeFileForPreview(file);
+				const uploadFile = normalized.uploadFile;
+				previewUrl = normalized.previewUrl;
 
 				if (isHeic) {
 					photoDebug('[form][photo-debug] HEIC preview result:', {
 						file: file.name,
-						success: heicConversionSucceeded,
-						method: heicPreviewMethod
+						success: true,
+						method: 'heic2any-jpeg'
 					});
 				}
 
-				// Keep original file for storage/upload and submission payload logic.
-				const { path, url } = await uploadPhotoToStorage(file);
+				const { path, url } = await uploadPhotoToStorage(uploadFile);
 
 				// Add to photoDraft (single source of truth)
 				photoDraft.push({
@@ -689,7 +619,8 @@ document.addEventListener('DOMContentLoaded', () => {
 					url: url,
 					order: photoDraft.length,
 					note: '',
-					file: file,
+					file: uploadFile,
+					originalName: file.name,
 					previewUrl: previewUrl
 				});
 
