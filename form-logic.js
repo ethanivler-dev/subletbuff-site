@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	// 1. INITIALIZE SUPABASE
 	// ==========================================
 	const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
-	const SUPABASE_ANON_KEY = 'sb_publishable_ZZ4mKcw6_e9diz7oFfbVag_YA9zkqFW';
+	const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWhxcXdxd2plYmhmZ2R2eXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjI5NjksImV4cCI6MjA4NzEzODk2OX0.oDepDKzyGBP72NLgdF0MXdh8wPWN0ozW_SNCuBhKnU0';
 
 	let supabaseClient = null;
 
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// ── Photo storage ────────────────────────────────────
-	// Single array - in-memory and persisted. Schema: { path, url, order, note, file?, previewUrl? }
+	// Single array - in-memory and persisted. Schema: { path, url, order, note, file?, previewUrl?, listingId? }
 	let photoDraft = [];
 	const PHOTO_DEBUG = false;
 	const photoDebug = (...args) => { if (PHOTO_DEBUG) console.log(...args); };
@@ -75,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	const photoInlineMsg = document.getElementById('photo-inline-msg');
 	const PHOTOS_DRAFT_KEY = 'subletbuff_photos_draft_v1';
 	console.log('[form] photo elements:', { strip: !!strip, uploadZone: !!uploadZone });
-	console.log('heic2any exists:', typeof window.heic2any);
 
 	function setPhotoInlineMessage(message) {
 		if (!photoInlineMsg) return;
@@ -93,6 +92,53 @@ document.addEventListener('DOMContentLoaded', () => {
 		revokePreviewUrlIfNeeded(entry.previewUrl);
 	}
 
+	const UPLOAD_LISTING_ID_KEY = 'subswap_upload_listing_id';
+
+	function generateDraftListingId() {
+		if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+			return `draft-${crypto.randomUUID()}`;
+		}
+		return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	}
+
+	function getStoredUploadListingId() {
+		try {
+			return localStorage.getItem(UPLOAD_LISTING_ID_KEY);
+		} catch (err) {
+			console.warn('[form] unable to access stored upload listing id', err);
+			return null;
+		}
+	}
+
+	function persistUploadListingId(id) {
+		if (!id) return;
+		try {
+			localStorage.setItem(UPLOAD_LISTING_ID_KEY, id);
+		} catch (err) {
+			console.warn('[form] unable to persist upload listing id', err);
+		}
+	}
+
+	function clearStoredUploadListingId() {
+		try {
+			localStorage.removeItem(UPLOAD_LISTING_ID_KEY);
+		} catch (err) {
+			console.warn('[form] unable to clear upload listing id', err);
+		}
+	}
+
+	function getActiveUploadListingId() {
+		if (currentListingId) {
+			persistUploadListingId(currentListingId);
+			return currentListingId;
+		}
+		const stored = getStoredUploadListingId();
+		if (stored) return stored;
+		const generated = generateDraftListingId();
+		persistUploadListingId(generated);
+		return generated;
+	}
+
 	function isHeicFile(file) {
 		if (!file) return false;
 		const type = String(file.type || '').toLowerCase();
@@ -100,79 +146,47 @@ document.addEventListener('DOMContentLoaded', () => {
 		return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
 	}
 
-	async function normalizeFile(file) {
-		const isHeic =
-			file.type.includes('heic') ||
-			file.type.includes('heif') ||
-			/\.(heic|heif)$/i.test(file.name);
+	// ── UPLOAD VIA EDGE FUNCTION (handles HEIC conversion + storage) ──
+	async function uploadViaEdgeFunction(file) {
+		const url = `${SUPABASE_URL}/functions/v1/convert-image`;
+		const formData = new FormData();
+		const listingId = getActiveUploadListingId();
+		formData.append('file', file);
+		formData.append('listing_id', listingId);
 
-		if (!isHeic) return file;
+		console.log('[form] uploading via edge function:', { name: file.name, size: file.size, type: file.type, listingId });
 
-		if (typeof window.heic2any !== 'function') {
-			throw new Error('heic2any missing');
+		const anonKey = SUPABASE_ANON_KEY;
+		console.log('anonKey length:', (anonKey || '').length, 'starts:', (anonKey || '').slice(0, 8), 'url:', url);
+		const resp = await fetch(url, {
+			method: 'POST',
+			headers: {
+				'apikey': anonKey,
+				'Authorization': `Bearer ${anonKey}`,
+				'Accept': 'application/json'
+			},
+			body: formData
+		});
+
+		if (!resp.ok) {
+			const errBody = await resp.json().catch(() => ({}));
+			console.error('[form] edge function error:', resp.status, errBody);
+			throw new Error(errBody.error || `Upload failed (${resp.status})`);
 		}
 
-		try {
-			const output = await window.heic2any({
-				blob: file,
-				toType: 'image/jpeg',
-				quality: 0.9
-			});
-
-			const jpegBlob = Array.isArray(output) ? output[0] : output;
-
-			return new File(
-				[jpegBlob],
-				file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-				{ type: 'image/jpeg' }
-			);
-		} catch (err) {
-			console.error('HEIC conversion failed:', err);
-			throw new Error('This browser cannot convert HEIC. Please use JPG or PNG.');
+		const json = await resp.json();
+		console.log('convert-image response', json);
+		if (!json?.publicUrl || !json?.path) {
+			throw new Error('Upload succeeded but response was incomplete.');
 		}
-	}
-
-	// ── IMMEDIATE UPLOAD TO STORAGE ────────────────────────
-	async function uploadPhotoToStorage(file) {
-		if (!supabaseClient) {
-			console.error('[form] Supabase client not available for upload');
-			throw new Error('Database connection unavailable');
-		}
-		try {
-			const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
-			const fileExt = file.name.split('.').pop();
-			const filePath = `temp-uploads/${fileName}.${fileExt}`;
-
-			console.log('[form] uploading to storage:', { path: filePath, name: file.name, size: file.size });
-			
-			const { data: uploadData, error: uploadError } = await supabaseClient.storage
-				.from('listing-photos')
-				.upload(filePath, file);
-
-			if (uploadError) {
-				console.error('[form] Storage upload error', uploadError);
-				throw uploadError;
-			}
-
-			const { data: publicUrlData } = supabaseClient.storage
-				.from('listing-photos')
-				.getPublicUrl(filePath);
-
-			if (!publicUrlData || !publicUrlData.publicUrl) {
-				throw new Error('Failed to get public URL');
-			}
-
-			console.log('[form] upload successful:', { path: filePath, url: publicUrlData.publicUrl });
-			return { path: filePath, url: publicUrlData.publicUrl };
-		} catch (err) {
-			console.error('[form] uploadPhotoToStorage failed:', err);
-			throw err;
-		}
+		const resolvedListingId = json.listingId || listingId;
+		persistUploadListingId(resolvedListingId);
+		return { path: json.path, url: json.publicUrl, listingId: resolvedListingId };
 	}
 
 	// ── DRAFT PHOTO PERSISTENCE ────────────────────────
 	function saveDraftPhotos() {
-		const toSave = (photoDraft || []).map(({ path, url, order, note }) => ({ path, url, order, note }));
+		const toSave = (photoDraft || []).map(({ path, url, order, note, listingId }) => ({ path, url, order, note, listingId }));
 		try { localStorage.setItem(PHOTOS_DRAFT_KEY, JSON.stringify(toSave)); } catch(e) { console.error('[form] saveDraftPhotos failed', e); }
 		console.log('[form] draft photos saved:', toSave.length);
 	}
@@ -187,8 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
 				url: p.url || '',
 				order: p.order != null ? p.order : i,
 				note: p.note || '',
+				listingId: p.listingId || null,
 				file: null,        // File objects can't be persisted
-				previewUrl: p.url || ''
+				previewUrl: p.previewUrl || p.url || ''
 			})) : [];
 			console.log('[form] draft photos restored:', photoDraft.length);
 		} catch (e) {
@@ -203,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		photoDraft = [];
 		try { localStorage.removeItem(PHOTOS_DRAFT_KEY); } catch(e) {}
+		clearStoredUploadListingId();
 		console.log('[form] draft photos cleared');
 	}
 
@@ -605,33 +621,32 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		if (filesToUpload.length === 0) return;
 
-		// Debug: log file types about to be normalized + uploaded
-		console.log('Uploading file types:', filesToUpload.map(f => f.type || 'unknown (' + f.name + ')'));
+		console.log('[form] uploading file types:', filesToUpload.map(f => f.type || 'unknown (' + f.name + ')'));
 
-		// Upload all valid files immediately
+		// Upload all valid files via edge function
 		const uploadPromises = filesToUpload.map(async (file) => {
 			let previewUrl = '';
 			try {
-				// Normalize: HEIC → JPEG, everything else passes through
-				const normalized = await normalizeFile(file);
-				previewUrl = URL.createObjectURL(normalized);
+				// For non-HEIC files, show an immediate blob preview
+				if (!isHeicFile(file)) {
+					previewUrl = URL.createObjectURL(file);
+				}
 
-				console.log('FINAL UPLOAD:', normalized.name, normalized.type);
-
-				const { path, url } = await uploadPhotoToStorage(normalized);
+				const { path, url, listingId } = await uploadViaEdgeFunction(file);
 
 				// Add to photoDraft (single source of truth)
 				photoDraft.push({
-					path: path,
-					url: url,
+					path,
+					url,
+					listingId,
 					order: photoDraft.length,
 					note: '',
-					file: normalized,
+					file,
 					originalName: file.name,
-					previewUrl: previewUrl
+					previewUrl: previewUrl || url
 				});
 
-				console.log('[form] photo added to photoDraft:', { path, order: photoDraft.length - 1 });
+				console.log('[form] photo added to photoDraft:', { path, listingId, order: photoDraft.length - 1 });
 			} catch (err) {
 				revokePreviewUrlIfNeeded(previewUrl);
 				console.error('[form] upload error for', file.name, err);
@@ -642,7 +657,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		// After all uploads complete, update UI
 		Promise.all(uploadPromises).then(() => {
 			console.log('[form] all uploads complete, photoDraft:', photoDraft.length);
-			console.log('Uploading file types:', photoDraft.map(p => p.file && p.file.type));
 			saveDraftPhotos();
 			try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error after upload', e); }
 			saveDraft();
@@ -1356,6 +1370,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 
 		try {
 			if (currentListingId) {
+				persistUploadListingId(currentListingId);
 				console.error('[form] updating listing', currentListingId, { photosCount: photosMeta.length });
 				const { error } = await supabaseClient
 					.from('listings')
@@ -1371,6 +1386,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 				if (error) { console.error('[form] Supabase insert error', error); throw error; }
 				if (data && data.length > 0) {
 					currentListingId = data[0].id;
+					persistUploadListingId(currentListingId);
 					const fullAddress = buildFullAddressForGeocode();
 					if (fullAddress && currentListingId) {
 						try {
