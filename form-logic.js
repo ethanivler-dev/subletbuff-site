@@ -170,29 +170,37 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-	let _libheifLoaded = false;
-	function loadLibheifJs() {
-		if (_libheifLoaded) return Promise.resolve();
-		return new Promise((resolve, reject) => {
-			const s = document.createElement('script');
-			s.src = 'https://cdn.jsdelivr.net/npm/libheif-js@1.18.2/libheif-wasm/libheif.js';
-			s.onload = () => {
-				_libheifLoaded = true;
-				console.log('[form] libheif-js loaded, window.libheif:', typeof window.libheif);
-				resolve();
-			};
-			s.onerror = () => reject(new Error('libheif-js failed to load from CDN'));
-			document.head.appendChild(s);
-		});
+	let _libheifMod = null;
+	async function getLibheifMod() {
+		if (_libheifMod) return _libheifMod;
+		const base = 'https://cdn.jsdelivr.net/npm/libheif-js@1.18.2/libheif-wasm/';
+		// Step 1: load JS script (defines window.libheif factory)
+		if (!window._libheifScriptLoaded) {
+			await new Promise((resolve, reject) => {
+				const s = document.createElement('script');
+				s.src = base + 'libheif.js';
+				s.onload = () => { window._libheifScriptLoaded = true; resolve(); };
+				s.onerror = () => reject(new Error('libheif.js CDN load failed'));
+				document.head.appendChild(s);
+			});
+			console.log('[form] libheif.js loaded, window.libheif type:', typeof window.libheif);
+		}
+		const factory = window.libheif;
+		if (!factory) throw new Error('window.libheif undefined after script load');
+		// Step 2: fetch WASM binary async (Emscripten errors if it has to sync-fetch)
+		console.log('[form] fetching libheif WASM binary…');
+		const wasmResp = await fetch(base + 'libheif.wasm');
+		if (!wasmResp.ok) throw new Error('libheif WASM fetch failed: ' + wasmResp.status);
+		const wasmBinary = await wasmResp.arrayBuffer();
+		console.log('[form] libheif WASM ready, bytes:', wasmBinary.byteLength);
+		// Step 3: init module — pass wasmBinary so Emscripten skips the sync fetch
+		_libheifMod = (typeof factory === 'function') ? await factory({ wasmBinary }) : factory;
+		console.log('[form] libheif module ready, HeifDecoder:', typeof _libheifMod.HeifDecoder);
+		return _libheifMod;
 	}
 
 	async function convertWithLibheifJs(file, jpegName) {
-		await loadLibheifJs();
-		const factory = window.libheif;
-		if (!factory) throw new Error('window.libheif undefined after script load');
-		// window.libheif is a factory function — call it to get the actual module
-		const mod = (typeof factory === 'function') ? await factory() : factory;
-		console.log('[form] libheif-js module type:', typeof mod, 'HeifDecoder:', typeof mod.HeifDecoder);
+		const mod = await getLibheifMod();
 		const buffer = await file.arrayBuffer();
 		const uint8 = new Uint8Array(buffer);
 		return new Promise((resolve, reject) => {
