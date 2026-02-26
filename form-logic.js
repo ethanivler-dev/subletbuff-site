@@ -1010,8 +1010,12 @@ suggestions.addEventListener('click', e => {
 	const placeId = item.dataset.placeId;
 	if (placeId && placesService) {
 		sessionToken = new google.maps.places.AutocompleteSessionToken();
-		placesService.getDetails({ placeId, fields: ['address_components'] }, (place, status) => {
+		placesService.getDetails({ placeId, fields: ['address_components', 'geometry'] }, (place, status) => {
 			if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+				if (place.geometry?.location) {
+					console.log('[address] lat:', place.geometry.location.lat());
+					console.log('[address] lng:', place.geometry.location.lng());
+				}
 				let nbhd = '';
 				const specificTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1'];
 				for (const targetType of specificTypes) {
