@@ -146,7 +146,33 @@ document.addEventListener('DOMContentLoaded', () => {
 		return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
 	}
 
-	// ── UPLOAD VIA EDGE FUNCTION (handles HEIC conversion + storage) ──
+	// ── CLIENT-SIDE HEIC→JPEG (Safari/iOS natively supports HEIC in Canvas) ──
+	async function convertHeicToJpegClientSide(file) {
+		return new Promise((resolve, reject) => {
+			const img = new Image();
+			const blobUrl = URL.createObjectURL(file);
+			img.onload = () => {
+				URL.revokeObjectURL(blobUrl);
+				const canvas = document.createElement('canvas');
+				canvas.width = img.naturalWidth;
+				canvas.height = img.naturalHeight;
+				const ctx = canvas.getContext('2d');
+				ctx.drawImage(img, 0, 0);
+				canvas.toBlob((blob) => {
+					if (!blob) { reject(new Error('canvas.toBlob returned null')); return; }
+					const jpegName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+					resolve(new File([blob], jpegName, { type: 'image/jpeg' }));
+				}, 'image/jpeg', 0.9);
+			};
+			img.onerror = () => {
+				URL.revokeObjectURL(blobUrl);
+				reject(new Error('Browser cannot decode this HEIC file. Please convert to JPEG first.'));
+			};
+			img.src = blobUrl;
+		});
+	}
+
+	// ── UPLOAD VIA EDGE FUNCTION (handles storage, HEIC pre-converted client-side) ──
 	async function uploadViaEdgeFunction(file) {
 		const url = `${SUPABASE_URL}/functions/v1/convert-image`;
 		const formData = new FormData();
@@ -678,15 +704,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		// Upload each file and update its placeholder in-place when done
 		const uploadPromises = pendingEntries.map(async (placeholder) => {
-			const { file, previewUrl } = placeholder;
+			const { file } = placeholder;
+			let fileToUpload = file;
+			let finalPreviewUrl = placeholder.previewUrl;
 			try {
-				const { path, url, listingId } = await uploadViaEdgeFunction(file);
+				// Convert HEIC client-side first (Safari/iOS supports HEIC natively in Canvas)
+				if (isHeicFile(file)) {
+					try {
+						fileToUpload = await convertHeicToJpegClientSide(file);
+						finalPreviewUrl = URL.createObjectURL(fileToUpload);
+						// Show JPEG preview immediately after conversion
+						const pidx = photoDraft.indexOf(placeholder);
+						if (pidx !== -1) {
+							photoDraft[pidx] = { ...photoDraft[pidx], previewUrl: finalPreviewUrl };
+						}
+						try { renderPhotos(); } catch(e2) {}
+						console.log('[form] HEIC converted client-side:', fileToUpload.name, fileToUpload.size);
+					} catch (convErr) {
+						console.warn('[form] client-side HEIC conversion failed:', convErr.message);
+						throw convErr;
+					}
+				}
+				const { path, url, listingId } = await uploadViaEdgeFunction(fileToUpload);
 				const idx = photoDraft.indexOf(placeholder);
 				if (idx !== -1) {
 					photoDraft[idx] = {
 						...photoDraft[idx],
 						path, url, listingId,
-						previewUrl: previewUrl || url,
+						previewUrl: finalPreviewUrl || url,
 						pending: false
 					};
 				}
@@ -695,7 +740,8 @@ document.addEventListener('DOMContentLoaded', () => {
 			} catch (err) {
 				const idx = photoDraft.indexOf(placeholder);
 				if (idx !== -1) photoDraft.splice(idx, 1);
-				revokePreviewUrlIfNeeded(previewUrl);
+				revokePreviewUrlIfNeeded(finalPreviewUrl);
+				revokePreviewUrlIfNeeded(placeholder.previewUrl);
 				console.error('[form] upload error for', file.name, err);
 				try { renderPhotos(); } catch(e) {}
 				alert(`Failed to upload ${file.name}: ${err.message}`);
@@ -733,6 +779,16 @@ document.addEventListener('DOMContentLoaded', () => {
 			this.value = '';
 		});
 		console.log('[form] photoInput change listener attached successfully');
+		// Also handle drops directly on the hidden input — the input covers the zone when
+		// pointer-events are enabled (dragover CSS), so drop may fire on the input, not the zone.
+		photoInput.addEventListener('dragover', e => { e.preventDefault(); if (uploadZone) uploadZone.classList.add('dragover'); });
+		photoInput.addEventListener('dragleave', e => { if (uploadZone) uploadZone.classList.remove('dragover'); });
+		photoInput.addEventListener('drop', e => {
+			e.preventDefault();
+			if (uploadZone) uploadZone.classList.remove('dragover');
+			const droppedFiles = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+			if (droppedFiles.length > 0) addFilesToStore(droppedFiles);
+		});
 	} else {
 		console.error('[form] CRITICAL: photo input element not found!');
 	}
