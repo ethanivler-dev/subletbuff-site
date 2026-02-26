@@ -225,6 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
 	// Load draft photos on page init (before renderPhotos)
 	loadDraftPhotos();
 
+	// Inject spinner CSS for upload-pending state (once)
+	if (!document.getElementById('ss-upload-pending-css')) {
+		const _s = document.createElement('style');
+		_s.id = 'ss-upload-pending-css';
+		_s.textContent = `.photo-card-modal{position:relative}.photo-card-loading{position:absolute;inset:0;background:rgba(255,255,255,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:inherit;z-index:2;pointer-events:none}.photo-card-loading-spinner{width:26px;height:26px;border:3px solid #ddd;border-top-color:#555;border-radius:50%;animation:_ss_spin .75s linear infinite}.photo-card-loading-text{font-size:.72rem;color:#666;font-weight:500}@keyframes _ss_spin{to{transform:rotate(360deg)}}.mini-uploading{display:inline-flex;align-items:center;justify-content:center;background:#e8e8e8;border-radius:6px;width:48px;height:48px;vertical-align:middle;flex-shrink:0}.mini-spin{width:18px;height:18px;border:2px solid #ccc;border-top-color:#555;border-radius:50%;animation:_ss_spin .75s linear infinite}`;
+		document.head.appendChild(_s);
+	}
+
 	// ── MODAL MANAGEMENT ────────────────────
 	const photoModalOverlay = document.getElementById('photo-modal-overlay');
 	let draggedCard = null;
@@ -321,6 +329,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		shown.forEach((entry, i) => {
 			const imgSrc = entry.previewUrl || entry.url || '';
+			if (entry.pending && !imgSrc) {
+				// HEIC in-flight — no preview yet, show spinner pill
+				const pill = document.createElement('div');
+				pill.className = 'mini-uploading' + (i === 0 ? ' is-cover' : '');
+				pill.title = `Uploading ${entry.originalName || 'photo'}…`;
+				pill.innerHTML = '<div class="mini-spin"></div>';
+				miniStrip.appendChild(pill);
+				return;
+			}
 			const img = document.createElement('img');
 			img.className = 'collapsed-thumb' + (i === 0 ? ' is-cover' : '');
 			img.src = imgSrc;
@@ -471,9 +488,19 @@ document.addEventListener('DOMContentLoaded', () => {
 					card.appendChild(setCoverBtn);
 				}
 
+				// Loading overlay for in-flight uploads
+				if (entry.pending) {
+					const overlay = document.createElement('div');
+					overlay.className = 'photo-card-loading';
+					overlay.innerHTML = '<div class="photo-card-loading-spinner"></div><span class="photo-card-loading-text">Uploading…</span>';
+					card.appendChild(overlay);
+					deleteBtn.disabled = true;
+					deleteBtn.style.opacity = '0.4';
+					deleteBtn.style.pointerEvents = 'none';
+				}
 				modalStrip.appendChild(card);
 			});
-			
+
 			// Initialize SortableJS for drag-and-drop (handles both desktop and mobile)
 			if (window.Sortable && modalStrip.children.length > 0) {
 				Sortable.create(modalStrip, {
@@ -498,8 +525,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		
 		const countMsg = document.getElementById('photo-count-msg');
-		const n = (photoDraft || []).length;
-		if (countMsg) countMsg.textContent = n > 0 ? `${n} photo${n > 1 ? 's' : ''} added` : '';
+		const nTotal = (photoDraft || []).length;
+		const nPending = (photoDraft || []).filter(p => p.pending).length;
+		if (countMsg) {
+			if (nPending > 0 && nPending === nTotal) {
+				countMsg.textContent = `Uploading ${nTotal} photo${nTotal > 1 ? 's' : ''}…`;
+			} else if (nPending > 0) {
+				const done = nTotal - nPending;
+				countMsg.textContent = `${done} photo${done !== 1 ? 's' : ''} added · uploading ${nPending} more…`;
+			} else if (nTotal > 0) {
+				countMsg.textContent = `${nTotal} photo${nTotal > 1 ? 's' : ''} added`;
+			} else {
+				countMsg.textContent = '';
+			}
+		}
 	}
 
 	// ── DRAG AND DROP HANDLERS (Desktop HTML5 - DEPRECATED, use SortableJS instead) ────────────────────
@@ -623,42 +662,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		console.log('[form] uploading file types:', filesToUpload.map(f => f.type || 'unknown (' + f.name + ')'));
 
-		// Upload all valid files via edge function
-		const uploadPromises = filesToUpload.map(async (file) => {
-			let previewUrl = '';
+		// Add placeholder entries immediately so spinner cards appear at once
+		const pendingEntries = filesToUpload.map((file) => {
+			const previewUrl = isHeicFile(file) ? '' : URL.createObjectURL(file);
+			const entry = {
+				path: '', url: '', listingId: null,
+				order: photoDraft.length,
+				note: '', file, originalName: file.name,
+				previewUrl, pending: true
+			};
+			photoDraft.push(entry);
+			return entry;
+		});
+		try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error (placeholders)', e); }
+
+		// Upload each file and update its placeholder in-place when done
+		const uploadPromises = pendingEntries.map(async (placeholder) => {
+			const { file, previewUrl } = placeholder;
 			try {
-				// For non-HEIC files, show an immediate blob preview
-				if (!isHeicFile(file)) {
-					previewUrl = URL.createObjectURL(file);
-				}
-
 				const { path, url, listingId } = await uploadViaEdgeFunction(file);
-
-				// Add to photoDraft (single source of truth)
-				photoDraft.push({
-					path,
-					url,
-					listingId,
-					order: photoDraft.length,
-					note: '',
-					file,
-					originalName: file.name,
-					previewUrl: previewUrl || url
-				});
-
-				console.log('[form] photo added to photoDraft:', { path, listingId, order: photoDraft.length - 1 });
+				const idx = photoDraft.indexOf(placeholder);
+				if (idx !== -1) {
+					photoDraft[idx] = {
+						...photoDraft[idx],
+						path, url, listingId,
+						previewUrl: previewUrl || url,
+						pending: false
+					};
+				}
+				console.log('[form] photo added to photoDraft:', { path, listingId });
+				try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error after upload', e); }
 			} catch (err) {
+				const idx = photoDraft.indexOf(placeholder);
+				if (idx !== -1) photoDraft.splice(idx, 1);
 				revokePreviewUrlIfNeeded(previewUrl);
 				console.error('[form] upload error for', file.name, err);
+				try { renderPhotos(); } catch(e) {}
 				alert(`Failed to upload ${file.name}: ${err.message}`);
 			}
 		});
 
-		// After all uploads complete, update UI
+		// After all uploads complete, persist + final count check
 		Promise.all(uploadPromises).then(() => {
 			console.log('[form] all uploads complete, photoDraft:', photoDraft.length);
 			saveDraftPhotos();
-			try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error after upload', e); }
+			try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error after all uploads', e); }
 			saveDraft();
 			if (photoDraft.length >= 3) clearFieldError('upload-zone');
 		});
