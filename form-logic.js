@@ -188,8 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	async function convertWithLibheifJs(file, jpegName) {
 		await loadLibheifJs();
-		const mod = window.libheif;
-		if (!mod) throw new Error('window.libheif undefined after script load');
+		const factory = window.libheif;
+		if (!factory) throw new Error('window.libheif undefined after script load');
+		// window.libheif is a factory function — call it to get the actual module
+		const mod = (typeof factory === 'function') ? await factory() : factory;
+		console.log('[form] libheif-js module type:', typeof mod, 'HeifDecoder:', typeof mod.HeifDecoder);
 		const buffer = await file.arrayBuffer();
 		const uint8 = new Uint8Array(buffer);
 		return new Promise((resolve, reject) => {
