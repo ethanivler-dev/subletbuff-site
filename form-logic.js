@@ -147,7 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// ── CLIENT-SIDE HEIC→JPEG ──
-	// Strategy: try native canvas first (Safari/iOS), then lazy-load heic2any (Chrome/Firefox).
+	// HEIC conversion strategy:
+	// 1. Native canvas (Safari/iOS) — zero overhead
+	// 2. heic2any (all browsers, libheif 1.9.0) — works for most HEIC files
+	// 3. libheif-js (all browsers, newer libheif) — fallback for modern iPhone HEIC variants
+
 	let _heic2any = null;
 	function loadHeic2Any() {
 		if (_heic2any) return Promise.resolve(_heic2any);
@@ -163,6 +167,55 @@ document.addEventListener('DOMContentLoaded', () => {
 			};
 			s.onerror = () => reject(new Error('HEIC converter library failed to load (CDN onerror)'));
 			document.head.appendChild(s);
+		});
+	}
+
+	let _libheifLoaded = false;
+	function loadLibheifJs() {
+		if (_libheifLoaded) return Promise.resolve();
+		return new Promise((resolve, reject) => {
+			const s = document.createElement('script');
+			s.src = 'https://cdn.jsdelivr.net/npm/libheif-js@1.18.2/libheif-wasm/libheif.js';
+			s.onload = () => {
+				_libheifLoaded = true;
+				console.log('[form] libheif-js loaded, window.libheif:', typeof window.libheif);
+				resolve();
+			};
+			s.onerror = () => reject(new Error('libheif-js failed to load from CDN'));
+			document.head.appendChild(s);
+		});
+	}
+
+	async function convertWithLibheifJs(file, jpegName) {
+		await loadLibheifJs();
+		const mod = window.libheif;
+		if (!mod) throw new Error('window.libheif undefined after script load');
+		const buffer = await file.arrayBuffer();
+		const uint8 = new Uint8Array(buffer);
+		return new Promise((resolve, reject) => {
+			try {
+				const decoder = new mod.HeifDecoder();
+				const data = decoder.decode(uint8);
+				if (!data || data.length === 0) { reject(new Error('No images found in HEIC file')); return; }
+				const image = data[0];
+				const width = image.get_width();
+				const height = image.get_height();
+				const canvas = document.createElement('canvas');
+				canvas.width = width;
+				canvas.height = height;
+				const ctx = canvas.getContext('2d');
+				const imageData = ctx.createImageData(width, height);
+				image.display(imageData, (displayData) => {
+					if (!displayData) { reject(new Error('libheif display() failed')); return; }
+					ctx.putImageData(imageData, 0, 0);
+					canvas.toBlob((blob) => {
+						if (blob) resolve(new File([blob], jpegName, { type: 'image/jpeg' }));
+						else reject(new Error('toBlob returned null'));
+					}, 'image/jpeg', 0.9);
+				});
+			} catch (e) {
+				reject(e);
+			}
 		});
 	}
 
@@ -190,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			// Native HEIC decode not available (Chrome, Firefox) — fall through
 		}
 
-		// 2. Load heic2any (works in all browsers)
+		// 2. heic2any (libheif 1.9.0 — works for most files)
 		console.log('[form] native HEIC decode unavailable, loading heic2any…');
 		try {
 			const h2a = await loadHeic2Any();
@@ -198,7 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
 			const outBlob = Array.isArray(out) ? out[0] : out;
 			return new File([outBlob], jpegName, { type: 'image/jpeg' });
 		} catch (libErr) {
-			console.error('[form] heic2any error:', libErr);
+			console.warn('[form] heic2any failed:', libErr, '— trying libheif-js…');
+		}
+
+		// 3. libheif-js (newer libheif — handles modern iPhone HEIC profiles)
+		try {
+			return await convertWithLibheifJs(file, jpegName);
+		} catch (libheifErr) {
+			console.error('[form] libheif-js error:', libheifErr);
 			throw new Error(`Could not convert "${file.name}" to JPEG. Please convert it manually and try again.`);
 		}
 	}
