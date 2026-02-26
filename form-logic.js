@@ -146,30 +146,55 @@ document.addEventListener('DOMContentLoaded', () => {
 		return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
 	}
 
-	// ── CLIENT-SIDE HEIC→JPEG (Safari/iOS natively supports HEIC in Canvas) ──
-	async function convertHeicToJpegClientSide(file) {
+	// ── CLIENT-SIDE HEIC→JPEG ──
+	// Strategy: try native canvas first (Safari/iOS), then lazy-load heic2any (Chrome/Firefox).
+	let _heic2any = null;
+	function loadHeic2Any() {
+		if (_heic2any) return Promise.resolve(_heic2any);
+		if (window.heic2any) { _heic2any = window.heic2any; return Promise.resolve(_heic2any); }
 		return new Promise((resolve, reject) => {
-			const img = new Image();
-			const blobUrl = URL.createObjectURL(file);
-			img.onload = () => {
-				URL.revokeObjectURL(blobUrl);
-				const canvas = document.createElement('canvas');
-				canvas.width = img.naturalWidth;
-				canvas.height = img.naturalHeight;
-				const ctx = canvas.getContext('2d');
-				ctx.drawImage(img, 0, 0);
-				canvas.toBlob((blob) => {
-					if (!blob) { reject(new Error('canvas.toBlob returned null')); return; }
-					const jpegName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
-					resolve(new File([blob], jpegName, { type: 'image/jpeg' }));
-				}, 'image/jpeg', 0.9);
-			};
-			img.onerror = () => {
-				URL.revokeObjectURL(blobUrl);
-				reject(new Error('Browser cannot decode this HEIC file. Please convert to JPEG first.'));
-			};
-			img.src = blobUrl;
+			const s = document.createElement('script');
+			s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+			s.onload = () => { _heic2any = window.heic2any; resolve(_heic2any); };
+			s.onerror = () => reject(new Error('HEIC converter library failed to load'));
+			document.head.appendChild(s);
 		});
+	}
+
+	async function convertHeicToJpegClientSide(file) {
+		const jpegName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+
+		// 1. Try native canvas (Safari / macOS with HEIC codec support)
+		try {
+			const blob = await new Promise((resolve, reject) => {
+				const img = new Image();
+				const blobUrl = URL.createObjectURL(file);
+				img.onload = () => {
+					URL.revokeObjectURL(blobUrl);
+					const canvas = document.createElement('canvas');
+					canvas.width = img.naturalWidth;
+					canvas.height = img.naturalHeight;
+					canvas.getContext('2d').drawImage(img, 0, 0);
+					canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob null')), 'image/jpeg', 0.9);
+				};
+				img.onerror = () => { URL.revokeObjectURL(blobUrl); reject(new Error('img.onerror')); };
+				img.src = blobUrl;
+			});
+			return new File([blob], jpegName, { type: 'image/jpeg' });
+		} catch(_) {
+			// Native HEIC decode not available (Chrome, Firefox) — fall through
+		}
+
+		// 2. Load heic2any (works in all browsers)
+		console.log('[form] native HEIC decode unavailable, loading heic2any…');
+		try {
+			const h2a = await loadHeic2Any();
+			const out = await h2a({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+			const outBlob = Array.isArray(out) ? out[0] : out;
+			return new File([outBlob], jpegName, { type: 'image/jpeg' });
+		} catch (libErr) {
+			throw new Error(`Could not convert "${file.name}" to JPEG. Please convert it manually and try again.`);
+		}
 	}
 
 	// ── UPLOAD VIA EDGE FUNCTION (handles storage, HEIC pre-converted client-side) ──
