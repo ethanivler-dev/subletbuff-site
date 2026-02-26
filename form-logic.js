@@ -171,32 +171,46 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	let _libheifMod = null;
+	let _libheifLoading = null; // shared promise to prevent parallel init
 	async function getLibheifMod() {
 		if (_libheifMod) return _libheifMod;
-		const base = 'https://cdn.jsdelivr.net/npm/libheif-js@1.18.2/libheif-wasm/';
-		// Step 1: load JS script (defines window.libheif factory)
-		if (!window._libheifScriptLoaded) {
-			await new Promise((resolve, reject) => {
-				const s = document.createElement('script');
-				s.src = base + 'libheif.js';
-				s.onload = () => { window._libheifScriptLoaded = true; resolve(); };
-				s.onerror = () => reject(new Error('libheif.js CDN load failed'));
-				document.head.appendChild(s);
-			});
-			console.log('[form] libheif.js loaded, window.libheif type:', typeof window.libheif);
-		}
-		const factory = window.libheif;
-		if (!factory) throw new Error('window.libheif undefined after script load');
-		// Step 2: fetch WASM binary async (Emscripten errors if it has to sync-fetch)
-		console.log('[form] fetching libheif WASM binary…');
-		const wasmResp = await fetch(base + 'libheif.wasm');
-		if (!wasmResp.ok) throw new Error('libheif WASM fetch failed: ' + wasmResp.status);
-		const wasmBinary = await wasmResp.arrayBuffer();
-		console.log('[form] libheif WASM ready, bytes:', wasmBinary.byteLength);
-		// Step 3: init module — pass wasmBinary so Emscripten skips the sync fetch
-		_libheifMod = (typeof factory === 'function') ? await factory({ wasmBinary }) : factory;
-		console.log('[form] libheif module ready, HeifDecoder:', typeof _libheifMod.HeifDecoder);
-		return _libheifMod;
+		if (_libheifLoading) return _libheifLoading;
+		_libheifLoading = (async () => {
+			try {
+				const base = 'https://cdn.jsdelivr.net/npm/libheif-js@1.18.2/libheif-wasm/';
+				// Step 1: fetch WASM binary FIRST so Emscripten doesn't sync-fetch it
+				console.log('[form] fetching libheif WASM…');
+				const wasmResp = await fetch(base + 'libheif.wasm');
+				if (!wasmResp.ok) throw new Error('libheif WASM fetch failed: ' + wasmResp.status);
+				const wasmBinary = await wasmResp.arrayBuffer();
+				console.log('[form] libheif WASM ready, bytes:', wasmBinary.byteLength);
+				// Step 2: provide binary via Module BEFORE loading script
+				window.Module = Object.assign(window.Module || {}, { wasmBinary });
+				// Step 3: load the JS script (reads Module.wasmBinary during init)
+				if (!window._libheifScriptLoaded) {
+					await new Promise((resolve, reject) => {
+						const s = document.createElement('script');
+						s.src = base + 'libheif.js';
+						s.onload = () => { window._libheifScriptLoaded = true; resolve(); };
+						s.onerror = () => reject(new Error('libheif.js CDN load failed'));
+						document.head.appendChild(s);
+					});
+					console.log('[form] libheif.js loaded, window.libheif type:', typeof window.libheif);
+				}
+				const factory = window.libheif;
+				if (!factory) throw new Error('window.libheif undefined after script load');
+				// Step 4: init module — 20s timeout guards against infinite hang
+				const initPromise = (typeof factory === 'function') ? factory({ wasmBinary }) : Promise.resolve(factory);
+				const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('libheif-js init timed out (20s)')), 20000));
+				_libheifMod = await Promise.race([initPromise, timeout]);
+				console.log('[form] libheif module ready, HeifDecoder:', typeof _libheifMod.HeifDecoder);
+				return _libheifMod;
+			} catch (e) {
+				_libheifLoading = null; // reset so a retry is possible
+				throw e;
+			}
+		})();
+		return _libheifLoading;
 	}
 
 	async function convertWithLibheifJs(file, jpegName) {
@@ -333,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				file: null,        // File objects can't be persisted
 				previewUrl: p.previewUrl || p.url || ''
 			})) : [];
-			console.log('[form] draft photos restored:', photoDraft.length);
+			console.log('[form] draft photos restored:', photoDraft.length, 'urls:', photoDraft.map(p => p.url || '(empty)'));
 		} catch (e) {
 			console.error('[form] failed to load draft photos:', e);
 			photoDraft = [];
@@ -1001,10 +1015,18 @@ addrInput.addEventListener('input', () => {
 	}, 300);
 });
 
-function setNeighborhood(nbhd) {
+// The Hill bounding box — the residential/commercial area west of CU Boulder campus
+const HILL_BOUNDS = { s: 40.000, n: 40.013, w: -105.285, e: -105.260 };
+function isOnTheHill(lat, lng) {
+	return lat >= HILL_BOUNDS.s && lat <= HILL_BOUNDS.n && lng >= HILL_BOUNDS.w && lng <= HILL_BOUNDS.e;
+}
+
+function setNeighborhood(nbhd, isHill = false) {
 	document.getElementById('neighborhood').value = nbhd;
-	document.getElementById('neighborhood-text').textContent = '📍 ' + nbhd;
-	document.getElementById('neighborhood-badge').classList.add('visible');
+	document.getElementById('neighborhood-text').textContent = isHill ? '⛰ The Hill · Boulder, CO' : '📍 ' + nbhd;
+	const badge = document.getElementById('neighborhood-badge');
+	badge.classList.toggle('hill', isHill);
+	badge.classList.add('visible');
 }
 
 suggestions.addEventListener('click', e => {
@@ -1022,8 +1044,14 @@ suggestions.addEventListener('click', e => {
 		placesService.getDetails({ placeId, fields: ['address_components', 'geometry'] }, (place, status) => {
 			if (status === google.maps.places.PlacesServiceStatus.OK && place) {
 				if (place.geometry?.location) {
-					console.log('[address] lat:', place.geometry.location.lat());
-					console.log('[address] lng:', place.geometry.location.lng());
+					const lat = place.geometry.location.lat();
+					const lng = place.geometry.location.lng();
+					console.log('[address] lat:', lat, 'lng:', lng);
+					if (isOnTheHill(lat, lng)) {
+						setNeighborhood('The Hill', true);
+						saveDraft();
+						return;
+					}
 				}
 				let nbhd = '';
 				const specificTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1'];
@@ -1331,7 +1359,7 @@ function loadDraft() {
 		if(draft.lastName) document.getElementById('last-name').value = draft.lastName;
 		if(draft.rent) document.getElementById('rent').value = draft.rent;
 		if(draft.address) { addrInput.value = draft.address; }
-		if(draft.neighborhood) setNeighborhood(draft.neighborhood);
+		if(draft.neighborhood) setNeighborhood(draft.neighborhood, draft.neighborhood === 'The Hill');
 		else if(draft.address) setTimeout(lookupNeighborhood, 100);
 		if(draft.unit) document.getElementById('unit-number').value = draft.unit;
 		if(draft.beds) document.getElementById('beds').value = draft.beds;
