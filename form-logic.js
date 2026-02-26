@@ -155,8 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		return new Promise((resolve, reject) => {
 			const s = document.createElement('script');
 			s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-			s.onload = () => { _heic2any = window.heic2any; resolve(_heic2any); };
-			s.onerror = () => reject(new Error('HEIC converter library failed to load'));
+			s.onload = () => {
+				_heic2any = window.heic2any;
+				console.log('[form] heic2any script loaded, window.heic2any:', typeof window.heic2any);
+				if (!_heic2any) { reject(new Error('heic2any loaded but window.heic2any is undefined')); return; }
+				resolve(_heic2any);
+			};
+			s.onerror = () => reject(new Error('HEIC converter library failed to load (CDN onerror)'));
 			document.head.appendChild(s);
 		});
 	}
@@ -193,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			const outBlob = Array.isArray(out) ? out[0] : out;
 			return new File([outBlob], jpegName, { type: 'image/jpeg' });
 		} catch (libErr) {
+			console.error('[form] heic2any error:', libErr);
 			throw new Error(`Could not convert "${file.name}" to JPEG. Please convert it manually and try again.`);
 		}
 	}
