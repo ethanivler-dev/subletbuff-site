@@ -850,8 +850,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 
+		// Warn if user tries to leave while uploads are running
+		const beforeUnloadGuard = e => { e.preventDefault(); e.returnValue = ''; };
+		window.addEventListener('beforeunload', beforeUnloadGuard);
+
 		// After all uploads complete, persist + final count check
 		Promise.all(uploadPromises).then(() => {
+			window.removeEventListener('beforeunload', beforeUnloadGuard);
 			console.log('[form] all uploads complete, photoDraft:', photoDraft.length);
 			saveDraftPhotos();
 			try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos error after all uploads', e); }
@@ -914,6 +919,10 @@ document.addEventListener('DOMContentLoaded', () => {
 			if (popup) popup.classList.toggle('visible');
 		});
 	}
+
+// Pre-warm libheif-js WASM in the background so it's ready if the user picks HEIC files.
+// Runs 4 seconds after page load so it doesn't compete with critical init.
+setTimeout(() => { getLibheifMod().catch(() => {}); }, 4000);
 
 // ── Google Places Autocomplete ────────────────────────────
 const addrInput   = document.getElementById('address');
@@ -1281,6 +1290,7 @@ function saveDraft() {
 		lastName: document.getElementById('last-name').value,
 		rent: document.getElementById('rent').value,
 		address: addrInput.value,
+		neighborhood: document.getElementById('neighborhood').value,
 		unit: document.getElementById('unit-number').value,
 		beds: document.getElementById('beds').value,
 		baths: document.getElementById('baths').value,
@@ -1320,7 +1330,9 @@ function loadDraft() {
 		if(draft.firstName) document.getElementById('first-name').value = draft.firstName;
 		if(draft.lastName) document.getElementById('last-name').value = draft.lastName;
 		if(draft.rent) document.getElementById('rent').value = draft.rent;
-		if(draft.address) { addrInput.value = draft.address; setTimeout(lookupNeighborhood, 100); }
+		if(draft.address) { addrInput.value = draft.address; }
+		if(draft.neighborhood) setNeighborhood(draft.neighborhood);
+		else if(draft.address) setTimeout(lookupNeighborhood, 100);
 		if(draft.unit) document.getElementById('unit-number').value = draft.unit;
 		if(draft.beds) document.getElementById('beds').value = draft.beds;
 		if(draft.baths) document.getElementById('baths').value = draft.baths;
