@@ -966,6 +966,11 @@ suggestions.addEventListener('click', e => {
 					const lat = place.geometry.location.lat();
 					const lng = place.geometry.location.lng();
 					console.log('[address] lat:', lat, 'lng:', lng);
+					// Store coordinates so buildPayload can include them for distance calculation
+					const latEl = document.getElementById('lat-hidden');
+					const lngEl = document.getElementById('lng-hidden');
+					if (latEl) latEl.value = lat;
+					if (lngEl) lngEl.value = lng;
 					if (isOnTheHill(lat, lng)) {
 						setNeighborhood('The Hill', true);
 						saveDraft();
@@ -1238,6 +1243,8 @@ function saveDraft() {
 		rent: document.getElementById('rent').value,
 		address: addrInput.value,
 		neighborhood: document.getElementById('neighborhood').value,
+		lat: document.getElementById('lat-hidden').value,
+		lng: document.getElementById('lng-hidden').value,
 		unit: document.getElementById('unit-number').value,
 		beds: document.getElementById('beds').value,
 		baths: document.getElementById('baths').value,
@@ -1278,6 +1285,8 @@ function loadDraft() {
 		if(draft.lastName) document.getElementById('last-name').value = draft.lastName;
 		if(draft.rent) document.getElementById('rent').value = draft.rent;
 		if(draft.address) { addrInput.value = draft.address; }
+		if(draft.lat) { const el = document.getElementById('lat-hidden'); if(el) el.value = draft.lat; }
+		if(draft.lng) { const el = document.getElementById('lng-hidden'); if(el) el.value = draft.lng; }
 		if(draft.neighborhood) setNeighborhood(draft.neighborhood, draft.neighborhood === 'The Hill');
 		else if(draft.address) setTimeout(lookupNeighborhood, 100);
 		if(draft.unit) document.getElementById('unit-number').value = draft.unit;
@@ -1376,6 +1385,8 @@ function buildPayload(photoUrls = []) {
 		address: addrInput.value,
 		unit_number: document.getElementById('unit-number').value || null,
 		neighborhood: document.getElementById('neighborhood').value || null,
+		lat: parseFloat(document.getElementById('lat-hidden').value) || null,
+		lng: parseFloat(document.getElementById('lng-hidden').value) || null,
 		beds: document.getElementById('beds').value || null,
 		baths: document.getElementById('baths').value || null,
 		furnished: furnStr,
