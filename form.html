@@ -131,8 +131,7 @@
   .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius-md); padding: 24px 16px; text-align: center; cursor: pointer; transition: all var(--transition); background: var(--white); position: relative; display: flex; flex-direction: column; align-items: center; }
   .upload-zone:hover { border-color: var(--gold); background: var(--gold-pale); }
   .upload-zone.dragover { border-color: var(--gold); background: rgba(184,146,42,0.06); }
-  .upload-zone input[type="file"] { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; cursor: pointer; pointer-events: none; border-radius: var(--radius-md); }
-  .upload-zone:hover input[type="file"], .upload-zone.dragover input[type="file"] { pointer-events: auto; }
+  .upload-zone input[type="file"] { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; cursor: pointer; pointer-events: auto; border-radius: var(--radius-md); }
   .upload-icon { width: 40px; height: 40px; margin: 0 auto 10px; background: var(--gold-pale); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--border); }
   .upload-icon svg { color: var(--gold); }
   .upload-hint { font-size: .8rem; color: var(--ink-muted); margin-top: 4px; }
@@ -535,6 +534,7 @@
         <!-- Mini preview strip showing thumbnails -->
         <div id="photo-mini-strip"></div>
         <div id="photo-count-msg" class="photo-count"></div>
+        <button type="button" id="add-more-photos-btn" style="display:none;margin-top:8px;background:none;border:1.5px solid var(--gold);border-radius:20px;padding:5px 14px;font-size:.82rem;font-weight:500;color:var(--gold-dark,#7a5c0a);cursor:pointer;">+ Add more photos</button>
         <div id="photo-inline-msg" class="photo-count" aria-live="polite"></div>
         <button type="button" id="manage-photos-btn" class="manage-photos-btn" style="display:none;">Manage Photos</button>
       </div>
@@ -694,6 +694,6 @@
   </div>
 </main>
 
-<script src="./form-logic.js?v=20260226m"></script>
+<script src="./form-logic.js?v=20260226n"></script>
 </body>
 </html>

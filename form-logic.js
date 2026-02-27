@@ -579,19 +579,24 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		
 		const countMsg = document.getElementById('photo-count-msg');
+		const addMoreBtn = document.getElementById('add-more-photos-btn');
 		const nTotal = (photoDraft || []).length;
 		const nPending = (photoDraft || []).filter(p => p.pending).length;
 		if (countMsg) {
 			if (nPending > 0 && nPending === nTotal) {
-				countMsg.textContent = `Uploading ${nTotal} photo${nTotal > 1 ? 's' : ''}…`;
+				countMsg.innerHTML = `<strong>Uploading ${nTotal} photo${nTotal > 1 ? 's' : ''}…</strong>`;
 			} else if (nPending > 0) {
 				const done = nTotal - nPending;
-				countMsg.textContent = `${done} photo${done !== 1 ? 's' : ''} added · uploading ${nPending} more…`;
+				countMsg.innerHTML = `${done} photo${done !== 1 ? 's' : ''} added &middot; <strong>uploading ${nPending} more…</strong>`;
 			} else if (nTotal > 0) {
 				countMsg.textContent = `${nTotal} photo${nTotal > 1 ? 's' : ''} added`;
 			} else {
 				countMsg.textContent = '';
 			}
+		}
+		// Show "Add more" button when there are photos but room for more
+		if (addMoreBtn) {
+			addMoreBtn.style.display = (nTotal > 0 && nTotal < MAX_PHOTOS) ? '' : 'none';
 		}
 	}
 
@@ -823,6 +828,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	} else {
 		console.error('[form] CRITICAL: photo input element not found!');
+	}
+
+	// "Add more photos" button — programmatically triggers the file input
+	const addMoreBtn = document.getElementById('add-more-photos-btn');
+	if (addMoreBtn && photoInput) {
+		addMoreBtn.addEventListener('click', () => photoInput.click());
 	}
 
 	// Drag & drop support onto the upload zone
