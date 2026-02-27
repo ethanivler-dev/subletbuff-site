@@ -9,9 +9,6 @@ const fs = require('fs').promises;
 const path = require('path');
 const { randomUUID } = require('crypto');
 
-// Disable Vercel's built-in body parser so formidable can handle multipart
-module.exports.config = { api: { bodyParser: false } };
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -46,7 +43,7 @@ function parseForm(req) {
   });
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -114,10 +111,15 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ publicUrl, path: storagePath, contentType, listingId });
 
   } catch (err) {
-    console.error('[upload] Unhandled error:', err.message);
+    console.error('[upload] Unhandled error:', err.message, err.stack);
     return res.status(500).json({ error: 'Internal server error', details: err.message });
   } finally {
-    // Clean up temp file
     if (tempPath) fs.unlink(tempPath).catch(() => {});
   }
-};
+}
+
+// IMPORTANT: config must be set on the function before exporting,
+// not as a separate module.exports.config (which gets overwritten).
+handler.config = { api: { bodyParser: false } };
+
+module.exports = handler;
