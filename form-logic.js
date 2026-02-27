@@ -205,25 +205,19 @@ document.addEventListener('DOMContentLoaded', () => {
 		return null;
 	}
 
-	// ── UPLOAD VIA EDGE FUNCTION (handles storage, HEIC pre-converted client-side) ──
+	// ── UPLOAD VIA VERCEL FUNCTION (handles storage + HEIC conversion via Sharp) ──
 	async function uploadViaEdgeFunction(file) {
-		const url = `${SUPABASE_URL}/functions/v1/convert-image`;
+		const url = '/api/upload';
 		const formData = new FormData();
 		const listingId = getActiveUploadListingId();
 		formData.append('file', file);
 		formData.append('listing_id', listingId);
 
-		console.log('[form] uploading via edge function:', { name: file.name, size: file.size, type: file.type, listingId });
+		console.log('[form] uploading:', { name: file.name, size: file.size, type: file.type, listingId });
 
-		const anonKey = SUPABASE_ANON_KEY;
-		console.log('anonKey length:', (anonKey || '').length, 'starts:', (anonKey || '').slice(0, 8), 'url:', url);
 		const resp = await fetch(url, {
 			method: 'POST',
-			headers: {
-				'apikey': anonKey,
-				'Authorization': `Bearer ${anonKey}`,
-				'Accept': 'application/json'
-			},
+			headers: { 'Accept': 'application/json' },
 			body: formData
 		});
 
