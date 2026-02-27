@@ -1,5 +1,5 @@
 // api/upload.js — Vercel serverless function
-// Accepts a file via multipart POST, converts HEIC/HEIF → JPEG using Sharp,
+// Accepts a file via multipart POST, converts HEIC/HEIF → JPEG,
 // uploads to Supabase Storage bucket "listing-photos", returns { publicUrl, path, contentType, listingId }.
 
 const { createClient } = require('@supabase/supabase-js');
@@ -43,6 +43,26 @@ function parseForm(req) {
   });
 }
 
+async function convertHeicToJpeg(inputBuffer) {
+  // Try Sharp first (statically linked with libheif on Vercel Linux x86_64)
+  try {
+    console.log('[upload] trying Sharp for HEIC');
+    const buf = await sharp(inputBuffer).jpeg({ quality: 90 }).toBuffer();
+    console.log('[upload] Sharp HEIC OK:', buf.length, 'bytes');
+    return buf;
+  } catch (sharpErr) {
+    console.warn('[upload] Sharp HEIC failed:', String(sharpErr), '— falling back to heic-convert');
+  }
+
+  // Fall back to heic-convert (Node.js + WASM libheif, always works)
+  const heicConvert = require('heic-convert');
+  console.log('[upload] trying heic-convert');
+  const result = await heicConvert({ buffer: inputBuffer, format: 'JPEG', quality: 0.9 });
+  const buf = Buffer.from(result);
+  console.log('[upload] heic-convert OK:', buf.length, 'bytes');
+  return buf;
+}
+
 async function handler(req, res) {
   Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
 
@@ -51,6 +71,7 @@ async function handler(req, res) {
 
   let tempPath = null;
   try {
+    console.log('[upload] parsing form data');
     const { fields, files } = await parseForm(req);
 
     const file = Array.isArray(files.file) ? files.file[0] : files.file;
@@ -59,21 +80,22 @@ async function handler(req, res) {
     tempPath = file.filepath || file.path;
     const originalName = file.originalFilename || file.name || 'upload';
     const rawListingId = Array.isArray(fields.listing_id) ? fields.listing_id[0] : (fields.listing_id || '');
-    const sanitized = sanitizeListingId(rawListingId);
-    const listingId = sanitized || `draft-${randomUUID()}`;
+    const listingId = sanitizeListingId(rawListingId) || `draft-${randomUUID()}`;
+
+    console.log('[upload] file:', originalName, 'tempPath:', tempPath, 'listing:', listingId);
 
     const inputBuffer = await fs.readFile(tempPath);
+    console.log('[upload] read', inputBuffer.length, 'bytes');
 
     let outputBuffer;
     let contentType;
     let finalExt;
 
     if (isHeic(originalName, file.mimetype || file.type)) {
-      console.log(`[upload] Converting HEIC: ${originalName} (${inputBuffer.length} bytes)`);
-      outputBuffer = await sharp(inputBuffer).jpeg({ quality: 90 }).toBuffer();
+      console.log('[upload] HEIC detected, converting...');
+      outputBuffer = await convertHeicToJpeg(inputBuffer);
       contentType = 'image/jpeg';
       finalExt = 'jpg';
-      console.log(`[upload] Conversion OK: ${outputBuffer.length} bytes JPEG`);
     } else {
       outputBuffer = inputBuffer;
       contentType = file.mimetype || file.type || 'application/octet-stream';
@@ -92,7 +114,7 @@ async function handler(req, res) {
     const baseName = sanitizeFilename(originalName);
     const storagePath = `listings/${listingId}/${ts}-${baseName}.${finalExt}`;
 
-    console.log(`[upload] Uploading to listing-photos/${storagePath} (${outputBuffer.length} bytes, ${contentType})`);
+    console.log('[upload] uploading to', storagePath, contentType, outputBuffer.length, 'bytes');
 
     const { error: uploadError } = await supabase.storage
       .from('listing-photos')
@@ -107,19 +129,20 @@ async function handler(req, res) {
     const publicUrl = urlData?.publicUrl || '';
     if (!publicUrl) return res.status(500).json({ error: 'Failed to generate public URL' });
 
-    console.log(`[upload] Done: ${publicUrl}`);
+    console.log('[upload] done:', publicUrl);
     return res.status(200).json({ publicUrl, path: storagePath, contentType, listingId });
 
   } catch (err) {
-    console.error('[upload] Unhandled error:', err.message, err.stack);
-    return res.status(500).json({ error: 'Internal server error', details: err.message });
+    // Capture any error type: Error objects, strings, or other thrown values
+    const details = err instanceof Error ? err.message : String(err);
+    console.error('[upload] unhandled error:', details, err?.stack || '');
+    return res.status(500).json({ error: 'Internal server error', details });
   } finally {
     if (tempPath) fs.unlink(tempPath).catch(() => {});
   }
 }
 
-// IMPORTANT: config must be set on the function before exporting,
-// not as a separate module.exports.config (which gets overwritten).
+// Must be set on the handler function before module.exports assignment
 handler.config = { api: { bodyParser: false } };
 
 module.exports = handler;
