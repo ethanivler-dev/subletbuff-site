@@ -224,7 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!resp.ok) {
 			const errBody = await resp.json().catch(() => ({}));
 			console.error('[form] edge function error:', resp.status, errBody);
-			throw new Error(errBody.error || `Upload failed (${resp.status})`);
+			const msg = [errBody.error, errBody.details].filter(Boolean).join(' — ');
+			throw new Error(msg || `Upload failed (${resp.status})`);
 		}
 
 		const json = await resp.json();
