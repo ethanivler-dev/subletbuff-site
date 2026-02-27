@@ -15,7 +15,19 @@ Deployment quick reference:
 */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import heicConvert from "npm:heic-convert@2";
+
+// Lazy-loaded so the WASM binary only initialises when a HEIC file is actually
+// received. Module-level eager import caused OOM on every request (even JPEGs)
+// because the ~20 MB WASM stayed resident across the worker's lifetime.
+// deno-lint-ignore no-explicit-any
+let _heicConvert: ((opts: any) => Promise<ArrayBuffer>) | null = null;
+async function getHeicConvert() {
+  if (!_heicConvert) {
+    const mod = await import("npm:heic-convert@2");
+    _heicConvert = mod.default;
+  }
+  return _heicConvert!;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,6 +90,7 @@ function resolveListingId(entry: FormDataEntryValue | null): string {
  * Returns a Uint8Array of the JPEG data.
  */
 async function convertHeicToJpeg(inputBuffer: Uint8Array): Promise<Uint8Array> {
+  const heicConvert = await getHeicConvert();
   const output = await heicConvert({
     buffer: inputBuffer,
     format: "JPEG",
