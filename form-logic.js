@@ -147,10 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// ── CLIENT-SIDE HEIC→JPEG ──
-	// HEIC conversion strategy:
-	// 1. Native canvas (Safari/iOS) — zero overhead
-	// 2. heic2any (all browsers, libheif 1.9.0) — works for most HEIC files
-	// 3. libheif-js (all browsers, newer libheif) — fallback for modern iPhone HEIC variants
+	// HEIC client-side conversion: try native canvas (Safari) then heic2any.
+	// Returns a File on success, or null if client-side can't handle it
+	// (the edge function will then handle conversion server-side).
 
 	let _heic2any = null;
 	function loadHeic2Any() {
@@ -161,93 +160,19 @@ document.addEventListener('DOMContentLoaded', () => {
 			s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
 			s.onload = () => {
 				_heic2any = window.heic2any;
-				console.log('[form] heic2any script loaded, window.heic2any:', typeof window.heic2any);
 				if (!_heic2any) { reject(new Error('heic2any loaded but window.heic2any is undefined')); return; }
 				resolve(_heic2any);
 			};
-			s.onerror = () => reject(new Error('HEIC converter library failed to load (CDN onerror)'));
+			s.onerror = () => reject(new Error('heic2any CDN load failed'));
 			document.head.appendChild(s);
 		});
 	}
 
-	let _libheifMod = null;
-	let _libheifLoading = null; // shared promise to prevent parallel init
-	async function getLibheifMod() {
-		if (_libheifMod) return _libheifMod;
-		if (_libheifLoading) return _libheifLoading;
-		_libheifLoading = (async () => {
-			try {
-				const base = 'https://cdn.jsdelivr.net/npm/libheif-js@1.18.2/libheif-wasm/';
-				// Step 1: fetch WASM binary FIRST so Emscripten doesn't sync-fetch it
-				console.log('[form] fetching libheif WASM…');
-				const wasmResp = await fetch(base + 'libheif.wasm');
-				if (!wasmResp.ok) throw new Error('libheif WASM fetch failed: ' + wasmResp.status);
-				const wasmBinary = await wasmResp.arrayBuffer();
-				console.log('[form] libheif WASM ready, bytes:', wasmBinary.byteLength);
-				// Step 2: provide binary via Module BEFORE loading script
-				window.Module = Object.assign(window.Module || {}, { wasmBinary });
-				// Step 3: load the JS script (reads Module.wasmBinary during init)
-				if (!window._libheifScriptLoaded) {
-					await new Promise((resolve, reject) => {
-						const s = document.createElement('script');
-						s.src = base + 'libheif.js';
-						s.onload = () => { window._libheifScriptLoaded = true; resolve(); };
-						s.onerror = () => reject(new Error('libheif.js CDN load failed'));
-						document.head.appendChild(s);
-					});
-					console.log('[form] libheif.js loaded, window.libheif type:', typeof window.libheif);
-				}
-				const factory = window.libheif;
-				if (!factory) throw new Error('window.libheif undefined after script load');
-				// Step 4: init module — 20s timeout guards against infinite hang
-				const initPromise = (typeof factory === 'function') ? factory({ wasmBinary }) : Promise.resolve(factory);
-				const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('libheif-js init timed out (20s)')), 20000));
-				_libheifMod = await Promise.race([initPromise, timeout]);
-				console.log('[form] libheif module ready, HeifDecoder:', typeof _libheifMod.HeifDecoder);
-				return _libheifMod;
-			} catch (e) {
-				_libheifLoading = null; // reset so a retry is possible
-				throw e;
-			}
-		})();
-		return _libheifLoading;
-	}
-
-	async function convertWithLibheifJs(file, jpegName) {
-		const mod = await getLibheifMod();
-		const buffer = await file.arrayBuffer();
-		const uint8 = new Uint8Array(buffer);
-		return new Promise((resolve, reject) => {
-			try {
-				const decoder = new mod.HeifDecoder();
-				const data = decoder.decode(uint8);
-				if (!data || data.length === 0) { reject(new Error('No images found in HEIC file')); return; }
-				const image = data[0];
-				const width = image.get_width();
-				const height = image.get_height();
-				const canvas = document.createElement('canvas');
-				canvas.width = width;
-				canvas.height = height;
-				const ctx = canvas.getContext('2d');
-				const imageData = ctx.createImageData(width, height);
-				image.display(imageData, (displayData) => {
-					if (!displayData) { reject(new Error('libheif display() failed')); return; }
-					ctx.putImageData(imageData, 0, 0);
-					canvas.toBlob((blob) => {
-						if (blob) resolve(new File([blob], jpegName, { type: 'image/jpeg' }));
-						else reject(new Error('toBlob returned null'));
-					}, 'image/jpeg', 0.9);
-				});
-			} catch (e) {
-				reject(e);
-			}
-		});
-	}
-
-	async function convertHeicToJpegClientSide(file) {
+	// Returns converted File, or null if client-side conversion not possible
+	async function convertHeicClientSide(file) {
 		const jpegName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
 
-		// 1. Try native canvas (Safari / macOS with HEIC codec support)
+		// 1. Native canvas — works on Safari/iOS
 		try {
 			const blob = await new Promise((resolve, reject) => {
 				const img = new Image();
@@ -264,28 +189,20 @@ document.addEventListener('DOMContentLoaded', () => {
 				img.src = blobUrl;
 			});
 			return new File([blob], jpegName, { type: 'image/jpeg' });
-		} catch(_) {
-			// Native HEIC decode not available (Chrome, Firefox) — fall through
-		}
+		} catch(_) {}
 
-		// 2. heic2any (libheif 1.9.0 — works for most files)
-		console.log('[form] native HEIC decode unavailable, loading heic2any…');
+		// 2. heic2any — works for most HEIC files in Chrome/Firefox
 		try {
 			const h2a = await loadHeic2Any();
 			const out = await h2a({ blob: file, toType: 'image/jpeg', quality: 0.9 });
 			const outBlob = Array.isArray(out) ? out[0] : out;
 			return new File([outBlob], jpegName, { type: 'image/jpeg' });
-		} catch (libErr) {
-			console.warn('[form] heic2any failed:', libErr, '— trying libheif-js…');
+		} catch(e) {
+			console.warn('[form] heic2any failed:', e.message, '— will use server-side conversion');
 		}
 
-		// 3. libheif-js (newer libheif — handles modern iPhone HEIC profiles)
-		try {
-			return await convertWithLibheifJs(file, jpegName);
-		} catch (libheifErr) {
-			console.error('[form] libheif-js error:', libheifErr);
-			throw new Error(`Could not convert "${file.name}" to JPEG. Please convert it manually and try again.`);
-		}
+		// Client-side conversion not possible; return null so caller falls back to edge function
+		return null;
 	}
 
 	// ── UPLOAD VIA EDGE FUNCTION (handles storage, HEIC pre-converted client-side) ──
@@ -824,21 +741,20 @@ document.addEventListener('DOMContentLoaded', () => {
 			let fileToUpload = file;
 			let finalPreviewUrl = placeholder.previewUrl;
 			try {
-				// Convert HEIC client-side first (Safari/iOS supports HEIC natively in Canvas)
+				// Convert HEIC client-side if possible; returns null if unsupported → edge function handles it
 				if (isHeicFile(file)) {
-					try {
-						fileToUpload = await convertHeicToJpegClientSide(file);
+					const converted = await convertHeicClientSide(file);
+					if (converted) {
+						fileToUpload = converted;
 						finalPreviewUrl = URL.createObjectURL(fileToUpload);
-						// Show JPEG preview immediately after conversion
 						const pidx = photoDraft.indexOf(placeholder);
 						if (pidx !== -1) {
 							photoDraft[pidx] = { ...photoDraft[pidx], previewUrl: finalPreviewUrl };
 						}
 						try { renderPhotos(); } catch(e2) {}
 						console.log('[form] HEIC converted client-side:', fileToUpload.name, fileToUpload.size);
-					} catch (convErr) {
-						console.warn('[form] client-side HEIC conversion failed:', convErr.message);
-						throw convErr;
+					} else {
+						console.log('[form] client-side HEIC conversion not possible — sending raw to edge function');
 					}
 				}
 				const { path, url, listingId } = await uploadViaEdgeFunction(fileToUpload);
@@ -934,9 +850,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-// Pre-warm libheif-js WASM in the background so it's ready if the user picks HEIC files.
-// Runs 4 seconds after page load so it doesn't compete with critical init.
-setTimeout(() => { getLibheifMod().catch(() => {}); }, 4000);
 
 // ── Google Places Autocomplete ────────────────────────────
 const addrInput   = document.getElementById('address');
