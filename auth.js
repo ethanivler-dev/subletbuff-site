@@ -47,8 +47,8 @@
         accountMobile.textContent = name;
       }
 
-      // Check admin status and show/hide admin link
-      checkAdmin(session.user.id);
+      // Check admin status and show/hide admin link (nav link only for super admin)
+      checkAdmin(session.user.id, session.user.email);
     } else {
       if (signInBtn) signInBtn.style.display = '';
       if (signInMobile) signInMobile.style.display = '';
@@ -61,7 +61,9 @@
 
   // ── Admin check ──
   let _isAdmin = false;
-  async function checkAdmin(userId) {
+  const SUPER_ADMIN_EMAIL = 'ethanivler@gmail.com';
+
+  async function checkAdmin(userId, email) {
     const adminLink = document.getElementById('nav-admin-link');
     const adminMobile = document.getElementById('nav-admin-link-mobile');
     _isAdmin = false;
@@ -77,8 +79,6 @@
         _isAdmin = true;
       } else {
         // Fall back: check by email
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        const email = session?.user?.email;
         if (email) {
           const { data: d2 } = await supabaseClient
             .from('admins')
@@ -94,7 +94,8 @@
           }
         }
       }
-      if (_isAdmin) {
+      // Only show Admin nav link for super admin
+      if (_isAdmin && email === SUPER_ADMIN_EMAIL) {
         if (adminLink) adminLink.style.display = '';
         if (adminMobile) adminMobile.style.display = '';
       }
