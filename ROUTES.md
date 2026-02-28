@@ -46,6 +46,18 @@
 - Script: `form-logic.js`
 - Purpose: listing submission workflow
 
+### Account Dashboard
+- URL: `/account.html`
+- File: `account.html`
+- Script: `account-logic.js`
+- Purpose: signed-in user dashboard showing their listings + view statistics
+- Auth: Google OAuth via Supabase (any Google account)
+
+### Shared Auth Module
+- File: `auth.js`
+- Loaded on every page (index, listings, listing, form, account)
+- Purpose: manages Google sign-in state in nav bar, exposes `window.sbAuth` API
+
 ## Link/Open Rules (Enforced)
 - Public detail open: `/listing.html?id=<id>`
 - Admin preview open (pending): `/listing.html?id=<id>&preview=1`
@@ -56,6 +68,7 @@
 - `form.html`
 - `listings.html`
 - `listing.html` (only back link + page-local controls)
+- `account.html`
 
 ## Archive Policy
 - Legacy backup files are stored in `/_archive`.

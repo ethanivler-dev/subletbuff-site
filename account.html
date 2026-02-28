@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubletBuff | My Account</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/site.css" />
+  <style>
+    .account-page { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+    .account-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+    .account-title { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 600; color: var(--ink); margin: 0; }
+    .account-email { font-size: 0.85rem; color: var(--ink-soft); }
+
+    .btn-signout { background: transparent; border: 1.5px solid var(--border); color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500; padding: 8px 20px; border-radius: 8px; cursor: pointer; transition: all var(--transition); }
+    .btn-signout:hover { border-color: #C0392B; color: #C0392B; }
+
+    .account-status { font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 16px; }
+
+    /* Not signed in state */
+    .account-signin-prompt { text-align: center; padding: 60px 20px; }
+    .account-signin-prompt p { font-size: 1rem; color: var(--ink-soft); margin-bottom: 20px; }
+    .btn-google-large { display: inline-flex; align-items: center; gap: 10px; padding: 14px 32px; background: #fff; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; color: var(--ink); cursor: pointer; transition: all var(--transition); }
+    .btn-google-large:hover { border-color: var(--gold); box-shadow: 0 4px 16px rgba(184,146,42,0.2); }
+    .btn-google-large svg { flex-shrink: 0; }
+
+    /* Stats summary */
+    .account-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+    .stat-value { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 600; color: var(--gold); }
+    .stat-label { font-size: 0.8rem; color: var(--ink-soft); margin-top: 4px; }
+
+    /* Listings table */
+    .account-section-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 600; margin-bottom: 16px; }
+
+    .my-listing-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; transition: box-shadow var(--transition); }
+    .my-listing-card:hover { box-shadow: 0 2px 12px rgba(28,24,16,0.07); }
+
+    .my-listing-img { width: 80px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #f3efe6; }
+
+    .my-listing-info { flex: 1; min-width: 0; }
+    .my-listing-address { font-weight: 600; font-size: 0.95rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .my-listing-meta { font-size: 0.8rem; color: var(--ink-soft); margin-top: 4px; }
+
+    .my-listing-stats { display: flex; gap: 20px; flex-shrink: 0; }
+    .my-listing-stat { text-align: center; }
+    .my-listing-stat-value { font-weight: 700; font-size: 1.1rem; color: var(--gold); }
+    .my-listing-stat-label { font-size: 0.7rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .my-listing-status { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 6px; flex-shrink: 0; }
+    .my-listing-status.pending { background: #FFF3CD; color: #856404; }
+    .my-listing-status.approved { background: #D4EDDA; color: #155724; }
+    .my-listing-status.rejected { background: #F8D7DA; color: #721C24; }
+
+    .no-listings { text-align: center; padding: 40px 0; color: var(--ink-soft); font-size: 0.9rem; }
+
+    @media (max-width: 640px) {
+      .my-listing-card { flex-wrap: wrap; }
+      .my-listing-stats { width: 100%; justify-content: space-around; padding-top: 8px; border-top: 1px solid var(--border); }
+      .account-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="ss-nav" style="position:relative;">
+    <a href="/" class="nav-logo">
+      <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg"
+           alt="SubletBuff"
+           style="height:40px;width:auto;" />
+    </a>
+
+    <div class="nav-links" id="nav-links-desktop">
+      <a href="/">Home</a>
+      <a href="#">How It Works</a>
+      <a href="/listings.html">Listings</a>
+      <a href="/form.html" id="nav-post-link">Post a Listing</a>
+      <a href="/account.html" class="nav-account-link active" id="nav-account-link" style="display:none">Account</a>
+      <button type="button" class="nav-auth-btn" id="nav-auth-btn">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign In
+      </button>
+    </div>
+
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="nav-mobile-menu" id="nav-mobile-menu">
+      <a href="/">Home</a>
+      <a href="#">How It Works</a>
+      <a href="/listings.html">Listings</a>
+      <a href="/form.html" id="nav-post-link-mobile">Post a Listing</a>
+      <a href="/account.html" class="nav-account-link" id="nav-account-link-mobile" style="display:none">Account</a>
+      <button type="button" class="nav-auth-btn" id="nav-auth-btn-mobile">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign In
+      </button>
+    </div>
+  </nav>
+
+  <main class="account-page">
+    <!-- Not signed in -->
+    <div id="account-signin-prompt" class="account-signin-prompt">
+      <h1 class="account-title" style="margin-bottom:12px">My Account</h1>
+      <p>Sign in with your Google account to view your listings and statistics.</p>
+      <button type="button" class="btn-google-large" id="account-signin-btn">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+    </div>
+
+    <!-- Signed in -->
+    <div id="account-dashboard" style="display:none">
+      <div class="account-header">
+        <div>
+          <h1 class="account-title">My Account</h1>
+          <div class="account-email" id="account-email"></div>
+        </div>
+        <button type="button" class="btn-signout" id="account-signout-btn">Sign Out</button>
+      </div>
+
+      <div id="account-status" class="account-status">Loading your listings...</div>
+
+      <div class="account-stats" id="account-stats" style="display:none">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-listings">0</div>
+          <div class="stat-label">Total Listings</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-approved">0</div>
+          <div class="stat-label">Approved</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-pending">0</div>
+          <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-views">0</div>
+          <div class="stat-label">Total Views</div>
+        </div>
+      </div>
+
+      <h2 class="account-section-title">My Listings</h2>
+      <div id="account-listings"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/auth.js"></script>
+  <script src="/account-logic.js"></script>
+</body>
+</html>

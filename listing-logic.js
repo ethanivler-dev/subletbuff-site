@@ -20,6 +20,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const listingId = params.get('id');
   const previewMode = params.get('preview') === '1';
 
+  // ── View Tracking ──
+  // Inserts a row into listing_views and only counts once per session per listing
+  const VIEW_KEY_PREFIX = 'sb_viewed_';
+  function trackView(id) {
+    if (!supabaseClient || !id) return;
+    const key = VIEW_KEY_PREFIX + id;
+    try { if (sessionStorage.getItem(key)) return; } catch (_) {}
+    supabaseClient.from('listing_views').insert({ listing_id: id }).then(({ error }) => {
+      if (error) console.warn('[listing] view track error', error.message);
+      else try { sessionStorage.setItem(key, '1'); } catch (_) {}
+    });
+  }
+
   const el = {
     status: document.getElementById('listing-status'),
     content: document.getElementById('listing-content'),
@@ -683,6 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setStatus('Preview mode');
       } else {
         setStatus('');
+        // Track view (fire-and-forget, non-blocking)
+        trackView(listing.id);
       }
       renderPreviewBanner();
       showContent(true);
