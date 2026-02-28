@@ -613,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function checkIsAdmin(userId) {
     if (!supabaseClient || !userId) return false;
 
+    // Check by auth UUID
     const { data, error } = await withTimeout(
       supabaseClient
         .from('admins')
@@ -624,7 +625,27 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     if (error) throw error;
-    return !!(data && data.id === userId);
+    if (data && data.id === userId) return true;
+
+    // Fall back: check by email
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const email = session?.user?.email;
+    if (email) {
+      const { data: d2, error: e2 } = await supabaseClient
+        .from('admins')
+        .select('id, email')
+        .eq('email', email)
+        .maybeSingle();
+      if (e2) throw e2;
+      if (d2) {
+        // Backfill UUID
+        if (!d2.id || d2.id !== userId) {
+          await supabaseClient.from('admins').update({ id: userId }).eq('email', email);
+        }
+        return true;
+      }
+    }
+    return false;
   }
 
   function clearSupabaseStorage() {

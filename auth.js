@@ -26,9 +26,11 @@
     // Desktop
     const signInBtn = document.getElementById('nav-auth-btn');
     const accountLink = document.getElementById('nav-account-link');
+    const adminLink = document.getElementById('nav-admin-link');
     // Mobile
     const signInMobile = document.getElementById('nav-auth-btn-mobile');
     const accountMobile = document.getElementById('nav-account-link-mobile');
+    const adminMobile = document.getElementById('nav-admin-link-mobile');
 
     if (session && session.user) {
       const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Account';
@@ -44,12 +46,59 @@
         accountMobile.style.display = '';
         accountMobile.textContent = name;
       }
+
+      // Check admin status and show/hide admin link
+      checkAdmin(session.user.id);
     } else {
       if (signInBtn) signInBtn.style.display = '';
       if (signInMobile) signInMobile.style.display = '';
       if (accountLink) accountLink.style.display = 'none';
       if (accountMobile) accountMobile.style.display = 'none';
+      if (adminLink) adminLink.style.display = 'none';
+      if (adminMobile) adminMobile.style.display = 'none';
     }
+  }
+
+  // ── Admin check ──
+  let _isAdmin = false;
+  async function checkAdmin(userId) {
+    const adminLink = document.getElementById('nav-admin-link');
+    const adminMobile = document.getElementById('nav-admin-link-mobile');
+    _isAdmin = false;
+    if (!supabaseClient || !userId) return;
+    try {
+      // Check by auth UUID first
+      const { data, error } = await supabaseClient
+        .from('admins')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!error && data) {
+        _isAdmin = true;
+      } else {
+        // Fall back: check by email
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const email = session?.user?.email;
+        if (email) {
+          const { data: d2 } = await supabaseClient
+            .from('admins')
+            .select('id, email')
+            .eq('email', email)
+            .maybeSingle();
+          if (d2) {
+            _isAdmin = true;
+            // Backfill the auth UUID if missing
+            if (!d2.id || d2.id !== userId) {
+              await supabaseClient.from('admins').update({ id: userId }).eq('email', email);
+            }
+          }
+        }
+      }
+      if (_isAdmin) {
+        if (adminLink) adminLink.style.display = '';
+        if (adminMobile) adminMobile.style.display = '';
+      }
+    } catch (_) {}
   }
 
   // ── Sign in handler ──
@@ -97,6 +146,7 @@
   // ── Public API ──
   window.sbAuth = {
     get supabaseClient() { return supabaseClient; },
+    get isAdmin() { return _isAdmin; },
     getSession: function () {
       return supabaseClient ? supabaseClient.auth.getSession() : Promise.resolve({ data: { session: null } });
     },
