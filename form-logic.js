@@ -1121,7 +1121,8 @@ function isGenericNeighborhood(name) {
 	return GENERIC_NEIGHBORHOODS.includes((name || '').toLowerCase().trim());
 }
 
-function setNeighborhood(nbhd, isHill = false) {
+function setNeighborhood(nbhd) {
+	const isHill = nbhd === 'The Hill';
 	document.getElementById('neighborhood').value = nbhd;
 	document.getElementById('neighborhood-text').textContent = isHill ? '⛰ The Hill · Boulder, CO' : '📍 ' + nbhd;
 	const badge = document.getElementById('neighborhood-badge');
@@ -1153,32 +1154,23 @@ suggestions.addEventListener('click', e => {
 					const lngEl = document.getElementById('lng-hidden');
 					if (latEl) latEl.value = lat;
 					if (lngEl) lngEl.value = lng;
-					if (isOnTheHill(lat, lng)) {
-						setNeighborhood('The Hill', true);
-						saveDraft();
-						return;
-					}
 				}
 				let nbhd = '';
-				const specificTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1'];
-				for (const targetType of specificTypes) {
-					const matchedComponent = place.address_components.find(c => c.types.includes(targetType));
-					if (matchedComponent) {
-						nbhd = matchedComponent.long_name;
-						break;
+				// Prefer our geo-map when we have coords — more accurate than Google's neighborhood components
+				if (lat != null && lng != null) {
+					nbhd = classifyNeighborhood(lat, lng);
+				}
+				// Fall back to Google's address_components if geo-map had no match
+				if (!nbhd) {
+					const specificTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1'];
+					for (const targetType of specificTypes) {
+						const matchedComponent = place.address_components.find(c => c.types.includes(targetType));
+						if (matchedComponent) { nbhd = matchedComponent.long_name; break; }
 					}
 				}
 				if (!nbhd) {
 					const localityComp = place.address_components.find(c => c.types.includes('locality'));
 					if (localityComp) nbhd = localityComp.long_name;
-				}
-				// If Google returned something too generic, use our geo-map instead
-				if ((!nbhd || isGenericNeighborhood(nbhd)) && lat != null && lng != null) {
-					const geoNbhd = classifyNeighborhood(lat, lng);
-					if (geoNbhd) {
-						console.log('[address] overriding generic "' + nbhd + '" → "' + geoNbhd + '"');
-						nbhd = geoNbhd;
-					}
 				}
 				if (nbhd) setNeighborhood(nbhd);
 				else lookupNeighborhood();
@@ -1208,18 +1200,12 @@ async function lookupNeighborhood() {
 		const data = await res.json();
 		if (data && data[0]) {
 			const a    = data[0].address;
-			let nbhd = a.neighbourhood || a.suburb || a.city_district || a.quarter || '';
-
-			// If Nominatim gave something generic, try our geo-map using coords
 			const lat = parseFloat(data[0].lat);
 			const lng = parseFloat(data[0].lon);
-			if ((!nbhd || isGenericNeighborhood(nbhd)) && !isNaN(lat) && !isNaN(lng)) {
-				const geoNbhd = classifyNeighborhood(lat, lng);
-				if (geoNbhd) {
-					console.log('[address] Nominatim override: "' + nbhd + '" → "' + geoNbhd + '"');
-					nbhd = geoNbhd;
-				}
-			}
+			// Prefer our geo-map when we have coords — more accurate than Nominatim's neighborhood fields
+			let nbhd = (!isNaN(lat) && !isNaN(lng)) ? classifyNeighborhood(lat, lng) : '';
+			// Fall back to Nominatim's fields if geo-map had no match
+			if (!nbhd) nbhd = a.neighbourhood || a.suburb || a.city_district || a.quarter || '';
 
 			if (nbhd) {
 				setNeighborhood(nbhd);
