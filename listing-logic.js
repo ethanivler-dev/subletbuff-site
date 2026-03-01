@@ -72,6 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
     lightboxNext: document.getElementById('lightbox-next'),
     lightboxClose: document.getElementById('lightbox-close'),
     lightboxCounter: document.getElementById('lightbox-counter'),
+    lightboxCaption: document.getElementById('lightbox-caption'),
+
+    photoCaption: document.getElementById('listing-photo-caption'),
 
     priceBig: document.getElementById('listing-price-big'),
     distanceSidebar: document.getElementById('listing-distance-sidebar'),
@@ -86,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     listing: null,
     photos: [],
+    photoNotes: [],
     activePhotoIndex: 0,
     touchStartX: null,
     canViewPrivateAddress: false
@@ -195,12 +199,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el.imgCounter) el.imgCounter.textContent = '0 / 0';
       if (el.openLightbox) el.openLightbox.classList.add('listing-hidden');
       if (el.thumbRow) el.thumbRow.innerHTML = '';
+      if (el.photoCaption) el.photoCaption.classList.add('listing-hidden');
       return;
     }
 
     const safeIndex = ((index % state.photos.length) + state.photos.length) % state.photos.length;
     state.activePhotoIndex = safeIndex;
     const src = state.photos[safeIndex];
+    const note = state.photoNotes[safeIndex] || '';
 
     if (el.noPhoto) el.noPhoto.classList.add('listing-hidden');
     if (el.mainImg) {
@@ -213,11 +219,25 @@ document.addEventListener('DOMContentLoaded', () => {
       el.imgCounter.textContent = `${safeIndex + 1} / ${state.photos.length}`;
     }
 
+    // Photo caption
+    if (el.photoCaption) {
+      if (note) {
+        el.photoCaption.textContent = note;
+        el.photoCaption.classList.remove('listing-hidden');
+      } else {
+        el.photoCaption.textContent = '';
+        el.photoCaption.classList.add('listing-hidden');
+      }
+    }
+
     if (el.lightboxImage) {
       el.lightboxImage.src = src;
     }
     if (el.lightboxCounter) {
       el.lightboxCounter.textContent = `${safeIndex + 1} / ${state.photos.length}`;
+    }
+    if (el.lightboxCaption) {
+      el.lightboxCaption.textContent = note;
     }
 
     renderThumbnails();
@@ -304,6 +324,35 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('[listing] listing_photos query exception, fallback:', err);
       return fallback;
     }
+  }
+
+  /**
+   * Build an array of notes aligned to the photos array.
+   * Uses photos_meta JSONB from the listing record.
+   */
+  function extractPhotoNotes(listing, photoUrls) {
+    const notes = new Array(photoUrls.length).fill('');
+    try {
+      const meta = listing.photos_meta;
+      if (!Array.isArray(meta)) return notes;
+
+      // Build a url→note map from photos_meta
+      const noteMap = {};
+      meta.forEach((entry) => {
+        if (entry && entry.url && entry.note) {
+          noteMap[entry.url] = entry.note;
+        }
+      });
+
+      photoUrls.forEach((url, i) => {
+        if (noteMap[url]) {
+          notes[i] = noteMap[url];
+        }
+      });
+    } catch (err) {
+      console.warn('[listing] extractPhotoNotes error:', err);
+    }
+    return notes;
   }
 
   async function checkPreviewAuthorization() {
@@ -817,6 +866,9 @@ document.addEventListener('DOMContentLoaded', () => {
       state.listing = listing;
       state.canViewPrivateAddress = !!previewMode;
       state.photos = await fetchPhotos(listing);
+
+      // Extract photo notes from photos_meta (ordered to match state.photos)
+      state.photoNotes = extractPhotoNotes(listing, state.photos);
 
       renderSidebar(listing);
       renderLeftContent(listing);

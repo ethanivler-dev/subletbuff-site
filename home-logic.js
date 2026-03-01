@@ -101,12 +101,21 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		}
 
-		if (item && item.photo_notes && item.photo_notes[0]) {
+		const firstNote = (function() {
+			if (item && Array.isArray(item.photos_meta)) {
+				const sorted = item.photos_meta.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+				const entry = sorted.find(e => e && e.note);
+				return entry ? entry.note : '';
+			}
+			return '';
+		})();
+		if (firstNote) {
 			const note = document.createElement('div');
 			note.style.fontSize = '0.85rem';
 			note.style.color = 'var(--ink-soft)';
 			note.style.marginTop = '6px';
-			note.textContent = 'Note: ' + item.photo_notes[0];
+			note.style.fontStyle = 'italic';
+			note.textContent = firstNote;
 			link.appendChild(note);
 		}
 
