@@ -33,18 +33,16 @@
     const adminMobile = document.getElementById('nav-admin-link-mobile');
 
     if (session && session.user) {
-      const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Account';
-
       if (signInBtn) signInBtn.style.display = 'none';
       if (signInMobile) signInMobile.style.display = 'none';
 
       if (accountLink) {
         accountLink.style.display = '';
-        accountLink.textContent = name;
+        accountLink.textContent = 'Account';
       }
       if (accountMobile) {
         accountMobile.style.display = '';
-        accountMobile.textContent = name;
+        accountMobile.textContent = 'Account';
       }
 
       // Check admin status and show/hide admin link (nav link only for super admin)

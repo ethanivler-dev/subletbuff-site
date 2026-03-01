@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadDashboard(session) {
     const user = session.user;
     const email = user.email || '';
+    const userId = user.id || null;
     if (emailEl) emailEl.textContent = email;
     showDashboard();
     setStatus('Loading your listings...');
@@ -62,11 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!sb) { setStatus('Error: auth not available'); return; }
 
     try {
-      // Fetch listings by this user's email
-      const { data: listings, error } = await sb
-        .from('listings')
-        .select('*')
-        .eq('email', email)
+      // Fetch listings by user_id (new) or email (legacy fallback)
+      let query = sb.from('listings').select('*');
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},email.eq.${email}`);
+      } else {
+        query = query.eq('email', email);
+      }
+      const { data: listings, error } = await query
         .order('created_at', { ascending: false });
 
       if (error) throw error;

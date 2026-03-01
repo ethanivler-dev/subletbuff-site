@@ -58,6 +58,16 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	// ── Sign-in gate button ──
+	const gateSigninBtn = document.getElementById('gate-signin-btn');
+	if (gateSigninBtn) {
+		gateSigninBtn.addEventListener('click', () => {
+			if (window.sbAuth && window.sbAuth.signInWithGoogle) {
+				window.sbAuth.signInWithGoogle();
+			}
+		});
+	}
+
 	function setNavPostLinkVisibility(visible) {
 		const d = document.getElementById('nav-post-link');
 		const m = document.getElementById('nav-post-link-mobile');
@@ -1528,10 +1538,22 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 	if (anyConfirmUnchecked) { banner.classList.remove('hidden'); } else { banner.classList.add('hidden'); }
 
 	if (!valid) return;
-  
+
+	// ── Auth gate: require Google sign-in before submitting ──
+	let session = null;
+	if (window.sbAuth) {
+		const { data } = await window.sbAuth.getSession();
+		session = data?.session || null;
+	}
+	if (!session) {
+		const gate = document.getElementById('signin-gate');
+		if (gate) { gate.style.display = ''; gate.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+		return;
+	}
+
 	const submitBtn = document.querySelector('.btn-submit');
 	const originalBtnText = submitBtn.textContent;
-  
+
 	if (!supabaseClient) {
 		alert("Database connection failed. Please refresh the page and try again.");
 		return;
@@ -1580,6 +1602,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 				console.error('[form] inserting listing', { photosCount: photosMeta.length });
 				const newId = crypto.randomUUID();
 				payload.id = newId;
+				if (session?.user?.id) payload.user_id = session.user.id;
 				const { error } = await supabaseClient
 					.from('listings')
 					.insert([payload]);
