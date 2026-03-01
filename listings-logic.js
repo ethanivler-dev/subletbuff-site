@@ -21,15 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const gridEl = document.getElementById('listings-grid');
   const statusEl = document.getElementById('listings-status');
 
-  // ── Top search bar elements ──
-  const minPriceEl = document.getElementById('filter-min-price');
-  const maxPriceEl = document.getElementById('filter-max-price');
-  const neighborhoodEl = document.getElementById('filter-neighborhood');
-  const bedsEl = document.getElementById('filter-beds');
-  const sortEl = document.getElementById('filter-sort');
-  const applyBtn = document.getElementById('apply-filters-btn');
-
-  // ── Sidebar elements ──
+  // ── Sidebar filter elements ──
   const sidebarMinPriceEl = document.getElementById('sidebar-min-price');
   const sidebarMaxPriceEl = document.getElementById('sidebar-max-price');
   const sidebarNeighborhoodEl = document.getElementById('sidebar-neighborhood');
@@ -37,8 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const endDateEl = document.getElementById('filter-end-date');
   const distanceEl = document.getElementById('filter-distance');
   const distanceValueEl = document.getElementById('filter-distance-value');
-  const bathsEl = document.getElementById('filter-baths');     // hidden select
+  const bedsEl = document.getElementById('filter-beds');           // hidden select
+  const bathsEl = document.getElementById('filter-baths');         // hidden select
   const furnishedEl = document.getElementById('filter-furnished'); // hidden select
+  const sortEl = document.getElementById('filter-sort');
+  const parkingEl = document.getElementById('filter-parking');
+  const petsEl = document.getElementById('filter-pets');           // hidden select
+  const housingEl = document.getElementById('filter-housing-type'); // hidden select
+  const genderEl = document.getElementById('filter-gender');
   const clearBtn = document.getElementById('clear-filters-btn');
   const sidebarApplyBtn = document.getElementById('sidebar-apply-btn');
   const sidebarEl = document.getElementById('filter-sidebar');
@@ -49,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const bedsToggle = document.getElementById('sidebar-beds-toggle');
   const bathsToggle = document.getElementById('sidebar-baths-toggle');
   const furnishedToggle = document.getElementById('sidebar-furnished-toggle');
+  const petsToggle = document.getElementById('sidebar-pets-toggle');
+  const housingToggle = document.getElementById('sidebar-housing-toggle');
 
   function initToggleGroup(groupEl, hiddenSelectEl) {
     if (!groupEl) return;
@@ -63,37 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
   initToggleGroup(bedsToggle, bedsEl);
   initToggleGroup(bathsToggle, bathsEl);
   initToggleGroup(furnishedToggle, furnishedEl);
-
-  // ── Sync search bar ↔ sidebar ──
-  function syncSearchBarToSidebar() {
-    if (sidebarMinPriceEl) sidebarMinPriceEl.value = minPriceEl.value;
-    if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = maxPriceEl.value;
-    if (sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = neighborhoodEl.value;
-    // Sync beds to toggle
-    if (bedsToggle) {
-      const val = bedsEl.value;
-      bedsToggle.querySelectorAll('.toggle-btn').forEach(b => {
-        b.classList.toggle('active', (b.dataset.value || '') === val);
-      });
-    }
-  }
-
-  function syncSidebarToSearchBar() {
-    if (sidebarMinPriceEl) minPriceEl.value = sidebarMinPriceEl.value;
-    if (sidebarMaxPriceEl) maxPriceEl.value = sidebarMaxPriceEl.value;
-    if (sidebarNeighborhoodEl) neighborhoodEl.value = sidebarNeighborhoodEl.value;
-    // Sync beds toggle to select
-    if (bedsToggle) {
-      const active = bedsToggle.querySelector('.toggle-btn.active');
-      if (active) bedsEl.value = active.dataset.value || '';
-    }
-  }
+  initToggleGroup(petsToggle, petsEl);
+  initToggleGroup(housingToggle, housingEl);
 
   // ── Mobile sidebar overlay ──
   let overlayEl = null;
   function openSidebar() {
     if (!sidebarEl) return;
-    syncSearchBarToSidebar();
     sidebarEl.classList.add('open');
     if (!overlayEl) {
       overlayEl = document.createElement('div');
@@ -442,28 +418,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function populateFilterOptions(listings) {
     const neighborhoods = uniqueSorted(listings.map((item) => item.neighborhood));
-    const beds = uniqueSorted(listings.map((item) => item.beds));
     const baths = uniqueSorted(listings.map((item) => item.baths));
 
-    setSelectOptions(neighborhoodEl, neighborhoods);
-    setSelectOptions(bedsEl, beds);
-    setSelectOptions(bathsEl, baths);
-    // Also populate sidebar selects
     setSelectOptions(sidebarNeighborhoodEl, neighborhoods);
+    setSelectOptions(bathsEl, baths);
   }
 
   function applyFilters() {
     if (!Array.isArray(allListings)) return;
 
-    // Sync sidebar values to search bar (sidebar is source of truth when used)
-    syncSidebarToSearchBar();
-
-    const minPrice = minPriceEl.value ? Number(minPriceEl.value) : null;
-    const maxPrice = maxPriceEl.value ? Number(maxPriceEl.value) : null;
-    const neighborhood = neighborhoodEl.value;
-    const beds = bedsEl.value;
-    const baths = bathsEl.value;
-    const furnished = furnishedEl.value;
+    const minPrice = sidebarMinPriceEl ? (sidebarMinPriceEl.value ? Number(sidebarMinPriceEl.value) : null) : null;
+    const maxPrice = sidebarMaxPriceEl ? (sidebarMaxPriceEl.value ? Number(sidebarMaxPriceEl.value) : null) : null;
+    const neighborhood = sidebarNeighborhoodEl ? sidebarNeighborhoodEl.value : '';
+    const beds = bedsEl ? bedsEl.value : '';
+    const baths = bathsEl ? bathsEl.value : '';
+    const furnished = furnishedEl ? furnishedEl.value : '';
+    const parking = parkingEl ? parkingEl.value : '';
+    const pets = petsEl ? petsEl.value : '';
+    const housing = housingEl ? housingEl.value : '';
+    const gender = genderEl ? genderEl.value : '';
     const sort = sortEl ? sortEl.value : 'newest';
     const distanceLimit = distanceEl ? Number(distanceEl.value) : DISTANCE_MAX_MILES;
     const useDistanceLimit = Number.isFinite(distanceLimit) && distanceLimit < DISTANCE_MAX_MILES;
@@ -493,6 +466,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!Number.isFinite(listBaths) || listBaths < minBaths) return false;
       }
       if (furnished && normalizeFurnished(listing.furnished) !== furnished) return false;
+      if (parking && listing.parking !== parking) return false;
+      if (pets === 'yes' && (!listing.pets || listing.pets === 'No')) return false;
+      if (pets === 'no' && listing.pets !== 'No') return false;
+      if (housing && listing.housing_type !== housing) return false;
+      if (gender && listing.gender_preference !== gender) return false;
 
       if (useDistanceLimit) {
         if (!Number.isFinite(listing._distanceMiles) || listing._distanceMiles > distanceLimit) {
@@ -540,24 +518,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function clearFilters() {
-    minPriceEl.value = '';
-    maxPriceEl.value = '';
-    neighborhoodEl.value = '';
-    startDateEl.value = '';
-    endDateEl.value = '';
-    bedsEl.value = '';
-    bathsEl.value = '';
-    furnishedEl.value = '';
-    if (distanceEl) distanceEl.value = String(DISTANCE_MAX_MILES);
-    if (sortEl) sortEl.value = 'newest';
-    // Reset sidebar inputs
     if (sidebarMinPriceEl) sidebarMinPriceEl.value = '';
     if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = '';
     if (sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = '';
-    // Reset toggle groups
+    if (startDateEl) startDateEl.value = '';
+    if (endDateEl) endDateEl.value = '';
+    if (bedsEl) bedsEl.value = '';
+    if (bathsEl) bathsEl.value = '';
+    if (furnishedEl) furnishedEl.value = '';
+    if (parkingEl) parkingEl.value = '';
+    if (petsEl) petsEl.value = '';
+    if (housingEl) housingEl.value = '';
+    if (genderEl) genderEl.value = '';
+    if (distanceEl) distanceEl.value = String(DISTANCE_MAX_MILES);
+    if (sortEl) sortEl.value = 'newest';
     setToggleValue(bedsToggle, '');
     setToggleValue(bathsToggle, '');
     setToggleValue(furnishedToggle, '');
+    setToggleValue(petsToggle, '');
+    setToggleValue(housingToggle, '');
     updateDistanceLabel();
     renderListings(allListings);
   }
@@ -591,32 +570,45 @@ document.addEventListener('DOMContentLoaded', () => {
     pillsContainer.innerHTML = '';
 
     const pills = [];
-    const minP = minPriceEl.value;
-    const maxP = maxPriceEl.value;
+    const minP = sidebarMinPriceEl ? sidebarMinPriceEl.value : '';
+    const maxP = sidebarMaxPriceEl ? sidebarMaxPriceEl.value : '';
     if (minP || maxP) {
       const label = minP && maxP ? `$${minP}–$${maxP}` : minP ? `$${minP}+` : `Up to $${maxP}`;
-      pills.push({ label, clear: () => { minPriceEl.value = ''; maxPriceEl.value = ''; if (sidebarMinPriceEl) sidebarMinPriceEl.value = ''; if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = ''; } });
+      pills.push({ label, clear: () => { if (sidebarMinPriceEl) sidebarMinPriceEl.value = ''; if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = ''; } });
     }
-    if (neighborhoodEl.value) {
-      pills.push({ label: neighborhoodEl.value, clear: () => { neighborhoodEl.value = ''; if (sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = ''; } });
+    if (sidebarNeighborhoodEl && sidebarNeighborhoodEl.value) {
+      pills.push({ label: sidebarNeighborhoodEl.value, clear: () => { sidebarNeighborhoodEl.value = ''; } });
     }
-    if (bedsEl.value) {
+    if (bedsEl && bedsEl.value) {
       pills.push({ label: `${bedsEl.value}+ Beds`, clear: () => { bedsEl.value = ''; setToggleValue(bedsToggle, ''); } });
     }
-    if (bathsEl.value) {
+    if (bathsEl && bathsEl.value) {
       pills.push({ label: `${bathsEl.value}+ Baths`, clear: () => { bathsEl.value = ''; setToggleValue(bathsToggle, ''); } });
     }
-    if (furnishedEl.value) {
+    if (furnishedEl && furnishedEl.value) {
       pills.push({ label: furnishedEl.value === 'yes' ? 'Furnished' : 'Unfurnished', clear: () => { furnishedEl.value = ''; setToggleValue(furnishedToggle, ''); } });
     }
     const dist = distanceEl ? Number(distanceEl.value) : DISTANCE_MAX_MILES;
     if (Number.isFinite(dist) && dist < DISTANCE_MAX_MILES) {
       pills.push({ label: `Under ${dist} mi`, clear: () => { if (distanceEl) distanceEl.value = String(DISTANCE_MAX_MILES); updateDistanceLabel(); } });
     }
-    if (startDateEl.value || endDateEl.value) {
+    if (startDateEl && (startDateEl.value || endDateEl.value)) {
       const s = startDateEl.value || '...';
       const e = endDateEl.value || '...';
       pills.push({ label: `${s} – ${e}`, clear: () => { startDateEl.value = ''; endDateEl.value = ''; } });
+    }
+    if (parkingEl && parkingEl.value) {
+      pills.push({ label: `Parking: ${parkingEl.value}`, clear: () => { parkingEl.value = ''; } });
+    }
+    if (petsEl && petsEl.value) {
+      pills.push({ label: petsEl.value === 'yes' ? 'Pets OK' : 'No Pets', clear: () => { petsEl.value = ''; setToggleValue(petsToggle, ''); } });
+    }
+    if (housingEl && housingEl.value) {
+      const housingLabels = { apartment: 'Apartment', house: 'House', condo: 'Condo' };
+      pills.push({ label: housingLabels[housingEl.value] || housingEl.value, clear: () => { housingEl.value = ''; setToggleValue(housingToggle, ''); } });
+    }
+    if (genderEl && genderEl.value) {
+      pills.push({ label: genderEl.value, clear: () => { genderEl.value = ''; } });
     }
 
     pills.forEach(p => {
@@ -691,11 +683,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (applyBtn) applyBtn.addEventListener('click', () => { syncSearchBarToSidebar(); applyFilters(); });
-  if (sidebarApplyBtn) sidebarApplyBtn.addEventListener('click', () => { syncSidebarToSearchBar(); applyFilters(); closeSidebar(); });
+  if (sidebarApplyBtn) sidebarApplyBtn.addEventListener('click', () => { applyFilters(); closeSidebar(); });
   if (clearBtn) clearBtn.addEventListener('click', clearFilters);
   if (distanceEl) distanceEl.addEventListener('input', updateDistanceLabel);
-  if (sortEl) sortEl.addEventListener('change', applyFilters);
 
   updateDistanceLabel();
 
