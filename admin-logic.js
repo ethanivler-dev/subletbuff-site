@@ -293,6 +293,13 @@ document.addEventListener('DOMContentLoaded', () => {
         onClick: () => handleApprove(item.id)
       }));
 
+      right.appendChild(createActionButton({
+        id: `edit-${item.id}`,
+        text: 'Edit ✏️',
+        style: 'background: #E0D5C0; color: #1C1810; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;',
+        onClick: () => openEditModal(item.id)
+      }));
+
       right.appendChild(createContactButton(item));
 
       right.appendChild(createActionButton({
