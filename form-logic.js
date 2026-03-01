@@ -215,15 +215,68 @@ document.addEventListener('DOMContentLoaded', () => {
 		return null;
 	}
 
+	// ── CLIENT-SIDE IMAGE COMPRESSION ──
+	// Compresses non-HEIC images via canvas to stay under Vercel's 4.5MB body limit.
+	const UPLOAD_MAX_BYTES = 4 * 1024 * 1024; // 4MB target after compression
+	const COMPRESS_MAX_DIMENSION = 3000; // max width/height in pixels
+
+	async function compressImageIfNeeded(file) {
+		// Skip HEIC (handled separately) and already-small files
+		if (isHeicFile(file)) return file;
+		if (file.size <= UPLOAD_MAX_BYTES) return file;
+		if (!file.type.startsWith('image/')) return file;
+
+		console.log('[form] compressing', file.name, (file.size / 1024 / 1024).toFixed(1) + 'MB');
+
+		try {
+			const bitmap = await createImageBitmap(file);
+			let { width, height } = bitmap;
+
+			// Scale down if exceeds max dimension
+			if (width > COMPRESS_MAX_DIMENSION || height > COMPRESS_MAX_DIMENSION) {
+				const scale = COMPRESS_MAX_DIMENSION / Math.max(width, height);
+				width = Math.round(width * scale);
+				height = Math.round(height * scale);
+			}
+
+			const canvas = new OffscreenCanvas(width, height);
+			const ctx = canvas.getContext('2d');
+			ctx.drawImage(bitmap, 0, 0, width, height);
+			bitmap.close();
+
+			// Try progressively lower quality until under limit
+			for (const quality of [0.85, 0.75, 0.6, 0.45]) {
+				const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
+				if (blob.size <= UPLOAD_MAX_BYTES) {
+					const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+					console.log('[form] compressed to', (compressed.size / 1024 / 1024).toFixed(2) + 'MB', 'q=' + quality);
+					return compressed;
+				}
+			}
+
+			// Last resort: strongest compression
+			const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.35 });
+			const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+			console.log('[form] compressed (last resort) to', (compressed.size / 1024 / 1024).toFixed(2) + 'MB');
+			return compressed;
+		} catch (err) {
+			console.warn('[form] client-side compression failed, uploading original:', err);
+			return file;
+		}
+	}
+
 	// ── UPLOAD VIA VERCEL FUNCTION (handles storage + HEIC conversion via Sharp) ──
 	async function uploadViaEdgeFunction(file) {
+		// Compress large images client-side before upload
+		const fileToSend = await compressImageIfNeeded(file);
+
 		const url = '/api/upload';
 		const formData = new FormData();
 		const listingId = getActiveUploadListingId();
-		formData.append('file', file);
+		formData.append('file', fileToSend);
 		formData.append('listing_id', listingId);
 
-		console.log('[form] uploading:', { name: file.name, size: file.size, type: file.type, listingId });
+		console.log('[form] uploading:', { name: fileToSend.name, size: fileToSend.size, type: fileToSend.type, listingId });
 
 		const resp = await fetch(url, {
 			method: 'POST',
@@ -232,8 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 
 		if (!resp.ok) {
-			const errBody = await resp.json().catch(() => ({}));
+			let errBody = {};
+			try { errBody = await resp.json(); } catch (_) {}
 			console.error('[form] edge function error:', resp.status, errBody);
+			if (resp.status === 413) {
+				throw new Error('Photo is too large. Please use a smaller image (under 4MB).');
+			}
 			const msg = [errBody.error, errBody.details].filter(Boolean).join(' — ');
 			throw new Error(msg || `Upload failed (${resp.status})`);
 		}
@@ -662,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	const MAX_PHOTOS = 10;
-	const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+	const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB raw — will be compressed before upload
 
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
