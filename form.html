@@ -264,6 +264,11 @@
   .card.listing-content-card .field { flex: 1; display: flex; flex-direction: column; margin-bottom: 0; }
   .card.listing-content-card textarea { flex: 1; min-height: 160px; }
   
+  /* ── Multi-step form (desktop: step containers transparent to grid) ── */
+  .form-step { display: contents; }
+  .step-header { display: none; }
+  .form-step-nav { display: none; }
+
   @media (max-width: 960px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
     .half-width { grid-column: span 2; }
@@ -298,6 +303,43 @@
     .photo-card-img { margin-bottom: 8px; }
     .photo-card-note { min-height: 50px; font-size: 0.8rem; padding: 8px; }
     .photo-set-cover { padding: 6px 10px; font-size: 0.75rem; }
+
+    /* ── Step containers ── */
+    .form-step { display: none; }
+    .form-step.active { display: block; }
+
+    /* ── Step header (progress bar + label) ── */
+    .step-header { display: block; margin-bottom: 16px; }
+    .step-progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+    .step-progress-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.3s ease; width: 25%; }
+    .step-info { display: flex; justify-content: space-between; align-items: baseline; }
+    .step-count { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: 0.05em; }
+    .step-title-label { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--ink-soft); }
+
+    /* ── Sticky bottom step nav ── */
+    .form-step-nav { display: flex; align-items: center; justify-content: space-between; position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px env(safe-area-inset-bottom, 16px); background: var(--white); border-top: 1px solid var(--border); z-index: 200; box-shadow: 0 -4px 16px rgba(0,0,0,0.06); }
+    .step-back-btn { padding: 10px 18px; border: 1.5px solid var(--border); border-radius: var(--radius-md); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500; color: var(--ink-soft); cursor: pointer; transition: border-color var(--transition); }
+    .step-back-btn:hover { border-color: var(--gold-light); }
+    .step-dots { display: flex; gap: 6px; align-items: center; }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background var(--transition), transform var(--transition); }
+    .step-dot.active { background: var(--gold); transform: scale(1.25); }
+    .step-next-btn { padding: 10px 20px; background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: var(--white); border: none; border-radius: var(--radius-md); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-btn); transition: transform var(--transition), box-shadow var(--transition); }
+    .step-next-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(184,146,42,0.4); }
+
+    /* ── Review summary in step 4 ── */
+    .review-summary { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--white); }
+    .review-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .review-section:last-child { border-bottom: none; }
+    .review-section-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 0.85rem; color: var(--ink); margin-bottom: 4px; }
+    .review-edit { font-size: 0.75rem; color: var(--gold); background: none; border: none; cursor: pointer; font-weight: 600; padding: 0; font-family: 'DM Sans', sans-serif; }
+    .review-section-body { font-size: 0.8rem; color: var(--ink-soft); line-height: 1.5; }
+
+    /* ── Hide submit row (step nav handles submit) ── */
+    .submit-row { display: none; }
+    /* ── Lift autosave badge above sticky nav ── */
+    .autosave-badge { bottom: 80px; left: 12px; }
+    /* ── Extra bottom padding to clear sticky nav ── */
+    .page { padding-bottom: 100px; }
   }
 </style>
 </head>
@@ -348,18 +390,22 @@
   <h1 class="page-title">Post a Listing</h1>
   <p class="email-notice">A verification email will be sent to your CU email when this form is submitted</p>
 
+  <div class="step-header" id="step-header">
+    <div class="step-progress-bar">
+      <div class="step-progress-fill" id="step-progress-fill"></div>
+    </div>
+    <div class="step-info">
+      <span class="step-count" id="step-count">Step 1 of 4</span>
+      <span class="step-title-label" id="step-title-label">Property Basics</span>
+    </div>
+  </div>
+
   <form id="listing-form" novalidate>
 
-    <div class="name-row">
-      <div class="field">
-        <input type="email" id="email" placeholder="CU Boulder Email (@colorado.edu)" autocomplete="off" />
-        <span class="error-msg" id="email-error" style="display:none"></span>
-      </div>
-      <div class="field"><input type="text" id="first-name" placeholder="First Name" /></div>
-      <div class="field"><input type="text" id="last-name" placeholder="Last Name" /></div>
-    </div>
-
     <div class="form-grid">
+
+      <!-- Step 1: Property Basics -->
+      <div class="form-step" data-step="1">
 
       <div class="card">
         <div class="card-title">Property Basics <span class="tag-required">Required</span></div>
@@ -411,72 +457,6 @@
           <div class="furnished-expand" id="furnished-expand">
             <textarea id="furnished-notes" placeholder="Describe furnishings (e.g. Bed frame, desk, dresser included...)" style="margin-top:10px; min-height:60px; resize:vertical;"></textarea>
           </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Lease Timing <span class="tag-required">Required</span></div>
-        <div class="field">
-          <div class="date-info-row">
-            <label>Start Date</label>
-            <button type="button" class="info-btn" id="sem-info-btn" title="View semester dates">i</button>
-          </div>
-          <div class="info-popup" id="sem-info-popup">
-            <strong>CU Boulder Semester Dates</strong><br/>
-            <span id="term-dates-text"></span>
-          </div>
-          <div class="date-wrap">
-            <input type="date" id="start-date" />
-          </div>
-          <span class="date-error" id="start-error"></span>
-        </div>
-        <div class="field">
-          <label>End Date</label>
-          <div class="date-wrap">
-            <input type="date" id="end-date" />
-          </div>
-          <span class="date-error" id="end-error"></span>
-        </div>
-        <div class="field">
-          <label>Flexible Move-In?</label>
-          <div class="radio-group">
-            <label class="radio-label"><input type="radio" name="flexible" value="yes" /> Yes</label>
-            <label class="radio-label"><input type="radio" name="flexible" value="no" /> No</label>
-          </div>
-        </div>
-        <div class="field" id="flex-notes-field" style="display:none">
-          <label for="flex-notes">Move-In Notes <span style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
-          <textarea id="flex-notes" rows="3" placeholder="e.g. Can move in any time between June 1 – June 15"></textarea>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Contact Information</div>
-        <div class="field">
-          <label>Phone Number <span id="phone-optional-tag" style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
-          <input type="tel" id="phone" placeholder="(303) 555-0000" />
-        </div>
-        <div class="field">
-          <label>Preferred Contact</label>
-          <div class="contact-toggle">
-            <button type="button" class="contact-btn" id="pref-email">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.4"/></svg>
-              Email
-            </button>
-            <button type="button" class="contact-btn" id="pref-text">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 13l3-2 3 2" stroke="currentColor" stroke-width="1.3"/></svg>
-              Text
-            </button>
-          </div>
-        </div>
-        <div class="field">
-          <label>Best Time to Reach <span style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
-          <select id="best-time">
-            <option value="">Anytime</option>
-            <option>Morning (8am–12pm)</option>
-            <option>Afternoon (12pm–5pm)</option>
-            <option>Evening (5pm–9pm)</option>
-          </select>
         </div>
       </div>
 
@@ -538,51 +518,44 @@
         </div>
       </div>
 
-      <div class="card listing-content-card">
-        <div class="card-title">Listing Content <span class="tag-required">Required</span></div>
-        <div class="field">
-          <label>Listing Description</label>
-          <textarea id="description" placeholder="Describe the space — amenities, roommates, house rules, parking, utilities included, etc."></textarea>
-        </div>
       </div>
+
+      <!-- Step 2: Lease & Pricing -->
+      <div class="form-step" data-step="2">
 
       <div class="card">
-        <div class="card-title">Upload Photos <span class="tag-required">Required</span></div>
-        <div class="upload-zone" id="upload-zone">
-          <input type="file" id="photoInput" accept="image/*" multiple />
-          <div class="upload-icon">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M10 13V4M10 4l-3 3M10 4l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
+        <div class="card-title">Lease Timing <span class="tag-required">Required</span></div>
+        <div class="field">
+          <div class="date-info-row">
+            <label>Start Date</label>
+            <button type="button" class="info-btn" id="sem-info-btn" title="View semester dates">i</button>
           </div>
-          <div style="font-size:.875rem;font-weight:500;color:var(--ink-soft)">Click to upload or drag &amp; drop — select multiple at once</div>
-          <div class="upload-hint">Drag to reorder · ≤5MB each · JPG, PNG, HEIC, WebP &amp; more</div>
-          <div class="upload-min">Minimum 3 · Maximum 10 photos</div>
+          <div class="info-popup" id="sem-info-popup">
+            <strong>CU Boulder Semester Dates</strong><br/>
+            <span id="term-dates-text"></span>
+          </div>
+          <div class="date-wrap">
+            <input type="date" id="start-date" />
+          </div>
+          <span class="date-error" id="start-error"></span>
         </div>
-        <!-- Mini preview strip showing thumbnails -->
-        <div id="photo-mini-strip"></div>
-        <div id="photo-count-msg" class="photo-count"></div>
-        <button type="button" id="add-more-photos-btn" style="display:none;margin-top:8px;background:none;border:1.5px solid var(--gold);border-radius:20px;padding:5px 14px;font-size:.82rem;font-weight:500;color:var(--gold-dark,#7a5c0a);cursor:pointer;">+ Add more photos</button>
-        <div id="photo-inline-msg" class="photo-count" aria-live="polite"></div>
-        <button type="button" id="manage-photos-btn" class="manage-photos-btn" style="display:none;">Manage Photos</button>
-      </div>
-
-      <!-- Photo Manager Modal -->
-      <div id="photo-modal-overlay" class="photo-modal-overlay">
-        <div class="photo-modal">
-          <div class="photo-modal-header">
-            <h2>Manage Your Photos</h2>
-            <p>Drag to reorder · Photo #1 is your cover · Add descriptions to highlight features</p>
-            <button type="button" class="photo-modal-close" id="photo-modal-close">✕</button>
+        <div class="field">
+          <label>End Date</label>
+          <div class="date-wrap">
+            <input type="date" id="end-date" />
           </div>
-          <div class="photo-modal-body">
-            <div id="photo-strip" class="photo-grid-modal"></div>
+          <span class="date-error" id="end-error"></span>
+        </div>
+        <div class="field">
+          <label>Flexible Move-In?</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="flexible" value="yes" /> Yes</label>
+            <label class="radio-label"><input type="radio" name="flexible" value="no" /> No</label>
           </div>
-          <div class="photo-modal-footer">
-            <div class="photo-modal-count"><span id="photo-modal-count-num">0</span> / 10 photos added · Minimum 3 required</div>
-            <button type="button" class="photo-modal-done" id="photo-modal-done">Done</button>
-          </div>
+        </div>
+        <div class="field" id="flex-notes-field" style="display:none">
+          <label for="flex-notes">Move-In Notes <span style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
+          <textarea id="flex-notes" rows="3" placeholder="e.g. Can move in any time between June 1 – June 15"></textarea>
         </div>
       </div>
 
@@ -645,6 +618,102 @@
         <span class="error-msg" id="lease-type-error" style="display:none">Please select a lease type.</span>
       </div>
 
+      </div>
+
+      <!-- Step 3: Photos & Description -->
+      <div class="form-step" data-step="3">
+
+      <div class="card">
+        <div class="card-title">Upload Photos <span class="tag-required">Required</span></div>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="photoInput" accept="image/*" multiple />
+          <div class="upload-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M10 13V4M10 4l-3 3M10 4l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div style="font-size:.875rem;font-weight:500;color:var(--ink-soft)">Click to upload or drag &amp; drop — select multiple at once</div>
+          <div class="upload-hint">Drag to reorder · ≤5MB each · JPG, PNG, HEIC, WebP &amp; more</div>
+          <div class="upload-min">Minimum 3 · Maximum 10 photos</div>
+        </div>
+        <!-- Mini preview strip showing thumbnails -->
+        <div id="photo-mini-strip"></div>
+        <div id="photo-count-msg" class="photo-count"></div>
+        <button type="button" id="add-more-photos-btn" style="display:none;margin-top:8px;background:none;border:1.5px solid var(--gold);border-radius:20px;padding:5px 14px;font-size:.82rem;font-weight:500;color:var(--gold-dark,#7a5c0a);cursor:pointer;">+ Add more photos</button>
+        <div id="photo-inline-msg" class="photo-count" aria-live="polite"></div>
+        <button type="button" id="manage-photos-btn" class="manage-photos-btn" style="display:none;">Manage Photos</button>
+      </div>
+
+      <!-- Photo Manager Modal -->
+      <div id="photo-modal-overlay" class="photo-modal-overlay">
+        <div class="photo-modal">
+          <div class="photo-modal-header">
+            <h2>Manage Your Photos</h2>
+            <p>Drag to reorder · Photo #1 is your cover · Add descriptions to highlight features</p>
+            <button type="button" class="photo-modal-close" id="photo-modal-close">✕</button>
+          </div>
+          <div class="photo-modal-body">
+            <div id="photo-strip" class="photo-grid-modal"></div>
+          </div>
+          <div class="photo-modal-footer">
+            <div class="photo-modal-count"><span id="photo-modal-count-num">0</span> / 10 photos added · Minimum 3 required</div>
+            <button type="button" class="photo-modal-done" id="photo-modal-done">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card listing-content-card">
+        <div class="card-title">Listing Content <span class="tag-required">Required</span></div>
+        <div class="field">
+          <label>Listing Description</label>
+          <textarea id="description" placeholder="Describe the space — amenities, roommates, house rules, parking, utilities included, etc."></textarea>
+        </div>
+      </div>
+
+      </div>
+
+      <!-- Step 4: Contact & Review -->
+      <div class="form-step" data-step="4">
+
+      <div class="card">
+        <div class="card-title">Contact Information <span class="tag-required">Required</span></div>
+        <div class="field">
+          <input type="email" id="email" placeholder="CU Boulder Email (@colorado.edu)" autocomplete="off" />
+          <span class="error-msg" id="email-error" style="display:none"></span>
+        </div>
+        <div class="two-col field">
+          <div><input type="text" id="first-name" placeholder="First Name" /></div>
+          <div><input type="text" id="last-name" placeholder="Last Name" /></div>
+        </div>
+        <div class="field">
+          <label>Phone Number <span id="phone-optional-tag" style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
+          <input type="tel" id="phone" placeholder="(303) 555-0000" />
+        </div>
+        <div class="field">
+          <label>Preferred Contact</label>
+          <div class="contact-toggle">
+            <button type="button" class="contact-btn" id="pref-email">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.4"/></svg>
+              Email
+            </button>
+            <button type="button" class="contact-btn" id="pref-text">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 13l3-2 3 2" stroke="currentColor" stroke-width="1.3"/></svg>
+              Text
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Best Time to Reach <span style="color:var(--ink-muted);font-weight:400">(Optional)</span></label>
+          <select id="best-time">
+            <option value="">Anytime</option>
+            <option>Morning (8am–12pm)</option>
+            <option>Afternoon (12pm–5pm)</option>
+            <option>Evening (5pm–9pm)</option>
+          </select>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">Confirmation</div>
         <div class="confirm-item" id="ci-allowed">
@@ -665,8 +734,11 @@
         </div>
       </div>
 
-    </div>
+        <div class="review-summary" id="review-summary"></div>
 
+      </div>
+
+    </div>
     <div id="signin-gate" style="display:none; margin: 24px 0 8px; padding: 18px 20px; background: #fffbf0; border: 1.5px solid var(--gold); border-radius: var(--radius-md); text-align: center;">
       <p style="margin: 0 0 12px; font-size: .9375rem; font-weight: 500; color: var(--ink);">Sign in with Google to submit your listing</p>
       <button type="button" id="gate-signin-btn" style="display:inline-flex; align-items:center; gap:8px; padding:10px 22px; background:#fff; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:'DM Sans',sans-serif; font-size:.9375rem; font-weight:500; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.08);">
@@ -696,6 +768,16 @@
       <div id="photoGrid" class="photo-grid"></div>
     </div>
   </div>
+    <div class="form-step-nav" id="form-step-nav">
+      <button type="button" id="step-back-btn" class="step-back-btn">← Back</button>
+      <div class="step-dots">
+        <span class="step-dot" data-step="1"></span>
+        <span class="step-dot" data-step="2"></span>
+        <span class="step-dot" data-step="3"></span>
+        <span class="step-dot" data-step="4"></span>
+      </div>
+      <button type="button" id="step-next-btn" class="step-next-btn">Next →</button>
+    </div>
   </form>
 
   <div id="success-screen">

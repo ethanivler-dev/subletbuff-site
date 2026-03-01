@@ -2160,5 +2160,150 @@ document.getElementById('btn-verify').addEventListener('click', () => {
 	console.log('[form] edit mode pre-fill complete');
 })();
 
+// ── MULTI-STEP FORM (mobile ≤640px only) ───────────────────────────────────
+let currentStep = 1;
+const TOTAL_STEPS = 4;
+const STEP_TITLES = ['Property Basics', 'Lease & Pricing', 'Photos & Description', 'Contact & Review'];
+
+function isMobileForm() { return window.matchMedia('(max-width: 640px)').matches; }
+
+function goToStep(n) {
+	if (!isMobileForm()) return;
+	document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+	const target = document.querySelector(`.form-step[data-step="${n}"]`);
+	if (target) target.classList.add('active');
+	currentStep = n;
+	const fill = document.getElementById('step-progress-fill');
+	if (fill) fill.style.width = `${(n / TOTAL_STEPS) * 100}%`;
+	const countEl = document.getElementById('step-count');
+	const titleEl = document.getElementById('step-title-label');
+	if (countEl) countEl.textContent = `Step ${n} of ${TOTAL_STEPS}`;
+	if (titleEl) titleEl.textContent = STEP_TITLES[n - 1];
+	document.querySelectorAll('.step-dot').forEach(d =>
+		d.classList.toggle('active', +d.dataset.step === n)
+	);
+	const backBtn = document.getElementById('step-back-btn');
+	if (backBtn) backBtn.style.visibility = n === 1 ? 'hidden' : 'visible';
+	const nextBtn = document.getElementById('step-next-btn');
+	if (nextBtn) nextBtn.textContent = n === TOTAL_STEPS ? 'Submit →' : 'Next →';
+	window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(n) {
+	let ok = true;
+	if (n === 1) {
+		if (!document.getElementById('address').value.trim()) {
+			showFieldError('address', 'Address is required'); ok = false;
+		}
+		if (!document.getElementById('beds').value) {
+			showFieldError('beds', 'Select number of beds'); ok = false;
+		}
+		if (!document.getElementById('baths').value) {
+			showFieldError('baths', 'Select number of baths'); ok = false;
+		}
+	}
+	if (n === 2) {
+		const rentVal = parseInt(document.getElementById('rent').value);
+		if (isNaN(rentVal) || rentVal <= 0) {
+			showFieldError('rent', 'Enter a valid rent amount'); ok = false;
+		} else clearFieldError('rent');
+		if (!validateDates(true)) ok = false;
+		const leaseType = document.querySelector('input[name="lease-type"]:checked');
+		if (!leaseType) {
+			document.getElementById('lease-type-error').style.display = 'block';
+			document.getElementById('lease-check-sublease').classList.add('error');
+			document.getElementById('lease-check-takeover').classList.add('error');
+			ok = false;
+		}
+	}
+	if (n === 3) {
+		const ready = (photoDraft || []).filter(p => !p.pending && p.url).length;
+		const countMsg = document.getElementById('photo-count-msg');
+		if (ready < 3) {
+			if (countMsg) { countMsg.textContent = `${ready} of 3 required photos added`; countMsg.style.color = 'var(--red)'; }
+			ok = false;
+		}
+		if (!document.getElementById('description').value.trim()) {
+			showFieldError('description', 'Add a listing description'); ok = false;
+		}
+	}
+	// Step 4 validated by the main submit handler
+	if (!ok) {
+		const activeStep = document.querySelector('.form-step.active');
+		if (activeStep) {
+			const firstErr = activeStep.querySelector('.error-msg');
+			if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		}
+	}
+	return ok;
+}
+
+function buildReviewSummary() {
+	const el = document.getElementById('review-summary');
+	if (!el) return;
+	const addr = (document.getElementById('address').value || '').trim() || '—';
+	const unit = (document.getElementById('unit-number').value || '').trim();
+	const beds = document.getElementById('beds').value || '—';
+	const baths = document.getElementById('baths').value || '—';
+	const rent = document.getElementById('rent').value;
+	const start = document.getElementById('start-date').value;
+	const end = document.getElementById('end-date').value;
+	const photoCount = (photoDraft || []).filter(p => !p.pending && p.url).length;
+	const desc = (document.getElementById('description').value || '').trim();
+	el.innerHTML = `
+		<div class="review-section">
+			<div class="review-section-head">Property <button type="button" class="review-edit" data-step="1">Edit</button></div>
+			<div class="review-section-body">${addr}${unit ? ' #' + unit : ''} · ${beds} bed / ${baths} bath</div>
+		</div>
+		<div class="review-section">
+			<div class="review-section-head">Lease &amp; Pricing <button type="button" class="review-edit" data-step="2">Edit</button></div>
+			<div class="review-section-body">${rent ? '$' + rent + '/mo' : '—'} · ${start || '—'} → ${end || '—'}</div>
+		</div>
+		<div class="review-section">
+			<div class="review-section-head">Photos &amp; Description <button type="button" class="review-edit" data-step="3">Edit</button></div>
+			<div class="review-section-body">${photoCount} photo${photoCount !== 1 ? 's' : ''} · ${desc ? desc.slice(0, 60) + (desc.length > 60 ? '…' : '') : 'No description'}</div>
+		</div>
+	`;
+	el.querySelectorAll('.review-edit').forEach(btn =>
+		btn.addEventListener('click', () => goToStep(+btn.dataset.step))
+	);
+}
+
+const stepNextBtn = document.getElementById('step-next-btn');
+const stepBackBtn = document.getElementById('step-back-btn');
+
+if (stepNextBtn) {
+	stepNextBtn.addEventListener('click', () => {
+		if (!isMobileForm()) return;
+		if (!validateStep(currentStep)) return;
+		if (currentStep === TOTAL_STEPS) {
+			document.getElementById('listing-form').dispatchEvent(
+				new Event('submit', { bubbles: true, cancelable: true })
+			);
+			return;
+		}
+		if (currentStep === TOTAL_STEPS - 1) buildReviewSummary();
+		goToStep(currentStep + 1);
+	});
+}
+
+if (stepBackBtn) {
+	stepBackBtn.addEventListener('click', () => {
+		if (currentStep > 1) goToStep(currentStep - 1);
+	});
+}
+
+// Initialize on load
+if (isMobileForm()) goToStep(1);
+
+// Handle resize (desktop ↔ mobile)
+window.addEventListener('resize', () => {
+	if (!isMobileForm()) {
+		document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+	} else {
+		goToStep(currentStep);
+	}
+});
+
 });
 
