@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     leaseDates: document.getElementById('listing-lease-dates'),
     contactCta: document.getElementById('listing-contact-cta'),
     copyContact: document.getElementById('listing-copy-contact'),
-    copyEmail: document.getElementById('listing-copy-email'),
 
     shareBtn: document.getElementById('listing-share-btn'),
     shareMenu: document.getElementById('listing-share-menu'),
@@ -71,7 +70,16 @@ document.addEventListener('DOMContentLoaded', () => {
     lightboxPrev: document.getElementById('lightbox-prev'),
     lightboxNext: document.getElementById('lightbox-next'),
     lightboxClose: document.getElementById('lightbox-close'),
-    lightboxCounter: document.getElementById('lightbox-counter')
+    lightboxCounter: document.getElementById('lightbox-counter'),
+
+    priceBig: document.getElementById('listing-price-big'),
+    depositLabel: document.getElementById('listing-deposit-label'),
+    descriptionText: document.getElementById('listing-description-text'),
+    briefContent: document.getElementById('listing-brief-content'),
+    flexContent: document.getElementById('listing-flex-content'),
+    overviewRows: document.getElementById('listing-overview-rows'),
+    contactDetails: document.getElementById('listing-contact-details'),
+    contactCta2: document.getElementById('listing-contact-cta-2')
   };
 
   const state = {
@@ -429,6 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderSidebar(listing) {
+    // ── Price card ──
     const rent = formatMoney(listing.monthly_rent);
     if (el.rent) {
       el.rent.textContent = rent ? `${rent} / month` : 'Rent unavailable';
@@ -455,37 +464,209 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el.leaseDates) {
       const start = formatDate(listing.start_date) || 'N/A';
       const end = formatDate(listing.end_date) || 'N/A';
-      el.leaseDates.textContent = `Lease Dates: ${start} → ${end}`;
+      el.leaseDates.textContent = `Lease: ${start} → ${end}`;
     }
 
     const contactAction = getContactAction(listing);
     if (el.contactCta) {
-      if (contactAction.href === '#') {
-        el.contactCta.disabled = true;
-        el.contactCta.textContent = contactAction.label;
-      } else {
-        el.contactCta.disabled = false;
-        el.contactCta.textContent = contactAction.label;
-      }
-
+      el.contactCta.disabled = contactAction.href === '#';
+      el.contactCta.textContent = contactAction.label;
       el.contactCta.onclick = () => {
-        if (contactAction.href !== '#') {
-          window.location.href = contactAction.href;
-        }
+        if (contactAction.href !== '#') window.location.href = contactAction.href;
       };
     }
 
     if (el.copyContact) {
       el.copyContact.onclick = () => {
         const contact = [listing.email, listing.phone].filter(Boolean).join(' | ');
-        copyToClipboard(contact || '', 'Contact copied');
+        copyToClipboard(contact || '', 'Contact info copied');
       };
     }
 
-    if (el.copyEmail) {
-      el.copyEmail.onclick = () => {
-        copyToClipboard(listing.email || '', 'Email copied');
+    // ── Overview card ──
+    renderOverview(listing);
+
+    // ── Contact details card ──
+    renderContactCard(listing, contactAction);
+  }
+
+  const OVERVIEW_ICONS = {
+    area: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    beds: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>',
+    baths: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"/><path d="M6 12V5a2 2 0 0 1 2-2h3v2.25"/></svg>',
+    furnished: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0H6a2 2 0 0 0-4 0z"/><path d="M4 18v2"/><path d="M20 18v2"/></svg>',
+    housing: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    deposit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    pets: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>'
+  };
+
+  function createOverviewRow(iconKey, label, value) {
+    if (!isPresent(value)) return null;
+    const row = document.createElement('div');
+    row.className = 'listing-overview-row';
+
+    const icon = document.createElement('span');
+    icon.className = 'listing-overview-icon';
+    icon.innerHTML = OVERVIEW_ICONS[iconKey] || '';
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'listing-overview-label';
+    labelEl.textContent = label;
+
+    const valueEl = document.createElement('span');
+    valueEl.className = 'listing-overview-value';
+    valueEl.textContent = Array.isArray(value) ? value.join(', ') : String(value);
+
+    row.appendChild(icon);
+    row.appendChild(labelEl);
+    row.appendChild(valueEl);
+    return row;
+  }
+
+  function renderOverview(listing) {
+    if (!el.overviewRows) return;
+    el.overviewRows.innerHTML = '';
+
+    const areaHint = listing.cross_streets || listing.general_area || listing.location_hint || listing.landmark || null;
+    const areaValue = state.canViewPrivateAddress
+      ? (listing.neighborhood || listing.address)
+      : (listing.neighborhood || areaHint);
+
+    const rows = [
+      createOverviewRow('area', 'Area', areaValue),
+      createOverviewRow('beds', 'Beds', listing.beds),
+      createOverviewRow('baths', 'Baths', listing.baths),
+      createOverviewRow('furnished', 'Furnished', getFurnishedLabel(listing.furnished)),
+      createOverviewRow('housing', 'Housing Type', listing.housing_type),
+      createOverviewRow('calendar', 'Lease Dates', (() => {
+        const s = formatDate(listing.start_date);
+        const e = formatDate(listing.end_date);
+        if (s && e) return `${s} → ${e}`;
+        if (s) return `From ${s}`;
+        if (e) return `Until ${e}`;
+        return null;
+      })()),
+      createOverviewRow('deposit', 'Security Deposit', formatMoney(listing.security_deposit)),
+      createOverviewRow('pets', 'Pets Allowed', Array.isArray(listing.pets) ? listing.pets.join(', ') : listing.pets)
+    ].filter(Boolean);
+
+    rows.forEach(row => el.overviewRows.appendChild(row));
+  }
+
+  function renderContactCard(listing, contactAction) {
+    if (el.contactDetails) {
+      el.contactDetails.innerHTML = '';
+
+      if (listing.preferred_contact) {
+        const prefRow = document.createElement('div');
+        prefRow.className = 'listing-contact-row';
+        prefRow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+        const span = document.createElement('span');
+        span.textContent = 'Preferred: ' + listing.preferred_contact;
+        prefRow.appendChild(span);
+        el.contactDetails.appendChild(prefRow);
+      }
+
+      if (listing.email) {
+        const emailRow = document.createElement('div');
+        emailRow.className = 'listing-contact-row';
+        emailRow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
+        const link = document.createElement('a');
+        link.href = 'mailto:' + listing.email;
+        link.textContent = listing.email;
+        emailRow.appendChild(link);
+        el.contactDetails.appendChild(emailRow);
+      }
+
+      if (listing.phone) {
+        const phoneRow = document.createElement('div');
+        phoneRow.className = 'listing-contact-row';
+        phoneRow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>';
+        const link = document.createElement('a');
+        link.href = 'tel:' + listing.phone;
+        link.textContent = listing.phone;
+        phoneRow.appendChild(link);
+        el.contactDetails.appendChild(phoneRow);
+      }
+
+      if (listing.best_time) {
+        const timeRow = document.createElement('div');
+        timeRow.className = 'listing-contact-row';
+        timeRow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+        const span = document.createElement('span');
+        span.textContent = 'Best time: ' + listing.best_time;
+        timeRow.appendChild(span);
+        el.contactDetails.appendChild(timeRow);
+      }
+    }
+
+    if (el.contactCta2) {
+      el.contactCta2.disabled = contactAction.href === '#';
+      el.contactCta2.textContent = contactAction.label;
+      el.contactCta2.onclick = () => {
+        if (contactAction.href !== '#') window.location.href = contactAction.href;
       };
+    }
+  }
+
+  function renderLeftContent(listing) {
+    // ── Price row ──
+    if (el.priceBig) {
+      const rent = formatMoney(listing.monthly_rent);
+      el.priceBig.textContent = rent || '$0';
+    }
+
+    if (el.depositLabel) {
+      const deposit = formatMoney(listing.security_deposit);
+      el.depositLabel.textContent = deposit ? 'Security Deposit: ' + deposit : '';
+    }
+
+    // ── Description card ──
+    if (el.descriptionText) {
+      el.descriptionText.textContent = listing.description || 'No description provided.';
+    }
+
+    // ── Brief info card ──
+    if (el.briefContent) {
+      el.briefContent.innerHTML = '';
+      const briefItems = [
+        { label: 'Lease Type', value: listing.lease_type },
+        { label: 'Unit Type', value: listing.unit_type },
+        { label: 'Gender Pref.', value: listing.gender_preference }
+      ].filter(item => isPresent(item.value));
+
+      if (briefItems.length > 0) {
+        briefItems.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'listing-info-row';
+          row.innerHTML = '<span class="listing-info-label">' + item.label + '</span><span class="listing-info-value">' + item.value + '</span>';
+          el.briefContent.appendChild(row);
+        });
+      } else {
+        el.briefContent.textContent = 'No additional info.';
+      }
+    }
+
+    // ── Move-in card ──
+    if (el.flexContent) {
+      el.flexContent.innerHTML = '';
+      const flexItems = [
+        { label: 'Flexible', value: normalizeBooleanLike(listing.flexible_movein) },
+        { label: 'Start', value: formatDate(listing.start_date) },
+        { label: 'End', value: formatDate(listing.end_date) }
+      ].filter(item => isPresent(item.value));
+
+      if (flexItems.length > 0) {
+        flexItems.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'listing-info-row';
+          row.innerHTML = '<span class="listing-info-label">' + item.label + '</span><span class="listing-info-value">' + item.value + '</span>';
+          el.flexContent.appendChild(row);
+        });
+      } else {
+        el.flexContent.textContent = 'No move-in details available.';
+      }
     }
   }
 
@@ -498,51 +679,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'first_name', 'last_name', 'monthly_rent', 'address', 'unit_number', 'neighborhood', 'beds', 'baths',
       'furnished', 'start_date', 'end_date', 'flexible_movein', 'housing_type', 'unit_type', 'lease_type',
       'security_deposit', 'pets', 'gender_preference', 'description', 'preferred_contact', 'email', 'phone',
-      'best_time', 'verified'
+      'best_time', 'verified', 'cross_streets', 'general_area', 'location_hint', 'landmark'
     ]);
-
-    const areaHint = listing.cross_streets || listing.general_area || listing.location_hint || listing.landmark || null;
-    const details = createSection('Details', [
-      state.canViewPrivateAddress ? createKvRow('Address', listing.address) : null,
-      state.canViewPrivateAddress ? createKvRow('Unit Number', listing.unit_number) : null,
-      createKvRow(state.canViewPrivateAddress ? 'Neighborhood' : 'Area', listing.neighborhood),
-      !state.canViewPrivateAddress ? createKvRow('Near', areaHint) : null,
-      createKvRow('Beds', listing.beds),
-      createKvRow('Baths', listing.baths),
-      createKvRow('Furnished', getFurnishedLabel(listing.furnished)),
-      createKvRow('Housing Type', listing.housing_type),
-      createKvRow('Unit Type', listing.unit_type)
-    ]);
-
-    const lease = createSection('Lease', [
-      createKvRow('Monthly Rent', formatMoney(listing.monthly_rent)),
-      createKvRow('Security Deposit', formatMoney(listing.security_deposit)),
-      createKvRow('Lease Type', listing.lease_type),
-      createKvRow('Start Date', formatDate(listing.start_date)),
-      createKvRow('End Date', formatDate(listing.end_date)),
-      createKvRow('Flexible Move-in', normalizeBooleanLike(listing.flexible_movein))
-    ]);
-
-    const prefs = createSection('Preferences', [
-      createKvRow('Pets', Array.isArray(listing.pets) ? listing.pets.join(', ') : listing.pets),
-      createKvRow('Gender Preference', listing.gender_preference),
-      createKvRow('Verified', listing.verified === true ? 'Verified' : null)
-    ]);
-
-    const description = createSection('Description', [
-      createKvRow('Listing Description', listing.description)
-    ]);
-
-    const contact = createSection('Contact', [
-      createKvRow('Preferred Contact', listing.preferred_contact),
-      createKvRow('Email', listing.email),
-      createKvRow('Phone', listing.phone),
-      createKvRow('Best Time', listing.best_time)
-    ]);
-
-    [details, lease, prefs, description, contact].forEach((section) => {
-      if (section) el.sections.appendChild(section);
-    });
 
     const extraRows = Object.keys(listing)
       .filter((key) => !known.has(key) && isPresent(listing[key]))
@@ -689,6 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.photos = await fetchPhotos(listing);
 
       renderSidebar(listing);
+      renderLeftContent(listing);
       renderSections(listing);
       setMainImage(0);
 

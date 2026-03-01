@@ -31,38 +31,76 @@
 
     <section id="listing-content" class="listing-content listing-hidden">
       <div class="listing-main-grid">
-        <section class="listing-gallery" aria-label="Listing photos">
-          <div class="listing-main-image-wrap" id="listing-main-image-wrap">
-            <button type="button" class="listing-gallery-arrow left" id="gallery-prev" aria-label="Previous image">‹</button>
-            <img id="listing-main-image" class="listing-main-image" alt="Listing photo" />
-            <div id="listing-no-photo" class="listing-no-photo listing-hidden">No photos provided.</div>
-            <button type="button" class="listing-gallery-arrow right" id="gallery-next" aria-label="Next image">›</button>
-            <button type="button" id="listing-open-lightbox" class="listing-open-lightbox" aria-label="Open full screen image">Open</button>
+        <!-- LEFT COLUMN -->
+        <div class="listing-left">
+          <section class="listing-gallery" aria-label="Listing photos">
+            <div class="listing-main-image-wrap" id="listing-main-image-wrap">
+              <button type="button" class="listing-gallery-arrow left" id="gallery-prev" aria-label="Previous image">‹</button>
+              <img id="listing-main-image" class="listing-main-image" alt="Listing photo" />
+              <div id="listing-no-photo" class="listing-no-photo listing-hidden">No photos provided.</div>
+              <button type="button" class="listing-gallery-arrow right" id="gallery-next" aria-label="Next image">›</button>
+              <button type="button" id="listing-open-lightbox" class="listing-open-lightbox" aria-label="Open full screen image">⛶</button>
+            </div>
+            <div id="listing-thumbnails" class="listing-thumbnails"></div>
+          </section>
+
+          <div class="listing-price-row">
+            <div class="listing-price-main">
+              <span id="listing-price-big" class="listing-price-big">$0</span>
+              <span class="listing-price-suffix">/ month</span>
+            </div>
+            <div id="listing-deposit-label" class="listing-deposit-label"></div>
           </div>
 
-          <div class="listing-gallery-footer">
-            <div id="listing-image-counter" class="listing-image-counter">0 / 0</div>
+          <div class="listing-card" id="listing-description-card">
+            <div class="listing-card-header">
+              <svg class="listing-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <h3>Description</h3>
+            </div>
+            <p id="listing-description-text" class="listing-description-text">No description provided.</p>
           </div>
 
-          <div id="listing-thumbnails" class="listing-thumbnails"></div>
-        </section>
+          <div class="listing-small-cards">
+            <div class="listing-card listing-card-half" id="listing-brief-card">
+              <div class="listing-card-header">
+                <svg class="listing-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <h3>Listing Info</h3>
+              </div>
+              <div id="listing-brief-content" class="listing-card-body"></div>
+            </div>
+            <div class="listing-card listing-card-half" id="listing-flex-card">
+              <div class="listing-card-header">
+                <svg class="listing-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <h3>Move-In</h3>
+              </div>
+              <div id="listing-flex-content" class="listing-card-body"></div>
+            </div>
+          </div>
 
+          <div id="listing-sections" class="listing-extra-sections"></div>
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
         <aside class="listing-sidebar" id="listing-sidebar">
-          <div class="listing-sidebar-card">
+          <div class="listing-sidebar-card listing-price-card">
             <div id="listing-rent" class="listing-rent">$0 / month</div>
             <div id="listing-badges" class="listing-badges"></div>
             <div id="listing-lease-dates" class="listing-lease-dates"></div>
+            <button type="button" id="listing-contact-cta" class="listing-contact-cta">Text Lister</button>
+            <button type="button" id="listing-copy-contact" class="listing-copy-contact-btn">Copy Contact Info</button>
+          </div>
 
-            <button type="button" id="listing-contact-cta" class="listing-contact-cta">Contact Lister</button>
+          <div class="listing-sidebar-card listing-overview-card">
+            <h3>Overview</h3>
+            <div id="listing-overview-rows" class="listing-overview-rows"></div>
+          </div>
 
-            <div class="listing-secondary-actions">
-              <button type="button" id="listing-copy-contact">Copy Contact Info</button>
-              <button type="button" id="listing-copy-email">Copy Email</button>
-            </div>
+          <div class="listing-sidebar-card listing-contact-info-card">
+            <h3>Preferred Contact</h3>
+            <div id="listing-contact-details" class="listing-contact-details"></div>
+            <button type="button" id="listing-contact-cta-2" class="listing-contact-cta listing-contact-cta-bottom">Text Lister</button>
           </div>
         </aside>
-
-        <section id="listing-sections" class="listing-sections"></section>
       </div>
     </section>
   </main>
@@ -88,6 +126,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="/auth.js" defer></script>
-  <script src="/listing-logic.js?v=2026-02-23a" defer></script>
+  <script src="/listing-logic.js?v=2026-02-23b" defer></script>
 </body>
 </html>
