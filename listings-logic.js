@@ -557,9 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
       gridEl.appendChild(createCard(listing));
     });
 
-    const hasDistance = listings.some((item) => Number.isFinite(item._distanceMiles));
-    const distanceNote = hasDistance ? ' Distance filter uses stored coordinates.' : ' Distance unavailable for some listings.';
-    setStatus(`Showing ${listings.length} listing${listings.length === 1 ? '' : 's'}.${distanceNote}`, 'loaded');
+    setStatus(`Showing ${listings.length} listing${listings.length === 1 ? '' : 's'}.`, 'loaded');
     updatePills();
     updateSidebarCount(listings.length);
   }
