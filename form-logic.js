@@ -265,69 +265,79 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	// ── UPLOAD VIA VERCEL FUNCTION (handles storage + HEIC conversion via Sharp) ──
-	const RETRY_STATUSES = [403, 408, 429, 500, 502, 503, 504];
+	// ── DIRECT UPLOAD TO SUPABASE VIA SIGNED URL ──
+	// Step 1: Get a signed upload URL from our lightweight API (no file data sent to Vercel)
+	// Step 2: Upload the file directly to Supabase Storage (bypasses Vercel body limits)
 	const MAX_RETRIES = 3;
 
 	async function uploadViaEdgeFunction(file) {
 		// Compress large images client-side before upload
 		const fileToSend = await compressImageIfNeeded(file);
 		const listingId = getActiveUploadListingId();
+		const contentType = fileToSend.type || 'application/octet-stream';
 
+		console.log('[form] uploading:', { name: fileToSend.name, size: fileToSend.size, type: contentType, listingId });
+
+		// Step 1: Request a signed upload URL from our API (tiny JSON request — no file data)
+		const urlResp = await fetch('/api/upload-url', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+			body: JSON.stringify({
+				filename: fileToSend.name,
+				listing_id: listingId,
+				content_type: contentType
+			})
+		});
+
+		if (!urlResp.ok) {
+			let detail = '';
+			try { const j = await urlResp.json(); detail = j.details || j.error || ''; } catch (_) {}
+			throw new Error(`Failed to get upload URL (${urlResp.status})${detail ? ': ' + detail : ''}`);
+		}
+
+		const { signedUrl, token, path: storagePath, publicUrl, listingId: resolvedListingId } = await urlResp.json();
+		if (!signedUrl || !storagePath) {
+			throw new Error('Server returned incomplete upload URL response.');
+		}
+
+		console.log('[form] got signed URL for', storagePath);
+
+		// Step 2: Upload file directly to Supabase Storage using the signed URL
 		let lastError = null;
 		for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 			if (attempt > 0) {
 				const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
-				console.log(`[form] retry ${attempt}/${MAX_RETRIES} after ${delay}ms`);
+				console.log(`[form] direct upload retry ${attempt}/${MAX_RETRIES} after ${delay}ms`);
 				await new Promise(r => setTimeout(r, delay));
 			}
 
-			const url = '/api/upload';
-			const formData = new FormData();
-			formData.append('file', fileToSend);
-			formData.append('listing_id', listingId);
-
-			console.log('[form] uploading:', { name: fileToSend.name, size: fileToSend.size, type: fileToSend.type, listingId, attempt });
-
 			try {
-				const resp = await fetch(url, {
-					method: 'POST',
-					headers: { 'Accept': 'application/json' },
-					body: formData
+				const uploadResp = await fetch(signedUrl, {
+					method: 'PUT',
+					headers: { 'Content-Type': contentType },
+					body: fileToSend
 				});
 
-				if (!resp.ok) {
-					let errBody = {};
-					let rawText = '';
-					try { rawText = await resp.text(); } catch (_) {}
-					try { errBody = JSON.parse(rawText); } catch (_) {}
-					console.error('[form] edge function error:', resp.status, errBody || rawText);
-
-					if (resp.status === 413) {
-						throw new Error('Photo is too large. Please use a smaller image (under 4MB).');
-					}
+				if (!uploadResp.ok) {
+					let errText = '';
+					try { errText = await uploadResp.text(); } catch (_) {}
+					console.error('[form] direct upload error:', uploadResp.status, errText);
 
 					// Retry on transient errors
-					if (RETRY_STATUSES.includes(resp.status) && attempt < MAX_RETRIES) {
-						lastError = new Error(`Upload failed (${resp.status})`);
+					if ([408, 429, 500, 502, 503, 504].includes(uploadResp.status) && attempt < MAX_RETRIES) {
+						lastError = new Error(`Direct upload failed (${uploadResp.status})`);
 						continue;
 					}
 
-					const msg = [errBody.error, errBody.details].filter(Boolean).join(' — ');
-					throw new Error(msg || `Upload failed (${resp.status})${rawText ? ': ' + rawText.slice(0, 200) : ''}`);
+					throw new Error(`Upload failed (${uploadResp.status})${errText ? ': ' + errText.slice(0, 200) : ''}`);
 				}
 
-				const json = await resp.json();
-				console.log('convert-image response', json);
-				if (!json?.publicUrl || !json?.path) {
-					throw new Error('Upload succeeded but response was incomplete.');
-				}
-				const resolvedListingId = json.listingId || listingId;
-				persistUploadListingId(resolvedListingId);
-				return { path: json.path, url: json.publicUrl, listingId: resolvedListingId };
+				console.log('[form] direct upload success:', storagePath);
+				const finalListingId = resolvedListingId || listingId;
+				persistUploadListingId(finalListingId);
+				return { path: storagePath, url: publicUrl, listingId: finalListingId };
 			} catch (err) {
-				// Non-retryable errors (thrown above) propagate immediately
-				if (!RETRY_STATUSES.some(s => err.message?.includes(`(${s})`)) || attempt >= MAX_RETRIES) {
+				if (attempt >= MAX_RETRIES || !err.message?.match(/\(4(?:08|29)|5\d\d\)/)) {
 					throw err;
 				}
 				lastError = err;
