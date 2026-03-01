@@ -121,8 +121,9 @@ async function handler(req, res) {
       .upload(storagePath, outputBuffer, { contentType, upsert: false });
 
     if (uploadError) {
-      console.error('[upload] Storage error:', uploadError.message);
-      return res.status(500).json({ error: 'Storage upload failed', details: uploadError.message });
+      const errMsg = uploadError.message || (typeof uploadError === 'object' ? JSON.stringify(uploadError) : String(uploadError));
+      console.error('[upload] Storage error:', errMsg, uploadError);
+      return res.status(500).json({ error: 'Storage upload failed', details: errMsg });
     }
 
     const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath);
@@ -134,7 +135,14 @@ async function handler(req, res) {
 
   } catch (err) {
     // Capture any error type: Error objects, strings, or other thrown values
-    const details = err instanceof Error ? err.message : String(err);
+    let details;
+    if (err instanceof Error) {
+      details = err.message;
+    } else if (typeof err === 'string') {
+      details = err;
+    } else {
+      try { details = JSON.stringify(err); } catch (_) { details = Object.prototype.toString.call(err); }
+    }
     console.error('[upload] unhandled error:', details, err?.stack || '');
     return res.status(500).json({ error: 'Internal server error', details });
   } finally {

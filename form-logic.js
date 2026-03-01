@@ -786,7 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				revokePreviewUrlIfNeeded(placeholder.previewUrl);
 				console.error('[form] upload error for', file.name, err);
 				try { renderPhotos(); } catch(e) {}
-				alert(`Failed to upload ${file.name}: ${err.message}`);
+				alert(`Failed to upload ${file.name}: ${err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err))}`);
 			}
 		});
 
