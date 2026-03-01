@@ -109,21 +109,33 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'Server misconfigured: SUPABASE_SERVICE_ROLE_KEY not set' });
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
     const ts = Date.now();
+    const uid = randomUUID().slice(0, 8);
     const baseName = sanitizeFilename(originalName);
-    const storagePath = `listings/${listingId}/${ts}-${baseName}.${finalExt}`;
+    const storagePath = `listings/${listingId}/${ts}-${uid}-${baseName}.${finalExt}`;
 
     console.log('[upload] uploading to', storagePath, contentType, outputBuffer.length, 'bytes');
 
     const { error: uploadError } = await supabase.storage
       .from('listing-photos')
-      .upload(storagePath, outputBuffer, { contentType, upsert: false });
+      .upload(storagePath, outputBuffer, { contentType, upsert: true });
 
     if (uploadError) {
       const errMsg = uploadError.message || (typeof uploadError === 'object' ? JSON.stringify(uploadError) : String(uploadError));
-      console.error('[upload] Storage error:', errMsg, uploadError);
-      return res.status(500).json({ error: 'Storage upload failed', details: errMsg });
+      const statusCode = uploadError.statusCode || uploadError.status || 500;
+      console.error('[upload] Storage error:', errMsg, 'statusCode:', statusCode, 'full:', JSON.stringify(uploadError));
+      
+      // If 403, it's likely a storage policy issue — log extra diagnostics
+      if (String(statusCode) === '403' || errMsg.toLowerCase().includes('forbidden')) {
+        console.error('[upload] 403 Forbidden — possible storage RLS policy issue.',
+          'Path:', storagePath, 'Bucket: listing-photos',
+          'Key prefix:', serviceRoleKey ? serviceRoleKey.slice(0, 20) + '...' : 'MISSING');
+      }
+      
+      return res.status(Number(statusCode) || 500).json({ error: 'Storage upload failed', details: errMsg });
     }
 
     const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath);
