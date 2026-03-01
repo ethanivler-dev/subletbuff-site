@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		img.className = 'card-img';
 		img.loading = 'lazy';
 		img.decoding = 'async';
-		img.src = (item && item.photo_urls && item.photo_urls[0]) ? item.photo_urls[0] : 'https://via.placeholder.com/400';
+		img.src = (item && item.photo_urls && item.photo_urls[0]) ? item.photo_urls[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=75';
 		img.alt = (item && item.neighborhood) ? (item.neighborhood + ' photo') : 'Listing photo';
 		imgWrap.appendChild(img);
 
