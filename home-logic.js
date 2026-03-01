@@ -113,30 +113,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		link.appendChild(imgWrap);
 
+		// ── Card body ──
+		const body = document.createElement('div');
+		body.className = 'card-body';
+
+		// Price
 		const rent = document.createElement('div');
-		rent.style.fontWeight = '700';
-		rent.style.color = 'var(--gold)';
-		rent.style.fontSize = '1.1rem';
-		rent.style.marginTop = '10px';
+		rent.className = 'card-price';
 		if (pricing.reduced) {
-			rent.innerHTML = '<span style="text-decoration:line-through;opacity:0.5;font-size:0.85em;margin-right:6px">$' + pricing.original + '</span>$' + pricing.effective + ' / mo';
+			rent.innerHTML = '<span class="card-price-old">$' + pricing.original + '</span>$' + pricing.effective + '<span class="card-price-unit"> / mo</span>';
 		} else {
-			rent.textContent = '$' + pricing.effective + ' / mo';
+			rent.innerHTML = '$' + pricing.effective + '<span class="card-price-unit"> / mo</span>';
 		}
-		link.appendChild(rent);
+		body.appendChild(rent);
 
-		const hood = document.createElement('div');
-		hood.style.fontFamily = "Playfair Display, serif";
-		hood.style.fontSize = '1.2rem';
-		hood.style.margin = '5px 0';
-		hood.textContent = (item && item.neighborhood) ? item.neighborhood : 'Boulder';
-		link.appendChild(hood);
+		// Beds / Baths line
+		const beds = item && item.beds ? item.beds : null;
+		const baths = item && item.baths ? item.baths : null;
+		if (beds || baths) {
+			const meta = document.createElement('div');
+			meta.className = 'card-meta';
+			const parts = [];
+			if (beds) parts.push(beds + ' bed' + (beds > 1 ? 's' : ''));
+			if (baths) parts.push(baths + ' bath' + (baths > 1 ? 's' : ''));
+			meta.textContent = parts.join(' \u00B7 ');
+			body.appendChild(meta);
+		}
 
-		const addr = document.createElement('div');
-		addr.style.fontSize = '0.8rem';
-		addr.style.color = 'var(--ink-soft)';
-		addr.textContent = (item && item.address) ? '\uD83D\uDCCD ' + item.address : '';
-		link.appendChild(addr);
+		// Move-in / Move-out dates
+		if (item && (item.start_date || item.end_date)) {
+			const dates = document.createElement('div');
+			dates.className = 'card-dates';
+			const fmtDate = (d) => {
+				const dt = new Date(d + 'T00:00:00');
+				return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+			};
+			const startStr = item.start_date ? fmtDate(item.start_date) : '?';
+			const endStr = item.end_date ? fmtDate(item.end_date) : '?';
+			dates.textContent = startStr + ' \u2013 ' + endStr;
+			body.appendChild(dates);
+		}
 
 		// Distance from campus
 		if (item) {
@@ -145,25 +161,18 @@ document.addEventListener('DOMContentLoaded', () => {
 			if (Number.isFinite(lat) && Number.isFinite(lng)) {
 				const miles = haversineMiles(CAMPUS_COORDS, { lat, lng });
 				const dist = document.createElement('div');
-				dist.style.fontSize = '0.82rem';
-				dist.style.color = 'var(--gold)';
-				dist.style.fontWeight = '600';
-				dist.style.marginTop = '4px';
+				dist.className = 'card-distance';
 				dist.textContent = miles.toFixed(1) + ' mi from campus';
-				link.appendChild(dist);
+				body.appendChild(dist);
 			}
 		}
 
-		// Description snippet
-		const desc = (item && item.description) ? String(item.description).replace(/\s+/g, ' ').trim() : '';
-		if (desc) {
-			const snippet = document.createElement('div');
-			snippet.style.fontSize = '0.82rem';
-			snippet.style.color = 'var(--ink-soft)';
-			snippet.style.marginTop = '6px';
-			snippet.style.lineHeight = '1.45';
-			snippet.textContent = desc.length > 80 ? desc.substring(0, 80) + '\u2026' : desc;
-			link.appendChild(snippet);
+		// Neighborhood
+		if (item && item.neighborhood) {
+			const hood = document.createElement('div');
+			hood.className = 'card-neighborhood';
+			hood.textContent = item.neighborhood;
+			body.appendChild(hood);
 		}
 
 		// Feature tags
@@ -177,9 +186,10 @@ document.addEventListener('DOMContentLoaded', () => {
 				tag.innerHTML = t.icon + ' ' + t.label;
 				tagsWrap.appendChild(tag);
 			});
-			link.appendChild(tagsWrap);
+			body.appendChild(tagsWrap);
 		}
 
+		link.appendChild(body);
 		return link;
 	}
 
@@ -265,34 +275,5 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	async function loadStats() {
-		const statsEl = document.getElementById('home-stats');
-		if (!statsEl || !supabaseClient) return;
-		try {
-			// Listings filled this week (best-effort)
-			try {
-				const weekAgo = new Date();
-				weekAgo.setDate(weekAgo.getDate() - 7);
-				const { count: filledCount, error: filledErr } = await supabaseClient
-					.from('listings')
-					.select('*', { count: 'exact', head: true })
-					.eq('filled', true)
-					.gte('updated_at', weekAgo.toISOString());
-				if (!filledErr && filledCount != null) {
-					document.getElementById('stat-filled-count').textContent = filledCount.toLocaleString();
-				} else {
-					document.getElementById('stat-filled-count').textContent = '0';
-				}
-			} catch (_) {
-				document.getElementById('stat-filled-count').textContent = '0';
-			}
-
-			statsEl.style.display = 'flex';
-		} catch (err) {
-			console.warn('[home] loadStats error', err);
-		}
-	}
-
 	loadListings();
-	loadStats();
 });

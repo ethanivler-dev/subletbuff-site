@@ -57,11 +57,11 @@
     <!-- ── HERO ── -->
     <section class="home-hero-banner">
       <div class="home-hero-content">
-        <h1 class="home-hero-title">Find trusted student subleases<br>near CU Boulder</h1>
-        <p class="home-hero-sub">Browse verified listings from CU students and find a place that fits your budget, timeline, and location.</p>
+        <h1 class="home-hero-title">Find your next sublease<br>near CU Boulder</h1>
+        <p class="home-hero-sub">Browse reviewed subleases by price, dates, and distance from campus &mdash; posted exclusively by CU Boulder students.</p>
         <div class="home-hero-btns">
           <a class="btn-submit home-cta" href="/listings.html">Browse Listings</a>
-          <a class="btn-outline home-cta" href="/form.html">Post a Listing</a>
+          <a class="btn-outline home-cta" href="/form.html">Post a Listing &mdash; Free</a>
         </div>
         <div class="home-trust-badges">
           <span class="trust-badge"><span class="trust-dot"></span> CU Boulder only</span>
@@ -71,12 +71,55 @@
       </div>
     </section>
 
+    <!-- ── QUICK FILTER STRIP ── -->
+    <section class="home-filter-strip" aria-label="Quick filter">
+      <form class="filter-strip-row" id="home-quick-filter" action="/listings.html" method="GET">
+        <div class="filter-strip-field">
+          <label for="hf-max-price">Max Rent</label>
+          <select id="hf-max-price" name="maxPrice">
+            <option value="">Any</option>
+            <option value="800">Under $800</option>
+            <option value="1000">Under $1,000</option>
+            <option value="1200">Under $1,200</option>
+            <option value="1500">Under $1,500</option>
+            <option value="2000">Under $2,000</option>
+          </select>
+        </div>
+        <div class="filter-strip-field">
+          <label for="hf-movein">Move-in</label>
+          <select id="hf-movein" name="moveIn">
+            <option value="">Any</option>
+            <option value="may">May</option>
+            <option value="jun">June</option>
+            <option value="jul">July</option>
+            <option value="aug">August</option>
+            <option value="sep">September</option>
+          </select>
+        </div>
+        <div class="filter-strip-field">
+          <label for="hf-furnished">Furnished</label>
+          <select id="hf-furnished" name="furnished">
+            <option value="">Any</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        <div class="filter-strip-field">
+          <label for="hf-pets">Pets OK</label>
+          <select id="hf-pets" name="pets">
+            <option value="">Any</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        <button type="submit" class="filter-strip-btn">Search</button>
+      </form>
+    </section>
+
     <!-- ── FEATURED LISTINGS ── -->
     <section class="home-featured">
-      <h2 class="home-section-title">Featured Listings</h2>
+      <h2 class="home-section-title">Recently Added</h2>
       <div id="featured-grid" class="home-featured-grid"></div>
       <div class="home-view-all">
-        <a href="/listings.html" class="view-all-link">View all listings <span class="view-all-arrow">&rsaquo;</span></a>
+        <a href="/listings.html" class="btn-view-all">View All Listings &rarr;</a>
       </div>
     </section>
 
@@ -88,48 +131,93 @@
           <div class="why-icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg>
           </div>
-          <h3>Student-focused</h3>
-          <p>Built specifically for CU Boulder sublets.</p>
+          <h3>CU Boulder students only</h3>
+          <p>Every listing is posted by a verified CU student. No random landlords, no spam.</p>
         </div>
         <div class="why-card">
           <div class="why-icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M13 8h4"/><path d="M13 12h4"/><path d="M13 16h4"/></svg>
           </div>
           <h3>Reviewed before posting</h3>
-          <p>Every listing is checked before it goes live.</p>
+          <p>Every listing is manually checked for accuracy and completeness before it goes live.</p>
         </div>
         <div class="why-card">
           <div class="why-icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
           </div>
-          <h3>Easy to browse</h3>
-          <p>Compare rent, distance, dates, and features quickly.</p>
+          <h3>Search by what matters</h3>
+          <p>Filter by price, distance from campus, move-in dates, furnished, pets, and more.</p>
         </div>
       </div>
     </section>
 
-    <!-- ── STATS BAR ── -->
-    <div id="home-stats" class="home-stats" style="display:none" aria-label="Marketplace stats">
-      <div class="home-stat-item" id="home-stat-filled">
-        <div class="home-stat-value" id="stat-filled-count">—</div>
-        <div class="home-stat-label">Filled This Week</div>
+    <!-- ── TRUST STRIP ── -->
+    <section class="home-trust-strip" aria-label="Why students trust us">
+      <div class="trust-strip-inner">
+        <div class="trust-strip-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Verified CU students</span>
+        </div>
+        <div class="trust-strip-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Manually reviewed listings</span>
+        </div>
+        <div class="trust-strip-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>New listings daily</span>
+        </div>
+        <div class="trust-strip-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>
+          <span>Always free to post</span>
+        </div>
       </div>
-      <div class="home-stat-item" id="home-stat-campus">
-        <svg class="stat-icon" width="16" height="16" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
-        <div class="home-stat-label">CU Boulder Only</div>
+    </section>
+
+    <!-- ── SAFETY MESSAGING ── -->
+    <section class="home-safety">
+      <div class="home-safety-inner">
+        <h2 class="home-safety-title">Stay safe while subletting</h2>
+        <div class="home-safety-grid">
+          <div class="safety-tip">
+            <strong>Meet in a public place</strong>
+            <p>Always tour the unit and meet the current tenant in person before signing anything.</p>
+          </div>
+          <div class="safety-tip">
+            <strong>Never wire money</strong>
+            <p>Use traceable payment methods. Don&rsquo;t send deposits via Zelle or Venmo to strangers.</p>
+          </div>
+          <div class="safety-tip">
+            <strong>Get it in writing</strong>
+            <p>Make sure you have a signed sublease agreement before moving in or paying a deposit.</p>
+          </div>
+        </div>
+        <p class="home-safety-note">SubletBuff is a listing platform &mdash; we help connect CU students but do not manage leases or payments. Always do your own due diligence.</p>
       </div>
-    </div>
+    </section>
 
     <!-- ── FOOTER ── -->
     <footer class="home-footer">
-      <div class="footer-inner">
-        <a href="/how-it-works.html" class="footer-link">About</a>
-        <a href="mailto:subletbuff@gmail.com" class="footer-link">Contact</a>
-        <a href="/" class="footer-logo-link">
-          <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg" alt="SubletBuff" style="height:28px;width:auto;" />
-        </a>
-        <a href="/terms-config.js" class="footer-link">Terms</a>
-        <a href="mailto:subletbuff@gmail.com" class="footer-link">Contact</a>
+      <div class="footer-grid">
+        <div class="footer-col footer-brand">
+          <a href="/" class="footer-logo-link">
+            <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg" alt="SubletBuff" style="height:28px;width:auto;" />
+          </a>
+          <p class="footer-tagline">The student sublease marketplace for CU Boulder.</p>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-heading">Browse</h4>
+          <a href="/listings.html" class="footer-link">Listings</a>
+          <a href="/form.html" class="footer-link">Post a Listing</a>
+          <a href="/how-it-works.html" class="footer-link">How It Works</a>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-heading">Support</h4>
+          <a href="mailto:subletbuff@gmail.com" class="footer-link">Contact Us</a>
+          <a href="/terms-config.js" class="footer-link">Terms of Use</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2025 SubletBuff. All rights reserved.</span>
       </div>
     </footer>
   </main>
