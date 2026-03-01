@@ -74,8 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lightboxCounter: document.getElementById('lightbox-counter'),
 
     priceBig: document.getElementById('listing-price-big'),
-    distanceLabel: document.getElementById('listing-distance-label'),
-    depositLabel: document.getElementById('listing-deposit-label'),
+    distanceSidebar: document.getElementById('listing-distance-sidebar'),
     descriptionText: document.getElementById('listing-description-text'),
     briefContent: document.getElementById('listing-brief-content'),
     flexContent: document.getElementById('listing-flex-content'),
@@ -443,6 +442,17 @@ document.addEventListener('DOMContentLoaded', () => {
       el.leaseDates.textContent = `Lease: ${start} → ${end}`;
     }
 
+    if (el.distanceSidebar) {
+      const lat = Number(listing.lat);
+      const lng = Number(listing.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        const miles = haversineMiles(CAMPUS_COORDS, { lat, lng });
+        el.distanceSidebar.textContent = miles.toFixed(2).replace(/\.00$/, '') + ' mi from campus';
+      } else {
+        el.distanceSidebar.textContent = '';
+      }
+    }
+
     const contactAction = getContactAction(listing);
     if (el.contactCta) {
       el.contactCta.disabled = contactAction.href === '#';
@@ -591,23 +601,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el.priceBig) {
       const rent = formatMoney(listing.monthly_rent);
       el.priceBig.textContent = rent || '$0';
-    }
-
-    if (el.depositLabel) {
-      const deposit = formatMoney(listing.security_deposit);
-      el.depositLabel.textContent = deposit ? 'Security Deposit: ' + deposit : '';
-    }
-
-    // ── Distance from campus ──
-    if (el.distanceLabel) {
-      const lat = Number(listing.lat);
-      const lng = Number(listing.lng);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        const miles = haversineMiles(CAMPUS_COORDS, { lat, lng });
-        el.distanceLabel.textContent = miles.toFixed(2).replace(/\.00$/, '') + ' mi from campus';
-      } else {
-        el.distanceLabel.textContent = '';
-      }
     }
 
     // ── Description card ──
