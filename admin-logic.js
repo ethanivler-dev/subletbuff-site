@@ -231,9 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createContactButton(item) {
     const contactBtn = document.createElement('a');
-    const subject = encodeURIComponent('Action Required: Your SubSwap Listing');
+    const subject = encodeURIComponent('Action Required: Your SubletBuff Listing');
     const body = encodeURIComponent(
-      'Hi ' + (item.first_name || '') + ',\n\nThanks for posting your listing at ' + (item.address || '') + '! Before we can approve it, we need you to fix the following:\n\n- [Add fix here]\n\nOnce updated, let us know!\n\nBest,\nSubSwap Team'
+      'Hi ' + (item.first_name || '') + ',\n\nThanks for posting your listing at ' + (item.address || '') + '! Before we can approve it, we need you to fix the following:\n\n- [Add fix here]\n\nOnce updated, let us know!\n\nBest,\nSubletBuff Team'
     );
     contactBtn.href = 'mailto:' + encodeURIComponent(item.email || '') + '?subject=' + subject + '&body=' + body;
     contactBtn.textContent = 'Contact Lister ✉️';

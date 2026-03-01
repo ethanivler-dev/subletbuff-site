@@ -31,7 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		console.error('Error setting up Supabase:', error);
 	}
 
-	const DRAFT_KEY = 'subswap_draft_v1';
+	const DRAFT_KEY = 'subletbuff_draft_v1';
+	try {
+		const _old = localStorage.getItem('subswap_draft_v1');
+		if (_old && !localStorage.getItem('subletbuff_draft_v1')) {
+			localStorage.setItem('subletbuff_draft_v1', _old);
+		}
+		if (_old) localStorage.removeItem('subswap_draft_v1');
+	} catch(e) {}
 	let currentListingId = null;
 
 	const formEl = document.getElementById('listing-form');
@@ -102,7 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		revokePreviewUrlIfNeeded(entry.previewUrl);
 	}
 
-	const UPLOAD_LISTING_ID_KEY = 'subswap_upload_listing_id';
+	const UPLOAD_LISTING_ID_KEY = 'subletbuff_upload_listing_id';
+	try {
+		const _old = localStorage.getItem('subswap_upload_listing_id');
+		if (_old && !localStorage.getItem('subletbuff_upload_listing_id')) {
+			localStorage.setItem('subletbuff_upload_listing_id', _old);
+		}
+		if (_old) localStorage.removeItem('subswap_upload_listing_id');
+	} catch(e) {}
 
 	function generateDraftListingId() {
 		if (typeof crypto !== 'undefined' && crypto.randomUUID) {

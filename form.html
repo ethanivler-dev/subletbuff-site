@@ -422,8 +422,8 @@
             <button type="button" class="info-btn" id="sem-info-btn" title="View semester dates">i</button>
           </div>
           <div class="info-popup" id="sem-info-popup">
-            <strong>CU Boulder Semester Dates</strong>
-            Summer 2025: May 10 – Aug 10<br/>Fall 2025: Aug 25 – Dec 20<br/>Spring 2026: Jan 12 – May 8
+            <strong>CU Boulder Semester Dates</strong><br/>
+            <span id="term-dates-text"></span>
           </div>
           <div class="date-wrap">
             <input type="date" id="start-date" />
@@ -717,7 +717,7 @@
       <ul>
         <li>Once your email is verified, your listing enters our review queue</li>
         <li>Someone will reach out if we have any questions</li>
-        <li>Once approved, your listing goes live on SubSwap for other CU Boulder students</li>
+        <li>Once approved, your listing goes live on SubletBuff for other CU Boulder students</li>
       </ul>
     </div>
   </div>
@@ -725,6 +725,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js"></script>
+<script src="./terms-config.js"></script>
 <script src="./form-logic.js?v=20260226o"></script>
 </body>
 </html>
