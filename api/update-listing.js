@@ -8,6 +8,11 @@ const ALLOWED_FIELDS = new Set([
   'description', 'monthly_rent', 'security_deposit',
   'start_date', 'end_date', 'phone',
   'preferred_contact', 'best_time', 'paused', 'filled', 'filled_at',
+  'beds', 'baths', 'furnished', 'flexible_movein', 'flexible_movein_notes',
+  'housing_type', 'unit_type', 'gender_preference', 'parking', 'pets',
+  'lease_type', 'price_reduction_enabled', 'price_reduction_days',
+  'price_reduction_amount', 'price_reduction_count',
+  'photo_urls', 'photos_meta',
 ]);
 
 const corsHeaders = {

@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ? new Date(listing.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
           : '';
 
-        // Action buttons — only for approved listings
+        // Action buttons — available for approved AND pending listings
         let actionsHtml = '';
         if (listing.status === 'approved') {
           const pauseLabel = listing.paused ? 'Unpause' : 'Pause';
@@ -168,6 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
               + '<button type="button" class="my-listing-action-btn" data-action="renew">Renew</button>';
           }
           actionsHtml += '</div>';
+        } else if (listing.status === 'pending') {
+          actionsHtml = '<div class="my-listing-actions">'
+            + '<button type="button" class="my-listing-action-btn" data-action="edit-full">Edit Listing</button>'
+            + '</div>';
         }
 
         card.innerHTML =
@@ -202,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             const action = btn.dataset.action;
             if (action === 'edit') openEditModal(listing);
+            else if (action === 'edit-full') window.location.href = '/form.html?edit=' + encodeURIComponent(listing.id);
             else if (action === 'pause') pauseListing(listing);
             else if (action === 'fill') markFilled(listing);
             else if (action === 'lower-price') lowerPrice(listing);

@@ -1952,5 +1952,213 @@ document.getElementById('btn-verify').addEventListener('click', () => {
 	document.querySelector('.verify-box').innerHTML = '<p style="color:var(--green);font-weight:600;font-size:.9375rem">✓ Email verified! Your listing is now in review.</p>';
 });
 
+// ═══════════════════════════════════════════════
+// EDIT MODE — pre-fill form from existing listing
+// ═══════════════════════════════════════════════
+(async function initEditMode() {
+	const params = new URLSearchParams(window.location.search);
+	const editId = params.get('edit');
+	if (!editId || !supabaseClient) return;
+
+	console.log('[form] edit mode for listing:', editId);
+
+	// Wait for auth to be ready
+	let session = null;
+	if (window.sbAuth) {
+		const { data } = await window.sbAuth.getSession();
+		session = data?.session || null;
+	}
+	if (!session) {
+		console.warn('[form] edit mode requires sign-in');
+		return;
+	}
+
+	// Fetch the listing
+	const { data: listing, error } = await supabaseClient
+		.from('listings')
+		.select('*')
+		.eq('id', editId)
+		.single();
+
+	if (error || !listing) {
+		console.error('[form] could not load listing for editing', error);
+		alert('Could not load listing for editing.');
+		return;
+	}
+
+	// Verify ownership
+	if (listing.user_id !== session.user.id) {
+		console.error('[form] listing does not belong to current user');
+		alert('You can only edit your own listings.');
+		return;
+	}
+
+	// Set edit state
+	currentListingId = listing.id;
+
+	// Update page title
+	const titleEl = document.querySelector('.page-title');
+	if (titleEl) titleEl.textContent = 'Edit Listing';
+	const noticeEl = document.querySelector('.email-notice');
+	if (noticeEl) noticeEl.textContent = 'Update your listing details below. It will be re-submitted for review.';
+
+	// Change submit button text
+	const submitBtn = document.querySelector('.btn-submit');
+	if (submitBtn) submitBtn.textContent = 'Save Changes';
+
+	// ── Pre-fill simple text/number/date fields ──
+	const fieldMap = {
+		'email': listing.email,
+		'first-name': listing.first_name,
+		'last-name': listing.last_name,
+		'rent': listing.monthly_rent,
+		'address': listing.address,
+		'unit-number': listing.unit_number,
+		'beds': listing.beds,
+		'baths': listing.baths,
+		'start-date': listing.start_date ? listing.start_date.slice(0, 10) : '',
+		'end-date': listing.end_date ? listing.end_date.slice(0, 10) : '',
+		'phone': listing.phone,
+		'best-time': listing.best_time,
+		'gender-pref': listing.gender_preference,
+		'parking': listing.parking,
+		'description': listing.description,
+		'deposit': listing.security_deposit,
+		'neighborhood': listing.neighborhood,
+		'lat-hidden': listing.lat,
+		'lng-hidden': listing.lng,
+	};
+	for (const [id, val] of Object.entries(fieldMap)) {
+		const el = document.getElementById(id);
+		if (el && val != null) el.value = val;
+	}
+
+	// Neighborhood badge
+	if (listing.neighborhood) {
+		const badge = document.getElementById('neighborhood-badge');
+		const text = document.getElementById('neighborhood-text');
+		if (badge && text) {
+			text.textContent = listing.neighborhood;
+			badge.classList.add('visible');
+		}
+	}
+
+	// ── Toggle buttons (housing-type, unit-type) ──
+	if (listing.housing_type) {
+		const container = document.getElementById('housing-type');
+		if (container) {
+			container.querySelectorAll('.toggle-btn').forEach(btn => {
+				btn.classList.toggle('active', btn.dataset.val === listing.housing_type);
+			});
+		}
+	}
+	if (listing.unit_type) {
+		const container = document.getElementById('unit-type');
+		if (container) {
+			container.querySelectorAll('.toggle-btn').forEach(btn => {
+				btn.classList.toggle('active', btn.dataset.val === listing.unit_type);
+			});
+		}
+	}
+
+	// ── Preferred contact ──
+	if (listing.preferred_contact) {
+		const pEmail = document.getElementById('pref-email');
+		const pText = document.getElementById('pref-text');
+		if (pEmail && pText) {
+			pEmail.classList.remove('active');
+			pText.classList.remove('active');
+			if (listing.preferred_contact === 'Email') pEmail.classList.add('active');
+			else pText.classList.add('active');
+			// If text preferred, hide optional tag on phone
+			if (listing.preferred_contact !== 'Email') {
+				const optTag = document.getElementById('phone-optional-tag');
+				if (optTag) optTag.style.display = 'none';
+			}
+		}
+	}
+
+	// ── Furnished radio ──
+	if (listing.furnished) {
+		const isYes = String(listing.furnished).toLowerCase().startsWith('yes');
+		const radio = document.querySelector('input[name="furnished"][value="' + (isYes ? 'yes' : 'no') + '"]');
+		if (radio) radio.checked = true;
+		if (isYes) {
+			const expand = document.getElementById('furnished-expand');
+			if (expand) expand.classList.add('open');
+			// Extract notes from "Yes (notes)" format
+			const match = String(listing.furnished).match(/^Yes\s*\((.+)\)$/i);
+			if (match) {
+				const notesEl = document.getElementById('furnished-notes');
+				if (notesEl) notesEl.value = match[1];
+			}
+		}
+	}
+
+	// ── Pets radio ──
+	if (listing.pets) {
+		const isNo = listing.pets === 'No';
+		const radio = document.querySelector('input[name="pets-prop"][value="' + (isNo ? 'no' : 'yes') + '"]');
+		if (radio) radio.checked = true;
+		if (!isNo) {
+			const expand = document.getElementById('pets-expand');
+			if (expand) expand.classList.add('open');
+		}
+	}
+
+	// ── Flexible move-in radio ──
+	if (listing.flexible_movein) {
+		const radio = document.querySelector('input[name="flexible"][value="' + listing.flexible_movein + '"]');
+		if (radio) radio.checked = true;
+		if (listing.flexible_movein_notes) {
+			const notesEl = document.getElementById('flex-notes');
+			if (notesEl) notesEl.value = listing.flexible_movein_notes;
+		}
+	}
+
+	// ── Lease type radio ──
+	if (listing.lease_type) {
+		const radio = document.querySelector('input[name="lease-type"][value="' + listing.lease_type + '"]');
+		if (radio) radio.checked = true;
+	}
+
+	// ── Price reduction ──
+	if (listing.price_reduction_enabled) {
+		const prBtn = document.getElementById('price-reduction-enable');
+		if (prBtn) {
+			prBtn.classList.add('active');
+			prBtn.dataset.val = 'yes';
+		}
+		const prSection = document.getElementById('price-reduction-section');
+		if (prSection) prSection.style.display = '';
+		if (listing.price_reduction_days) {
+			const el = document.getElementById('reduction-days');
+			if (el) el.value = listing.price_reduction_days;
+		}
+		if (listing.price_reduction_amount) {
+			const el = document.getElementById('reduction-amount');
+			if (el) el.value = listing.price_reduction_amount;
+		}
+		if (listing.price_reduction_count) {
+			const el = document.getElementById('reduction-count');
+			if (el) el.value = listing.price_reduction_count;
+		}
+	}
+
+	// ── Photos — load existing photos into photoDraft ──
+	if (listing.photo_urls && listing.photo_urls.length > 0) {
+		photoDraft = listing.photo_urls.map((url, i) => ({
+			path: (listing.photos_meta && listing.photos_meta[i]) ? listing.photos_meta[i].path : '',
+			url: url,
+			order: i,
+			note: (listing.photos_meta && listing.photos_meta[i]) ? listing.photos_meta[i].note : '',
+			previewUrl: url,
+		}));
+		try { renderPhotos(); } catch (e) { console.warn('[form] renderPhotos error in edit mode', e); }
+	}
+
+	console.log('[form] edit mode pre-fill complete');
+})();
+
 });
 
