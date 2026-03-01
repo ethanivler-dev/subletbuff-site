@@ -85,6 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (overlayEl) overlayEl.style.display = 'none';
   }
   if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
+  const mobileFilterBtnEl = document.getElementById('mobile-filter-btn');
+  if (mobileFilterBtnEl) mobileFilterBtnEl.addEventListener('click', openSidebar);
 
   const hamburger = document.getElementById('nav-hamburger');
   const mobileMenu = document.getElementById('nav-mobile-menu');
@@ -609,6 +611,12 @@ document.addEventListener('DOMContentLoaded', () => {
       pills.push({ label: genderEl.value, clear: () => { genderEl.value = ''; } });
     }
 
+    // Update mobile filter button badge
+    const mobileCountEl = document.getElementById('mobile-filter-count');
+    const mobileFilterBtn = document.getElementById('mobile-filter-btn');
+    if (mobileCountEl) mobileCountEl.textContent = pills.length > 0 ? String(pills.length) : '';
+    if (mobileFilterBtn) mobileFilterBtn.classList.toggle('has-filters', pills.length > 0);
+
     pills.forEach(p => {
       const pill = document.createElement('span');
       pill.className = 'filter-pill';
@@ -621,15 +629,6 @@ document.addEventListener('DOMContentLoaded', () => {
       pill.appendChild(closeBtn);
       pillsContainer.appendChild(pill);
     });
-
-    // "More Filters" pill on mobile to open sidebar
-    if (window.innerWidth <= 900) {
-      const more = document.createElement('span');
-      more.className = 'filter-pill filter-pill--more';
-      more.textContent = 'More Filters ›';
-      more.addEventListener('click', openSidebar);
-      pillsContainer.appendChild(more);
-    }
   }
 
   function setToggleValue(groupEl, val) {
