@@ -438,6 +438,20 @@
         <span id="admin-page-info">Page 1</span>
         <button type="button" id="admin-page-next">Next →</button>
       </div>
+
+      <!-- Manage Admins -->
+      <div id="manage-admins-section" style="max-width:600px; margin: 40px auto 0; padding-top: 32px; border-top: 1px solid var(--admin-border);">
+        <h2 style="font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:600; margin:0 0 6px;">Manage Admins</h2>
+        <p style="font-size:0.85rem; color:var(--admin-ink-soft); margin:0 0 16px;">Add or remove admin users. Admins can approve, edit, and delete listings.</p>
+        <div id="manage-admins-list" style="margin-bottom:16px;"></div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <input type="email" id="manage-admins-email" placeholder="Email of new admin"
+            style="flex:1; min-width:200px; padding:10px 14px; border:1px solid var(--admin-border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:0.85rem;" />
+          <button type="button" id="manage-admins-add-btn"
+            style="padding:10px 20px; background:var(--admin-gold); color:#fff; border:none; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; white-space:nowrap;">Add Admin</button>
+        </div>
+        <div id="manage-admins-msg" style="font-size:0.8rem; margin-top:8px; min-height:20px;"></div>
+      </div>
     </div>
   </div>
 

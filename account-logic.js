@@ -178,9 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Saved listings ──
     loadSavedListings(session);
-
-    // ── Admin section ──
-    await loadAdminSection(session);
   }
 
   async function loadSavedListings(session) {
@@ -225,122 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
         '</div>';
       card.addEventListener('click', () => window.open('/listing.html?id=' + encodeURIComponent(listing.id), '_blank', 'noopener'));
       savedEl.appendChild(card);
-    });
-  }
-
-  // ── Admin Management ──
-  const adminSection = document.getElementById('admin-section');
-  const adminListContainer = document.getElementById('admin-list-container');
-  const adminAddEmail = document.getElementById('admin-add-email');
-  const adminAddBtn = document.getElementById('admin-add-btn');
-  const adminMsg = document.getElementById('admin-msg');
-
-  function setAdminMsg(msg, color) {
-    if (adminMsg) { adminMsg.textContent = msg || ''; adminMsg.style.color = color || 'var(--ink-soft)'; }
-  }
-
-  async function loadAdminSection(session) {
-    if (!adminSection) return;
-    const sb = window.sbAuth?.supabaseClient;
-    if (!sb || !session?.user) return;
-
-    // Check if current user is admin
-    try {
-      const { data, error } = await sb
-        .from('admins')
-        .select('id')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      if (error || !data) return; // Not admin, keep section hidden
-    } catch (_) { return; }
-
-    adminSection.style.display = '';
-    await renderAdminList();
-  }
-
-  async function renderAdminList() {
-    const sb = window.sbAuth?.supabaseClient;
-    if (!sb || !adminListContainer) return;
-
-    try {
-      const { data: admins, error } = await sb
-        .from('admins')
-        .select('id, email')
-        .order('email', { ascending: true });
-
-      if (error) throw error;
-
-      if (!admins || admins.length === 0) {
-        adminListContainer.innerHTML = '<div style="color:var(--ink-soft);font-size:0.85rem;">No admins found.</div>';
-        return;
-      }
-
-      adminListContainer.innerHTML = admins.map(a => {
-        const email = a.email || a.id;
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">' +
-          '<span style="font-size:0.85rem;font-weight:500;">' + email + '</span>' +
-          '<button type="button" class="admin-remove-btn" data-id="' + a.id + '" style="font-size:0.75rem;color:#C0392B;background:none;border:1px solid #C0392B;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;">Remove</button>' +
-          '</div>';
-      }).join('');
-
-      // Bind remove buttons
-      adminListContainer.querySelectorAll('.admin-remove-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.dataset.id;
-          if (!confirm('Remove this admin?')) return;
-          setAdminMsg('Removing...');
-          try {
-            const { error } = await sb.from('admins').delete().eq('id', id);
-            if (error) throw error;
-            setAdminMsg('Admin removed.', '#155724');
-            await renderAdminList();
-          } catch (err) {
-            setAdminMsg('Error: ' + (err.message || 'Failed'), '#C0392B');
-          }
-        });
-      });
-    } catch (err) {
-      adminListContainer.innerHTML = '<div style="color:#C0392B;font-size:0.85rem;">Error loading admins: ' + (err.message || '') + '</div>';
-    }
-  }
-
-  if (adminAddBtn) {
-    adminAddBtn.addEventListener('click', async () => {
-      const email = (adminAddEmail?.value || '').trim();
-      if (!email) { setAdminMsg('Enter an email address.', '#C0392B'); return; }
-      setAdminMsg('Looking up user...');
-
-      const sb = window.sbAuth?.supabaseClient;
-      if (!sb) { setAdminMsg('Auth not available.', '#C0392B'); return; }
-
-      // We need to find the user's auth ID by email.
-      // Since we can't query auth.users from the client, we'll insert with email
-      // and let admins table accept it. We need to look up via a workaround:
-      // query listings table for that email to find if they have an account,
-      // or just insert directly with the email and let admins handle it.
-      //
-      // Best approach: store email in admins table alongside id.
-      // For now, look up the user by checking if they've signed in
-      // by querying our own data. If that fails, insert by email.
-      try {
-        // Try to find user in auth by checking if they have listings
-        // Actually, we'll use a Supabase RPC or just insert with email
-        const { error } = await sb
-          .from('admins')
-          .insert({ email: email });
-
-        if (error) throw error;
-
-        setAdminMsg('Admin added: ' + email, '#155724');
-        adminAddEmail.value = '';
-        await renderAdminList();
-      } catch (err) {
-        if (err.message && err.message.includes('duplicate')) {
-          setAdminMsg('This user is already an admin.', '#856404');
-        } else {
-          setAdminMsg('Error: ' + (err.message || 'Failed to add admin'), '#C0392B');
-        }
-      }
     });
   }
 

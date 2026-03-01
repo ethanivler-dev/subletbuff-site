@@ -737,6 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showAppView();
       setStatus('');
       await loadCurrentModeList();
+      loadManageAdmins();
     } catch (err) {
       console.error('[admin] admin check/session handling error', err);
       showLoginView((err && err.message) ? err.message : 'Session check failed.', '#C0392B');
@@ -993,6 +994,74 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('[admin] onAuthStateChange handler error', err);
         showLoginView((err && err.message) ? err.message : 'Session update error.', '#C0392B');
         setStatus('Session update error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
+      }
+    });
+  }
+
+  // ── Manage Admins ──
+  function setAdminsMsg(msg, color) {
+    const el = document.getElementById('manage-admins-msg');
+    if (el) { el.textContent = msg || ''; el.style.color = color || 'var(--admin-ink-soft)'; }
+  }
+
+  async function renderManageAdminsList() {
+    const listEl = document.getElementById('manage-admins-list');
+    if (!supabaseClient || !listEl) return;
+    try {
+      const { data: admins, error } = await supabaseClient
+        .from('admins').select('id, email').order('email', { ascending: true });
+      if (error) throw error;
+      if (!admins || admins.length === 0) {
+        listEl.innerHTML = '<div style="color:var(--admin-ink-soft);font-size:0.85rem;">No admins found.</div>';
+        return;
+      }
+      listEl.innerHTML = admins.map(a => {
+        const label = a.email || a.id;
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border:1px solid var(--admin-border);border-radius:8px;margin-bottom:8px;">' +
+          '<span style="font-size:0.85rem;font-weight:500;">' + label + '</span>' +
+          '<button type="button" class="ma-remove-btn" data-id="' + a.id + '" style="font-size:0.75rem;color:#C0392B;background:none;border:1px solid #C0392B;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;">Remove</button>' +
+          '</div>';
+      }).join('');
+      listEl.querySelectorAll('.ma-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Remove this admin?')) return;
+          setAdminsMsg('Removing...');
+          try {
+            const { error } = await supabaseClient.from('admins').delete().eq('id', btn.dataset.id);
+            if (error) throw error;
+            setAdminsMsg('Admin removed.', '#155724');
+            await renderManageAdminsList();
+          } catch (err) {
+            setAdminsMsg('Error: ' + (err.message || 'Failed'), '#C0392B');
+          }
+        });
+      });
+    } catch (err) {
+      listEl.innerHTML = '<div style="color:#C0392B;font-size:0.85rem;">Error: ' + (err.message || '') + '</div>';
+    }
+  }
+
+  function loadManageAdmins() {
+    renderManageAdminsList();
+    const addBtn = document.getElementById('manage-admins-add-btn');
+    const emailInput = document.getElementById('manage-admins-email');
+    if (!addBtn || !emailInput) return;
+    addBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      if (!email) { setAdminsMsg('Enter an email address.', '#C0392B'); return; }
+      setAdminsMsg('Adding...');
+      try {
+        const { error } = await supabaseClient.from('admins').insert({ email });
+        if (error) throw error;
+        setAdminsMsg('Admin added: ' + email, '#155724');
+        emailInput.value = '';
+        await renderManageAdminsList();
+      } catch (err) {
+        if (err.message && err.message.includes('duplicate')) {
+          setAdminsMsg('This user is already an admin.', '#856404');
+        } else {
+          setAdminsMsg('Error: ' + (err.message || 'Failed to add admin'), '#C0392B');
+        }
       }
     });
   }
