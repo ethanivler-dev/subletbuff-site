@@ -138,8 +138,18 @@ nav.ss-nav .nav-links a.active {
 
 .listings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Cap at 4 columns */
+@media (min-width: 1280px) {
+  .listings-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .listing-card {
@@ -150,8 +160,13 @@ nav.ss-nav .nav-links a.active {
   padding: 16px;
   text-decoration: none;
   color: inherit;
-  transition: 0.3s;
+  transition: box-shadow 0.25s, transform 0.25s;
   box-sizing: border-box;
+}
+
+.listing-card:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,.08);
+  transform: translateY(-2px);
 }
 
 .card-img {
@@ -968,7 +983,7 @@ nav.ss-nav .nav-links a.active {
 /* ── HOME HERO ── */
 .home {
   margin: 0 auto;
-  padding: 48px 0 20px;
+  padding: 48px 24px 20px;
   box-sizing: border-box;
 }
 
