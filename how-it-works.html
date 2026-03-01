@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubletBuff | How It Works</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/site.css" />
+  <style>
+    /* ── How It Works Page ── */
+    .hiw-hero {
+      text-align: center;
+      padding: 48px 24px 32px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .hiw-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.6rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 14px;
+    }
+
+    .hiw-hero p {
+      font-size: 1.08rem;
+      color: var(--ink-soft);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* ── Audience Toggle ── */
+    .hiw-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      margin: 0 auto 40px;
+      max-width: 340px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--white);
+    }
+
+    .hiw-toggle button {
+      flex: 1;
+      padding: 11px 0;
+      border: none;
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--ink-soft);
+      transition: all 0.18s;
+    }
+
+    .hiw-toggle button.active {
+      background: linear-gradient(135deg, #C9A84C, var(--gold));
+      color: var(--white);
+    }
+
+    /* ── Steps Section ── */
+    .hiw-section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    .hiw-section-title {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 36px;
+    }
+
+    .hiw-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .hiw-step {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: box-shadow 0.18s;
+    }
+
+    .hiw-step:hover {
+      box-shadow: 0 6px 24px rgba(184, 146, 42, 0.1);
+    }
+
+    .hiw-step-number {
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #C9A84C, var(--gold));
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    .hiw-step-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hiw-step-body h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      margin: 0 0 8px;
+      color: var(--ink);
+    }
+
+    .hiw-step-body p {
+      margin: 0;
+      color: var(--ink-soft);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .hiw-step-icon {
+      flex-shrink: 0;
+      width: 64px;
+      height: 64px;
+      color: var(--gold);
+      opacity: 0.2;
+      display: none;
+    }
+
+    /* ── Features Grid ── */
+    .hiw-features {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    .hiw-features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .hiw-feature {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 20px;
+      text-align: center;
+      transition: box-shadow 0.18s;
+    }
+
+    .hiw-feature:hover {
+      box-shadow: 0 6px 24px rgba(184, 146, 42, 0.1);
+    }
+
+    .hiw-feature-icon {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 14px;
+      color: var(--gold);
+    }
+
+    .hiw-feature h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+      margin: 0 0 8px;
+      color: var(--ink);
+    }
+
+    .hiw-feature p {
+      font-size: 0.88rem;
+      color: var(--ink-soft);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* ── FAQ ── */
+    .hiw-faq {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    .hiw-faq-title {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 28px;
+    }
+
+    .hiw-faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+
+    .hiw-faq-item:first-child {
+      border-top: 1px solid var(--border);
+    }
+
+    .hiw-faq-q {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      padding: 0;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .hiw-faq-q svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: var(--gold);
+      transition: transform 0.2s;
+    }
+
+    .hiw-faq-q.open svg {
+      transform: rotate(180deg);
+    }
+
+    .hiw-faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+
+    .hiw-faq-a p {
+      margin: 12px 0 0;
+      color: var(--ink-soft);
+      line-height: 1.6;
+      font-size: 0.92rem;
+    }
+
+    /* ── CTA Banner ── */
+    .hiw-cta {
+      text-align: center;
+      padding: 48px 24px 56px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .hiw-cta h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 10px;
+    }
+
+    .hiw-cta p {
+      color: var(--ink-soft);
+      margin: 0 0 22px;
+      line-height: 1.5;
+    }
+
+    .hiw-cta-btns {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .hiw-btn-outline {
+      padding: 13px 36px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--white);
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: border-color 0.18s;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .hiw-btn-outline:hover {
+      border-color: var(--gold);
+    }
+
+    /* ── Hidden panels ── */
+    .hiw-panel { display: none; }
+    .hiw-panel.active { display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hiw-hero h1 { font-size: 2rem; }
+      .hiw-features-grid { grid-template-columns: 1fr; }
+      .hiw-step { flex-direction: column; gap: 16px; }
+    }
+
+    @media (max-width: 480px) {
+      .hiw-hero { padding: 32px 16px 20px; }
+      .hiw-section, .hiw-faq, .hiw-features { padding-left: 16px; padding-right: 16px; }
+      .hiw-step { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="ss-nav" style="position:relative;">
+    <a href="/" class="nav-logo">
+      <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg"
+           alt="SubletBuff"
+           style="height:40px;width:auto;" />
+    </a>
+
+    <div class="nav-links" id="nav-links-desktop">
+      <a href="/">Home</a>
+      <a href="/how-it-works.html" class="active">How It Works</a>
+      <a href="/listings.html">Listings</a>
+      <a href="/form.html" id="nav-post-link">Post a Listing</a>
+      <a href="/account.html" class="nav-account-link" id="nav-account-link" style="display:none">Account</a>
+      <a href="/admin.html" class="nav-admin-link" id="nav-admin-link" style="display:none">Admin</a>
+      <button type="button" class="nav-auth-btn" id="nav-auth-btn">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign In
+      </button>
+    </div>
+
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="nav-mobile-menu" id="nav-mobile-menu">
+      <a href="/">Home</a>
+      <a href="/how-it-works.html" class="active">How It Works</a>
+      <a href="/listings.html">Listings</a>
+      <a href="/form.html" id="nav-post-link-mobile">Post a Listing</a>
+      <a href="/account.html" class="nav-account-link" id="nav-account-link-mobile" style="display:none">Account</a>
+      <a href="/admin.html" class="nav-admin-link" id="nav-admin-link-mobile" style="display:none">Admin</a>
+      <button type="button" class="nav-auth-btn" id="nav-auth-btn-mobile">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign In
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- HERO -->
+    <section class="hiw-hero">
+      <h1>How SubletBuff Works</h1>
+      <p>The easiest way for CU Boulder students to find and post subleases. Whether you're looking for a place or listing yours, here's everything you need to know.</p>
+    </section>
+
+    <!-- AUDIENCE TOGGLE -->
+    <div class="hiw-toggle" id="hiw-toggle">
+      <button class="active" data-panel="renter">I'm Looking</button>
+      <button data-panel="lister">I'm Listing</button>
+    </div>
+
+    <!-- ══════════════ RENTER PANEL ══════════════ -->
+    <div class="hiw-panel active" id="panel-renter">
+      <section class="hiw-section">
+        <h2 class="hiw-section-title">Finding Your Sublease</h2>
+        <div class="hiw-steps">
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">1</div>
+            <div class="hiw-step-body">
+              <h3>Browse Listings</h3>
+              <p>Head to the <a href="/listings.html" style="color:var(--gold);font-weight:600">Listings</a> page and explore available subleases. Use filters to narrow by price, neighborhood, number of beds/baths, distance from campus, and lease dates.</p>
+            </div>
+          </div>
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">2</div>
+            <div class="hiw-step-body">
+              <h3>Check the Details</h3>
+              <p>Click any listing to see the full detail page — photos, description, lease dates, security deposit, distance from campus, and more. Every listing is manually reviewed before it goes live.</p>
+            </div>
+          </div>
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">3</div>
+            <div class="hiw-step-body">
+              <h3>Contact the Lister</h3>
+              <p>Use the "Text Lister" or "Email Lister" button right on the listing page. You can also copy their contact info. Reach out, ask questions, and schedule a tour if you'd like.</p>
+            </div>
+          </div>
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">4</div>
+            <div class="hiw-step-body">
+              <h3>Move In</h3>
+              <p>Once you and the lister agree on terms, coordinate the move-in details directly. Many listings offer flexible move-in dates — look for the "Flexible Move-In" tag.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- ══════════════ LISTER PANEL ══════════════ -->
+    <div class="hiw-panel" id="panel-lister">
+      <section class="hiw-section">
+        <h2 class="hiw-section-title">Posting Your Sublease</h2>
+        <div class="hiw-steps">
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">1</div>
+            <div class="hiw-step-body">
+              <h3>Sign In with Google</h3>
+              <p>Click "Sign In" in the top navigation and use any Google account. Your email is used for contact so renters can reach you directly.</p>
+            </div>
+          </div>
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">2</div>
+            <div class="hiw-step-body">
+              <h3>Fill Out the Listing Form</h3>
+              <p>Go to <a href="/form.html" style="color:var(--gold);font-weight:600">Post a Listing</a> and fill in the details — address, rent, lease dates, photos, description, and contact info. The form auto-saves your progress so you won't lose your work.</p>
+            </div>
+          </div>
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">3</div>
+            <div class="hiw-step-body">
+              <h3>Submit for Review</h3>
+              <p>Once you submit, a SubletBuff admin will review your listing to make sure everything looks good. This usually takes less than 24 hours.</p>
+            </div>
+          </div>
+
+          <div class="hiw-step">
+            <div class="hiw-step-number">4</div>
+            <div class="hiw-step-body">
+              <h3>Go Live & Get Contacted</h3>
+              <p>After approval, your listing goes live on the site. Interested renters will reach out via your preferred contact method. You can track views from your <a href="/account.html" style="color:var(--gold);font-weight:600">Account</a> dashboard.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- ══════════════ FEATURES ══════════════ -->
+    <section class="hiw-features">
+      <h2 class="hiw-section-title">Why SubletBuff?</h2>
+      <div class="hiw-features-grid">
+
+        <div class="hiw-feature">
+          <svg class="hiw-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <h4>Boulder-Only</h4>
+          <p>Built exclusively for CU Boulder students. Every listing is in the Boulder area, with distance from campus on every card.</p>
+        </div>
+
+        <div class="hiw-feature">
+          <svg class="hiw-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 12l2 2 4-4"/>
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+          </svg>
+          <h4>Manually Reviewed</h4>
+          <p>Every listing is reviewed by a real person before it goes live. No spam, no scams — just real subleases from real students.</p>
+        </div>
+
+        <div class="hiw-feature">
+          <svg class="hiw-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <h4>Totally Free</h4>
+          <p>No fees to browse or post. SubletBuff is a free tool for the CU Boulder community.</p>
+        </div>
+
+        <div class="hiw-feature">
+          <svg class="hiw-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <h4>Photos & Details</h4>
+          <p>Listings include photos, descriptions, lease info, and contact details — everything you need to make a decision.</p>
+        </div>
+
+        <div class="hiw-feature">
+          <svg class="hiw-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <h4>Direct Contact</h4>
+          <p>Text or email the lister directly from the listing page. No middleman, no waiting — connect instantly.</p>
+        </div>
+
+        <div class="hiw-feature">
+          <svg class="hiw-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20V10"/>
+            <path d="M18 20V4"/>
+            <path d="M6 20v-4"/>
+          </svg>
+          <h4>Lister Dashboard</h4>
+          <p>Track how many views your listings get from your Account page. See what's working and manage your posts.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══════════════ FAQ ══════════════ -->
+    <section class="hiw-faq">
+      <h2 class="hiw-faq-title">Frequently Asked Questions</h2>
+
+      <div class="hiw-faq-item">
+        <button class="hiw-faq-q" type="button">
+          Who can post a listing?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="hiw-faq-a">
+          <p>Anyone with a Google account can post a listing. However, listings are reviewed before going live and must be for subleases in the Boulder, CO area.</p>
+        </div>
+      </div>
+
+      <div class="hiw-faq-item">
+        <button class="hiw-faq-q" type="button">
+          How long does review take?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="hiw-faq-a">
+          <p>Most listings are reviewed within 24 hours. You'll see your listing go live on the site once it's been approved.</p>
+        </div>
+      </div>
+
+      <div class="hiw-faq-item">
+        <button class="hiw-faq-q" type="button">
+          Is SubletBuff free?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="hiw-faq-a">
+          <p>Yes, completely free. There are no fees to browse listings or post your own sublease.</p>
+        </div>
+      </div>
+
+      <div class="hiw-faq-item">
+        <button class="hiw-faq-q" type="button">
+          Can I edit my listing after posting?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="hiw-faq-a">
+          <p>Currently, listings can't be edited after submission. If you need to make changes, contact an admin and we'll help you out.</p>
+        </div>
+      </div>
+
+      <div class="hiw-faq-item">
+        <button class="hiw-faq-q" type="button">
+          How do I contact a lister?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="hiw-faq-a">
+          <p>Every listing detail page has a "Text Lister" or "Email Lister" button, plus a "Copy Contact Info" option. Just use whichever method the lister prefers.</p>
+        </div>
+      </div>
+
+      <div class="hiw-faq-item">
+        <button class="hiw-faq-q" type="button">
+          What's the "distance from campus" based on?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="hiw-faq-a">
+          <p>Distance is calculated as a straight line from the CU Boulder campus center to the listing address. Actual walking or driving distance may vary.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════ CTA ══════════════ -->
+    <section class="hiw-cta">
+      <h2>Ready to get started?</h2>
+      <p>Find your next sublease or list yours in minutes.</p>
+      <div class="hiw-cta-btns">
+        <a href="/listings.html" class="btn-submit" style="width:auto;">Browse Listings</a>
+        <a href="/form.html" class="hiw-btn-outline">Post a Listing</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="/auth.js" defer></script>
+  <script>
+    // Mobile menu toggle
+    document.addEventListener('DOMContentLoaded', () => {
+      const hb = document.getElementById('nav-hamburger');
+      const mm = document.getElementById('nav-mobile-menu');
+      if (hb && mm) {
+        hb.addEventListener('click', (e) => { e.stopPropagation(); mm.classList.toggle('open'); });
+        document.addEventListener('click', (e) => { if (!e.target.closest('nav.ss-nav')) mm.classList.remove('open'); });
+      }
+
+      // Audience toggle
+      const toggle = document.getElementById('hiw-toggle');
+      if (toggle) {
+        toggle.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-panel]');
+          if (!btn) return;
+          toggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.hiw-panel').forEach(p => p.classList.remove('active'));
+          const panel = document.getElementById('panel-' + btn.dataset.panel);
+          if (panel) panel.classList.add('active');
+        });
+      }
+
+      // FAQ accordion
+      document.querySelectorAll('.hiw-faq-q').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const answer = btn.nextElementSibling;
+          const isOpen = btn.classList.contains('open');
+          // Close all
+          document.querySelectorAll('.hiw-faq-q').forEach(q => {
+            q.classList.remove('open');
+            q.nextElementSibling.style.maxHeight = null;
+          });
+          // Open clicked (if it was closed)
+          if (!isOpen) {
+            btn.classList.add('open');
+            answer.style.maxHeight = answer.scrollHeight + 'px';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
