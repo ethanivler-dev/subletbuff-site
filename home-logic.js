@@ -218,5 +218,64 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
+	async function loadStats() {
+		const statsEl = document.getElementById('home-stats');
+		if (!statsEl || !supabaseClient) return;
+		try {
+			// Active listings count
+			const { count: activeCount, error: activeErr } = await supabaseClient
+				.from('listings')
+				.select('*', { count: 'exact', head: true })
+				.eq('status', 'approved')
+				.eq('paused', false)
+				.eq('filled', false);
+			if (activeErr || !activeCount) return; // hide block if 0 or error
+
+			document.getElementById('stat-active-count').textContent = activeCount.toLocaleString();
+
+			// Views this month (best-effort — hides stat item if query fails)
+			try {
+				const startOfMonth = new Date();
+				startOfMonth.setDate(1);
+				startOfMonth.setHours(0, 0, 0, 0);
+				const { count: viewsCount, error: viewErr } = await supabaseClient
+					.from('listing_views')
+					.select('*', { count: 'exact', head: true })
+					.gte('created_at', startOfMonth.toISOString());
+				if (!viewErr && viewsCount != null) {
+					document.getElementById('stat-views-count').textContent = viewsCount.toLocaleString();
+				} else {
+					const el = document.getElementById('home-stat-views');
+					if (el) el.style.display = 'none';
+				}
+			} catch (_) {
+				const el = document.getElementById('home-stat-views');
+				if (el) el.style.display = 'none';
+			}
+
+			// Listings filled (best-effort)
+			try {
+				const { count: filledCount, error: filledErr } = await supabaseClient
+					.from('listings')
+					.select('*', { count: 'exact', head: true })
+					.eq('filled', true);
+				if (!filledErr && filledCount != null) {
+					document.getElementById('stat-filled-count').textContent = filledCount.toLocaleString();
+				} else {
+					const el = document.getElementById('home-stat-filled');
+					if (el) el.style.display = 'none';
+				}
+			} catch (_) {
+				const el = document.getElementById('home-stat-filled');
+				if (el) el.style.display = 'none';
+			}
+
+			statsEl.style.display = 'flex';
+		} catch (err) {
+			console.warn('[home] loadStats error', err);
+		}
+	}
+
 	loadListings();
+	loadStats();
 });

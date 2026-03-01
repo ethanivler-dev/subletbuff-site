@@ -1103,3 +1103,37 @@ nav.ss-nav .nav-links a.active {
   color: var(--gold);
   border-left: 3px solid var(--gold);
 }
+
+/* ── Homepage Stats Bar ── */
+.home-stats {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  max-width: 520px;
+  margin: 0 auto 40px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+.home-stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 20px 16px;
+  border-right: 1px solid var(--border);
+}
+.home-stat-item:last-child { border-right: none; }
+.home-stat-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--gold);
+}
+.home-stat-label {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
