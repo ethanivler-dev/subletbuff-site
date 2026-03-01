@@ -181,7 +181,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (window.heic2any) { _heic2any = window.heic2any; return Promise.resolve(_heic2any); }
 		return new Promise((resolve, reject) => {
 			const s = document.createElement('script');
-			s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+			s.src = '/heic2any.min.js';
+		s.onerror = () => {
+			// Local load failed, try CDN fallback
+			const s2 = document.createElement('script');
+			s2.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+			s2.onload = () => {
+				_heic2any = window.heic2any;
+				if (!_heic2any) { reject(new Error('heic2any CDN also missing')); return; }
+				resolve(_heic2any);
+			};
+			s2.onerror = () => reject(new Error('heic2any failed to load from both local and CDN'));
+			document.head.appendChild(s2);
+			return;
+		};
 			s.onload = () => {
 				_heic2any = window.heic2any;
 				if (!_heic2any) { reject(new Error('heic2any loaded but window.heic2any is undefined')); return; }
@@ -845,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		// Add placeholder entries immediately so spinner cards appear at once
 		const pendingEntries = filesToUpload.map((file) => {
-			const previewUrl = URL.createObjectURL(file); // works natively in Safari for HEIC; onerror handles non-Safari gracefully
+			const previewUrl = isHeicFile(file) ? '' : URL.createObjectURL(file);
 			const entry = {
 				path: '', url: '', listingId: null,
 				order: photoDraft.length,
@@ -871,13 +884,13 @@ document.addEventListener('DOMContentLoaded', () => {
 						finalPreviewUrl = URL.createObjectURL(fileToUpload);
 						const pidx = photoDraft.indexOf(placeholder);
 						if (pidx !== -1) {
-							revokePreviewUrlIfNeeded(photoDraft[pidx].previewUrl); // revoke original HEIC blob URL
 							photoDraft[pidx] = { ...photoDraft[pidx], previewUrl: finalPreviewUrl };
 						}
 						try { renderPhotos(); } catch(e2) {}
 						console.log('[form] HEIC converted client-side:', fileToUpload.name, fileToUpload.size);
 					} else {
 						console.log('[form] client-side HEIC conversion not possible — sending raw to edge function');
+						finalPreviewUrl = ''; // clear so Supabase URL is used as fallback after upload
 					}
 				}
 				const { path, url, listingId } = await uploadViaEdgeFunction(fileToUpload);
