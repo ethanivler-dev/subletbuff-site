@@ -1143,6 +1143,57 @@ nav.ss-nav .nav-links a.active {
   box-shadow: 0 4px 16px rgba(184,146,42,0.35);
 }
 
+/* ── Distance slider in filter strip ── */
+.filter-strip-field--slider {
+  flex: 1.4 1 0;
+}
+
+.filter-strip-field--slider label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.filter-strip-field--slider label span {
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 0.78rem;
+}
+
+.filter-strip-field input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.filter-strip-field input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--white);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+.filter-strip-field input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--white);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
 /* ── FEATURED LISTINGS SECTION ── */
 .home-featured {
   max-width: 960px;

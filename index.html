@@ -86,17 +86,6 @@
           </select>
         </div>
         <div class="filter-strip-field">
-          <label for="hf-movein">Move-in</label>
-          <select id="hf-movein" name="moveIn">
-            <option value="">Any</option>
-            <option value="may">May</option>
-            <option value="jun">June</option>
-            <option value="jul">July</option>
-            <option value="aug">August</option>
-            <option value="sep">September</option>
-          </select>
-        </div>
-        <div class="filter-strip-field">
           <label for="hf-lease">Lease Term</label>
           <select id="hf-lease" name="leaseTerm">
             <option value="">Any</option>
@@ -105,29 +94,9 @@
             <option value="year">Full Year</option>
           </select>
         </div>
-        <div class="filter-strip-field">
-          <label for="hf-distance">Distance</label>
-          <select id="hf-distance" name="distance">
-            <option value="">Any</option>
-            <option value="0.5">&lt; 0.5 mi</option>
-            <option value="1">Under 1 mi</option>
-            <option value="2">Under 2 mi</option>
-            <option value="5">Under 5 mi</option>
-          </select>
-        </div>
-        <div class="filter-strip-field">
-          <label for="hf-furnished">Furnished</label>
-          <select id="hf-furnished" name="furnished">
-            <option value="">Any</option>
-            <option value="yes">Yes</option>
-          </select>
-        </div>
-        <div class="filter-strip-field">
-          <label for="hf-pets">Pets OK</label>
-          <select id="hf-pets" name="pets">
-            <option value="">Any</option>
-            <option value="yes">Yes</option>
-          </select>
+        <div class="filter-strip-field filter-strip-field--slider">
+          <label for="hf-distance">Distance <span id="hf-distance-val">5 mi</span></label>
+          <input type="range" id="hf-distance" name="distance" min="0.5" max="5" step="0.5" value="5" />
         </div>
         <button type="submit" class="filter-strip-btn">Search</button>
       </form>
@@ -245,5 +214,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/auth.js"></script>
   <script src="/home-logic.js"></script>
+  <script>
+    (function() {
+      var s = document.getElementById('hf-distance');
+      var v = document.getElementById('hf-distance-val');
+      if (s && v) s.addEventListener('input', function() { v.textContent = s.value + ' mi'; });
+    })();
+  </script>
 </body>
 </html>
