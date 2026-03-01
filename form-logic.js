@@ -1399,6 +1399,8 @@ function clearFieldError(id) {
 document.getElementById('rent').addEventListener('input', () => clearFieldError('rent'));
 document.getElementById('address').addEventListener('input', () => clearFieldError('address'));
 document.getElementById('description').addEventListener('input', () => clearFieldError('description'));
+document.getElementById('beds').addEventListener('change', () => clearFieldError('beds'));
+document.getElementById('baths').addEventListener('change', () => clearFieldError('baths'));
 
 const phoneInput = document.getElementById('phone');
 const phoneRegex = /^(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
@@ -1671,6 +1673,12 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 	if (!addrInput.value.trim()) { showFieldError('address', 'Please enter the street address.'); valid = false; } else clearFieldError('address');
 	if (!document.getElementById('description').value.trim()) { showFieldError('description', 'Please add a listing description.'); valid = false; } else clearFieldError('description');
 
+	// Beds / Baths required
+	const bedsVal = document.getElementById('beds').value;
+	if (!bedsVal) { showFieldError('beds', 'Please select the number of beds.'); valid = false; } else clearFieldError('beds');
+	const bathsVal = document.getElementById('baths').value;
+	if (!bathsVal) { showFieldError('baths', 'Please select the number of baths.'); valid = false; } else clearFieldError('baths');
+
 	// Phone validation (required if Text is preferred contact)
 	if (!validatePhone(prefTextBtn.classList.contains('active'))) valid = false;
   
@@ -1728,7 +1736,11 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 	const banner = document.getElementById('confirm-error-banner');
 	if (anyConfirmUnchecked) { banner.classList.remove('hidden'); } else { banner.classList.add('hidden'); }
 
-	if (!valid) return;
+	if (!valid) {
+		const firstErr = document.querySelector('.error-msg, .field .error, [style*="border-color: var(--red)"], .confirm-item.error');
+		if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		return;
+	}
 
 	// ── Auth gate: require Google sign-in before submitting ──
 	let session = null;
