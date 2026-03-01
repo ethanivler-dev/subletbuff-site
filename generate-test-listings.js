@@ -107,13 +107,24 @@ const DESCRIPTIONS = [
   "Modern micro-studio near campus — perfect for minimalists. Murphy bed, built-in desk, compact kitchenette with mini fridge and microwave. Full bathroom. Building has a co-working lounge, rooftop BBQ area, and bike repair station. Rent includes all utilities, WiFi, and a parking spot. Lock in a great price for the summer while most students are away.",
 ];
 
-// Use picsum photos with fixed seeds so they're varied but reproducible
+// Use picsum photos with known-good IDs so none 404
+const KNOWN_GOOD_PICSUM_IDS = [
+  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+  30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+  50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+  70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+  100, 101, 102, 103, 104, 106, 107, 108, 109, 110, 111, 112, 113, 114, 116, 117,
+  118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133,
+  134, 135, 136, 137, 139, 140, 141, 142, 143, 144, 145, 146, 147, 149, 151, 152,
+  153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+  169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184,
+];
+
 function getPhotoUrls(index) {
   const count = 3 + Math.floor(Math.random() * 5); // 3-7 photos
-  const baseId = (index * 7 + 10) % 1000; // spread across picsum IDs
   const urls = [];
   for (let i = 0; i < count; i++) {
-    const id = (baseId + i * 13) % 1084; // picsum has ~1084 images
+    const id = KNOWN_GOOD_PICSUM_IDS[(index * 7 + i * 3) % KNOWN_GOOD_PICSUM_IDS.length];
     urls.push(`https://picsum.photos/id/${id}/800/600`);
   }
   return urls;
@@ -192,8 +203,7 @@ function buildListing(index) {
     status: 'approved',
     verified: true,
     paused: false,
-    filled: false,
-    _test_generated: true   // marker to find & delete later
+    filled: false
   };
 }
 
@@ -204,12 +214,10 @@ function buildListing(index) {
  * @param {number} count  Number of listings to create (default 10)
  */
 async function generateTestListings(count = 10) {
-  const sb = window.supabase?.createClient
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
-    : null;
+  const sb = window.sbAuth?.supabaseClient || null;
 
   if (!sb) {
-    console.error('[gen] Supabase client not available. Make sure you run this on a page that loads the Supabase SDK.');
+    console.error('[gen] Supabase client not available. Make sure you are signed in on a page that loads auth.js.');
     return;
   }
 
@@ -252,70 +260,36 @@ async function generateTestListings(count = 10) {
  * Delete all test-generated listings (identified by _test_generated = true).
  */
 async function deleteTestListings() {
-  const sb = window.supabase?.createClient
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
-    : null;
+  const sb = window.sbAuth?.supabaseClient || null;
 
   if (!sb) {
-    console.error('[gen] Supabase client not available.');
+    console.error('[gen] Supabase client not available. Make sure you are signed in.');
     return;
   }
 
-  console.log('[gen] Finding test listings...');
-  const { data, error: fetchErr } = await sb
-    .from('listings')
-    .select('id')
-    .eq('_test_generated', true);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    console.error('[gen] Not signed in. Please sign in first.');
+    return;
+  }
 
-  if (fetchErr) {
-    // If the column doesn't exist, fall back to email pattern
-    console.warn('[gen] _test_generated column not found, falling back to email pattern match...');
-    const { data: fallback, error: fbErr } = await sb
-      .from('listings')
-      .select('id')
-      .like('email', 'testuser%@colorado.edu');
-
-    if (fbErr) {
-      console.error('[gen] Fallback query failed:', fbErr.message);
-      return;
-    }
-
-    if (!fallback || fallback.length === 0) {
-      console.log('[gen] No test listings found.');
-      return;
-    }
-
-    const ids = fallback.map(r => r.id);
-    console.log(`[gen] Found ${ids.length} test listings. Deleting...`);
-    const { error: delErr } = await sb
-      .from('listings')
-      .delete()
-      .in('id', ids);
-
-    if (delErr) {
-      console.error('[gen] Delete error:', delErr.message);
+  console.log('[gen] Deleting test listings via API (bypasses RLS)...');
+  try {
+    const resp = await fetch('/api/delete-test-listings', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + session.access_token,
+        'Content-Type': 'application/json',
+      },
+    });
+    const result = await resp.json();
+    if (!resp.ok) {
+      console.error('[gen] Delete API error:', result.error);
     } else {
-      console.log(`[gen] ✅ Deleted ${ids.length} test listings.`);
+      console.log(`[gen] ✅ ${result.message}`);
     }
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    console.log('[gen] No test listings found.');
-    return;
-  }
-
-  const ids = data.map(r => r.id);
-  console.log(`[gen] Found ${ids.length} test listings. Deleting...`);
-  const { error: delErr } = await sb
-    .from('listings')
-    .delete()
-    .in('id', ids);
-
-  if (delErr) {
-    console.error('[gen] Delete error:', delErr.message);
-  } else {
-    console.log(`[gen] ✅ Deleted ${ids.length} test listings.`);
+  } catch (err) {
+    console.error('[gen] Network error:', err.message);
   }
 }
 
