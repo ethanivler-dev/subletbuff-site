@@ -6,7 +6,7 @@ ROUTES + FILE PURPOSES
 - Visibility rules: admin-only portal (authenticated user + id exists in public.admins)
 - Allowed listing visibility: pending + approved + preview workflows for admins only
 */
-const BUILD_VERSION = '2026-02-23a';
+const BUILD_VERSION = '2026-02-28a';
 
 console.log('[admin] admin-logic.js loaded');
 
@@ -22,8 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
           persistSession: true,
-          autoRefreshToken: true,
-          storageKey: 'sb-admin-auth-token'
+          autoRefreshToken: true
         }
       })
     : null;
@@ -34,11 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     authRoot: document.getElementById('admin-auth-root'),
     authMsg: document.getElementById('admin-auth-msg'),
-    email: document.getElementById('admin-email'),
-    password: document.getElementById('admin-password'),
-    loginBtn: document.getElementById('admin-login-btn'),
-    magicBtn: document.getElementById('admin-magic-btn'),
-    resetBtn: document.getElementById('admin-reset-btn'),
+    googleBtn: document.getElementById('admin-google-btn'),
 
     appRoot: document.getElementById('admin-app-root'),
     subtitle: document.getElementById('admin-subtitle'),
@@ -136,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateButtonsLoading(disabled) {
-    const list = [elements.loginBtn, elements.magicBtn, elements.resetBtn, elements.refreshBtn, elements.prevBtn, elements.nextBtn];
+    const list = [elements.googleBtn, elements.refreshBtn, elements.prevBtn, elements.nextBtn];
     list.forEach((btn) => {
       if (!btn) return;
       btn.disabled = !!disabled;
@@ -649,24 +644,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
-  function clearSupabaseStorage() {
-    try {
-      Object.keys(localStorage || {}).forEach((key) => {
-        if (key.startsWith('sb-')) localStorage.removeItem(key);
-      });
-    } catch (err) {
-      console.error('[admin] localStorage clear error', err);
-    }
-
-    try {
-      Object.keys(sessionStorage || {}).forEach((key) => {
-        if (key.startsWith('sb-')) sessionStorage.removeItem(key);
-      });
-    } catch (err) {
-      console.error('[admin] sessionStorage clear error', err);
-    }
-  }
-
   async function doLogoutWithFallback() {
     if (!supabaseClient || state.isLoggingOut) return;
     state.isLoggingOut = true;
@@ -689,21 +666,6 @@ document.addEventListener('DOMContentLoaded', () => {
       state.isLoggingOut = false;
       window.location.reload();
     }
-  }
-
-  async function resetLoginState() {
-    setAuthMessage('Resetting login state...');
-    try {
-      if (supabaseClient) {
-        const { error } = await supabaseClient.auth.signOut();
-        if (error) console.error('[admin] reset signOut error', error);
-      }
-    } catch (err) {
-      console.error('[admin] reset signOut exception', err);
-    }
-
-    clearSupabaseStorage();
-    window.location.reload();
   }
 
   async function handleSession(session, sourceLabel) {
@@ -779,108 +741,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function bindEventsOnce() {
-    if (elements.loginBtn) {
-      elements.loginBtn.addEventListener('click', async () => {
+    if (elements.googleBtn) {
+      elements.googleBtn.addEventListener('click', async () => {
         if (!supabaseClient || state.isBusyAuth) return;
         state.isBusyAuth = true;
-
+        setAuthMessage('Redirecting to Google...');
+        setStatus('Redirecting...');
         try {
-          const email = (elements.email && elements.email.value || '').trim();
-          const password = elements.password ? elements.password.value : '';
-
-          if (!email || !password) {
-            setAuthMessage('Email and password are required.', '#C0392B');
-            return;
-          }
-
-          setAuthMessage('Signing in...');
-          setStatus('Signing in...');
-
-          const signInRes = await withTimeout(
-            supabaseClient.auth.signInWithPassword({ email, password }),
-            AUTH_TIMEOUT_MS,
-            'Password sign in'
-          );
-
-          if (signInRes.error) {
-            console.error('[admin] signInWithPassword error', signInRes.error);
-            setAuthMessage(signInRes.error.message, '#C0392B');
-            setStatus('Sign in failed.', '#C0392B');
-            return;
-          }
-
-          const sessionRes = await withTimeout(
-            supabaseClient.auth.getSession(),
-            AUTH_TIMEOUT_MS,
-            'Session check after sign in'
-          );
-
-          if (sessionRes.error) {
-            console.error('[admin] getSession after sign-in error', sessionRes.error);
-            setAuthMessage(sessionRes.error.message, '#C0392B');
-            setStatus('Session check failed.', '#C0392B');
-            return;
-          }
-
-          await handleSession(sessionRes.data ? sessionRes.data.session : null, 'password-signin');
-        } catch (err) {
-          console.error('[admin] password login exception', err);
-          setAuthMessage((err && err.message) ? err.message : String(err), '#C0392B');
-          setStatus('Sign in error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
-        } finally {
-          state.isBusyAuth = false;
-        }
-      });
-    }
-
-    if (elements.magicBtn) {
-      elements.magicBtn.addEventListener('click', async () => {
-        if (!supabaseClient || state.isBusyAuth) return;
-        state.isBusyAuth = true;
-
-        try {
-          const email = (elements.email && elements.email.value || '').trim();
-          if (!email) {
-            setAuthMessage('Email is required.', '#C0392B');
-            return;
-          }
-
-          setAuthMessage('Sending magic link...');
-          setStatus('Sending magic link...');
-
-          const { error } = await withTimeout(
-            supabaseClient.auth.signInWithOtp({
-              email,
-              options: {
-                emailRedirectTo: `${window.location.origin}/admin.html`
-              }
-            }),
-            AUTH_TIMEOUT_MS,
-            'Magic link sign in'
-          );
-
+          const { error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.origin + '/admin.html' }
+          });
           if (error) {
-            console.error('[admin] signInWithOtp error', error);
+            console.error('[admin] Google OAuth error', error);
             setAuthMessage(error.message, '#C0392B');
-            setStatus('Magic link failed.', '#C0392B');
-            return;
+            setStatus('Sign in error.', '#C0392B');
+            state.isBusyAuth = false;
           }
-
-          setAuthMessage('Magic link sent. Check your email.', '#3D8A58');
-          setStatus('Magic link sent.');
+          // On success the browser navigates away — no further code runs here
         } catch (err) {
-          console.error('[admin] magic link exception', err);
+          console.error('[admin] Google OAuth exception', err);
           setAuthMessage((err && err.message) ? err.message : String(err), '#C0392B');
-          setStatus('Magic link error: ' + ((err && err.message) ? err.message : String(err)), '#C0392B');
-        } finally {
+          setStatus('Sign in error.', '#C0392B');
           state.isBusyAuth = false;
         }
-      });
-    }
-
-    if (elements.resetBtn) {
-      elements.resetBtn.addEventListener('click', async () => {
-        await resetLoginState();
       });
     }
 
