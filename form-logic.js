@@ -2167,7 +2167,7 @@ const STEP_TITLES = ['Property Basics', 'Lease & Pricing', 'Photos & Description
 
 function isMobileForm() { return window.matchMedia('(max-width: 640px)').matches; }
 
-function goToStep(n) {
+function goToStep(n, { scroll = true } = {}) {
 	if (!isMobileForm()) return;
 	document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
 	const target = document.querySelector(`.form-step[data-step="${n}"]`);
@@ -2186,7 +2186,7 @@ function goToStep(n) {
 	if (backBtn) backBtn.style.visibility = n === 1 ? 'hidden' : 'visible';
 	const nextBtn = document.getElementById('step-next-btn');
 	if (nextBtn) nextBtn.textContent = n === TOTAL_STEPS ? 'Submit →' : 'Next →';
-	window.scrollTo({ top: 0, behavior: 'smooth' });
+	if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function validateStep(n) {
@@ -2296,13 +2296,18 @@ if (stepBackBtn) {
 // Initialize on load
 if (isMobileForm()) goToStep(1);
 
-// Handle resize (desktop ↔ mobile)
+// Handle resize (desktop ↔ mobile). Debounced to avoid scroll-to-top
+// firing on every frame of mobile browser chrome show/hide.
+let _resizeTimer;
 window.addEventListener('resize', () => {
-	if (!isMobileForm()) {
-		document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
-	} else {
-		goToStep(currentStep);
-	}
+	clearTimeout(_resizeTimer);
+	_resizeTimer = setTimeout(() => {
+		if (!isMobileForm()) {
+			document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+		} else {
+			goToStep(currentStep, { scroll: false });
+		}
+	}, 150);
 });
 
 });
