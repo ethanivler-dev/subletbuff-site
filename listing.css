@@ -210,8 +210,18 @@
   color: var(--ink-soft);
 }
 
+.listing-price-right {
+  text-align: right;
+}
+
+.listing-distance-label {
+  font-size: 0.88rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
 .listing-deposit-label {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--ink-soft);
 }
 
@@ -281,35 +291,6 @@
 .listing-info-value {
   color: var(--ink);
   font-weight: 500;
-}
-
-.listing-extra-sections {
-  display: grid;
-  gap: 16px;
-}
-
-.listing-section {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
-}
-
-.listing-section h3 {
-  margin: 0 0 10px;
-  font-family: 'Playfair Display', serif;
-}
-
-.listing-kv {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 8px;
-  font-size: 0.92rem;
-  margin-bottom: 4px;
-}
-
-.listing-kv-label {
-  color: var(--ink-soft);
 }
 
 .listing-sidebar {
@@ -605,17 +586,8 @@
     height: 260px;
   }
 
-  .listing-small-cards {
-    grid-template-columns: 1fr;
-  }
-
   .listing-price-big {
     font-size: 1.8rem;
-  }
-
-  .listing-kv {
-    grid-template-columns: 1fr;
-    gap: 2px;
   }
 
   .listing-overview-label {

@@ -37,6 +37,20 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (window.supabase && window.supabase.createClient) console.log('[home] Supabase UMD detected');
 	else console.error('Supabase UMD not loaded');
 
+	const CAMPUS_COORDS = { lat: 40.0076, lng: -105.2659 };
+
+	function toRadians(deg) {
+		return (deg * Math.PI) / 180;
+	}
+
+	function haversineMiles(from, to) {
+		const R = 3958.8;
+		const dLat = toRadians(to.lat - from.lat);
+		const dLng = toRadians(to.lng - from.lng);
+		const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(dLng / 2) ** 2;
+		return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+	}
+
 	// Helper to safely create listing card nodes
 	function createListingCard(item) {
 		const link = document.createElement('a');
@@ -70,6 +84,22 @@ document.addEventListener('DOMContentLoaded', () => {
 		addr.style.color = 'var(--ink-soft)';
 		addr.textContent = (item && item.address) ? '📍 ' + item.address : '';
 		link.appendChild(addr);
+
+		// Distance from campus
+		if (item) {
+			const lat = Number(item.lat);
+			const lng = Number(item.lng);
+			if (Number.isFinite(lat) && Number.isFinite(lng)) {
+				const miles = haversineMiles(CAMPUS_COORDS, { lat, lng });
+				const dist = document.createElement('div');
+				dist.style.fontSize = '0.82rem';
+				dist.style.color = 'var(--gold)';
+				dist.style.fontWeight = '600';
+				dist.style.marginTop = '4px';
+				dist.textContent = miles.toFixed(2).replace(/\.00$/, '') + ' mi from campus';
+				link.appendChild(dist);
+			}
+		}
 
 		if (item && item.photo_notes && item.photo_notes[0]) {
 			const note = document.createElement('div');

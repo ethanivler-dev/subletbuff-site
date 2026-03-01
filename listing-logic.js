@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_ZZ4mKcw6_e9diz7oFfbVag_YA9zkqFW';
 
+  const CAMPUS_COORDS = { lat: 40.0076, lng: -105.2659 };
+
   const supabaseClient = (window.supabase && window.supabase.createClient)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } })
     : null;
@@ -36,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const el = {
     status: document.getElementById('listing-status'),
     content: document.getElementById('listing-content'),
-    sections: document.getElementById('listing-sections'),
 
     rent: document.getElementById('listing-rent'),
     badges: document.getElementById('listing-badges'),
@@ -73,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lightboxCounter: document.getElementById('lightbox-counter'),
 
     priceBig: document.getElementById('listing-price-big'),
+    distanceLabel: document.getElementById('listing-distance-label'),
     depositLabel: document.getElementById('listing-deposit-label'),
     descriptionText: document.getElementById('listing-description-text'),
     briefContent: document.getElementById('listing-brief-content'),
@@ -145,42 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  function prettifyKey(key) {
-    return key
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+  function toRadians(deg) {
+    return (deg * Math.PI) / 180;
   }
 
-  function createKvRow(label, value) {
-    if (!isPresent(value)) return null;
-    const row = document.createElement('div');
-    row.className = 'listing-kv';
-
-    const left = document.createElement('div');
-    left.className = 'listing-kv-label';
-    left.textContent = label;
-
-    const right = document.createElement('div');
-    right.textContent = Array.isArray(value) ? value.join(', ') : String(value);
-
-    row.appendChild(left);
-    row.appendChild(right);
-    return row;
-  }
-
-  function createSection(title, rows) {
-    const visibleRows = rows.filter(Boolean);
-    if (visibleRows.length === 0) return null;
-
-    const section = document.createElement('section');
-    section.className = 'listing-section';
-
-    const h3 = document.createElement('h3');
-    h3.textContent = title;
-    section.appendChild(h3);
-
-    visibleRows.forEach((row) => section.appendChild(row));
-    return section;
+  function haversineMiles(from, to) {
+    const R = 3958.8;
+    const dLat = toRadians(to.lat - from.lat);
+    const dLng = toRadians(to.lng - from.lng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   function showToast(text) {
@@ -622,6 +598,18 @@ document.addEventListener('DOMContentLoaded', () => {
       el.depositLabel.textContent = deposit ? 'Security Deposit: ' + deposit : '';
     }
 
+    // ── Distance from campus ──
+    if (el.distanceLabel) {
+      const lat = Number(listing.lat);
+      const lng = Number(listing.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        const miles = haversineMiles(CAMPUS_COORDS, { lat, lng });
+        el.distanceLabel.textContent = miles.toFixed(2).replace(/\.00$/, '') + ' mi from campus';
+      } else {
+        el.distanceLabel.textContent = '';
+      }
+    }
+
     // ── Description card ──
     if (el.descriptionText) {
       el.descriptionText.textContent = listing.description || 'No description provided.';
@@ -667,28 +655,14 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         el.flexContent.textContent = 'No move-in details available.';
       }
-    }
-  }
 
-  function renderSections(listing) {
-    if (!el.sections) return;
-    el.sections.innerHTML = '';
-
-    const known = new Set([
-      'id', 'created_at', 'updated_at', 'status', 'photo_urls', 'photos_meta', 'photo_notes',
-      'first_name', 'last_name', 'monthly_rent', 'address', 'unit_number', 'neighborhood', 'beds', 'baths',
-      'furnished', 'start_date', 'end_date', 'flexible_movein', 'housing_type', 'unit_type', 'lease_type',
-      'security_deposit', 'pets', 'gender_preference', 'description', 'preferred_contact', 'email', 'phone',
-      'best_time', 'verified', 'cross_streets', 'general_area', 'location_hint', 'landmark'
-    ]);
-
-    const extraRows = Object.keys(listing)
-      .filter((key) => !known.has(key) && isPresent(listing[key]))
-      .map((key) => createKvRow(prettifyKey(key), listing[key]));
-
-    const extras = createSection('More Info', extraRows);
-    if (extras) {
-      el.sections.appendChild(extras);
+      // Flex move-in notes
+      if (isPresent(listing.flexible_movein_notes)) {
+        const note = document.createElement('p');
+        note.style.cssText = 'margin: 10px 0 0; font-size: 0.88rem; color: var(--ink-soft); white-space: pre-line;';
+        note.textContent = listing.flexible_movein_notes;
+        el.flexContent.appendChild(note);
+      }
     }
   }
 
@@ -828,7 +802,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderSidebar(listing);
       renderLeftContent(listing);
-      renderSections(listing);
       setMainImage(0);
 
       if (previewMode) {

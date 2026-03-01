@@ -1253,6 +1253,7 @@ function saveDraft() {
 		startDate: document.getElementById('start-date').value,
 		endDate: document.getElementById('end-date').value,
 		flexible: document.querySelector('input[name="flexible"]:checked')?.value || '',
+		flexNotes: document.getElementById('flex-notes').value,
 		phone: document.getElementById('phone').value,
 		bestTime: document.getElementById('best-time').value,
 		housingType: document.querySelector('#housing-type .toggle-btn.active')?.dataset.val || '',
@@ -1302,6 +1303,7 @@ function loadDraft() {
 		if(draft.startDate) document.getElementById('start-date').value = draft.startDate;
 		if(draft.endDate) document.getElementById('end-date').value = draft.endDate;
 		if(draft.flexible) document.querySelector(`input[name="flexible"][value="${draft.flexible}"]`).checked = true;
+		if(draft.flexNotes) document.getElementById('flex-notes').value = draft.flexNotes;
 		if(draft.phone) document.getElementById('phone').value = draft.phone;
 		if(draft.bestTime) document.getElementById('best-time').value = draft.bestTime;
     
@@ -1365,6 +1367,22 @@ if (formEl) {
 // we're already inside DOMContentLoaded; run loadDraft immediately
 loadDraft();
 
+// Show/hide flex move-in notes when "Yes" is selected
+document.querySelectorAll('input[name="flexible"]').forEach(radio => {
+	radio.addEventListener('change', () => {
+		const field = document.getElementById('flex-notes-field');
+		if (field) field.style.display = radio.value === 'yes' && radio.checked ? '' : 'none';
+	});
+});
+// Restore visibility on load if draft had "yes"
+(function() {
+	const checked = document.querySelector('input[name="flexible"]:checked');
+	if (checked && checked.value === 'yes') {
+		const field = document.getElementById('flex-notes-field');
+		if (field) field.style.display = '';
+	}
+})();
+
 function buildPayload(photoUrls = []) {
 	const pets = [...document.querySelectorAll('.pet-tag.active')].map(t => t.dataset.pet).join(', ');
 	const petsNotes = document.getElementById('pet-notes').value.trim();
@@ -1393,6 +1411,7 @@ function buildPayload(photoUrls = []) {
 		start_date: document.getElementById('start-date').value || null,
 		end_date: document.getElementById('end-date').value || null,
 		flexible_movein: document.querySelector('input[name="flexible"]:checked')?.value || null,
+		flexible_movein_notes: document.getElementById('flex-notes').value.trim() || null,
 		phone: document.getElementById('phone').value || null,
 		preferred_contact: prefEmailBtn.classList.contains('active') ? 'Email' : 'Text',
 		best_time: document.getElementById('best-time').value || null,
