@@ -6,7 +6,7 @@ ROUTES + FILE PURPOSES
 - Visibility rules: public browse page
 - Allowed listing visibility: approved listings only
 */
-const BUILD_VERSION = '2026-02-23a';
+const BUILD_VERSION = '2026-02-23b';
 
 document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
@@ -21,19 +21,94 @@ document.addEventListener('DOMContentLoaded', () => {
   const gridEl = document.getElementById('listings-grid');
   const statusEl = document.getElementById('listings-status');
 
+  // ── Top search bar elements ──
   const minPriceEl = document.getElementById('filter-min-price');
   const maxPriceEl = document.getElementById('filter-max-price');
   const neighborhoodEl = document.getElementById('filter-neighborhood');
-  const startDateEl = document.getElementById('filter-start-date');
-  const endDateEl = document.getElementById('filter-end-date');
   const bedsEl = document.getElementById('filter-beds');
-  const bathsEl = document.getElementById('filter-baths');
-  const furnishedEl = document.getElementById('filter-furnished');
-  const distanceEl = document.getElementById('filter-distance');
-  const distanceValueEl = document.getElementById('filter-distance-value');
   const sortEl = document.getElementById('filter-sort');
   const applyBtn = document.getElementById('apply-filters-btn');
+
+  // ── Sidebar elements ──
+  const sidebarMinPriceEl = document.getElementById('sidebar-min-price');
+  const sidebarMaxPriceEl = document.getElementById('sidebar-max-price');
+  const sidebarNeighborhoodEl = document.getElementById('sidebar-neighborhood');
+  const startDateEl = document.getElementById('filter-start-date');
+  const endDateEl = document.getElementById('filter-end-date');
+  const distanceEl = document.getElementById('filter-distance');
+  const distanceValueEl = document.getElementById('filter-distance-value');
+  const bathsEl = document.getElementById('filter-baths');     // hidden select
+  const furnishedEl = document.getElementById('filter-furnished'); // hidden select
   const clearBtn = document.getElementById('clear-filters-btn');
+  const sidebarApplyBtn = document.getElementById('sidebar-apply-btn');
+  const sidebarEl = document.getElementById('filter-sidebar');
+  const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+  const pillsContainer = document.getElementById('filter-pills');
+
+  // ── Toggle groups ──
+  const bedsToggle = document.getElementById('sidebar-beds-toggle');
+  const bathsToggle = document.getElementById('sidebar-baths-toggle');
+  const furnishedToggle = document.getElementById('sidebar-furnished-toggle');
+
+  function initToggleGroup(groupEl, hiddenSelectEl) {
+    if (!groupEl) return;
+    groupEl.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupEl.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (hiddenSelectEl) hiddenSelectEl.value = btn.dataset.value || '';
+      });
+    });
+  }
+  initToggleGroup(bedsToggle, bedsEl);
+  initToggleGroup(bathsToggle, bathsEl);
+  initToggleGroup(furnishedToggle, furnishedEl);
+
+  // ── Sync search bar ↔ sidebar ──
+  function syncSearchBarToSidebar() {
+    if (sidebarMinPriceEl) sidebarMinPriceEl.value = minPriceEl.value;
+    if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = maxPriceEl.value;
+    if (sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = neighborhoodEl.value;
+    // Sync beds to toggle
+    if (bedsToggle) {
+      const val = bedsEl.value;
+      bedsToggle.querySelectorAll('.toggle-btn').forEach(b => {
+        b.classList.toggle('active', (b.dataset.value || '') === val);
+      });
+    }
+  }
+
+  function syncSidebarToSearchBar() {
+    if (sidebarMinPriceEl) minPriceEl.value = sidebarMinPriceEl.value;
+    if (sidebarMaxPriceEl) maxPriceEl.value = sidebarMaxPriceEl.value;
+    if (sidebarNeighborhoodEl) neighborhoodEl.value = sidebarNeighborhoodEl.value;
+    // Sync beds toggle to select
+    if (bedsToggle) {
+      const active = bedsToggle.querySelector('.toggle-btn.active');
+      if (active) bedsEl.value = active.dataset.value || '';
+    }
+  }
+
+  // ── Mobile sidebar overlay ──
+  let overlayEl = null;
+  function openSidebar() {
+    if (!sidebarEl) return;
+    syncSearchBarToSidebar();
+    sidebarEl.classList.add('open');
+    if (!overlayEl) {
+      overlayEl = document.createElement('div');
+      overlayEl.className = 'sidebar-overlay';
+      overlayEl.style.display = 'none';
+      overlayEl.addEventListener('click', closeSidebar);
+      document.body.appendChild(overlayEl);
+    }
+    if (window.innerWidth <= 900) overlayEl.style.display = 'block';
+  }
+  function closeSidebar() {
+    if (sidebarEl) sidebarEl.classList.remove('open');
+    if (overlayEl) overlayEl.style.display = 'none';
+  }
+  if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
 
   const hamburger = document.getElementById('nav-hamburger');
   const mobileMenu = document.getElementById('nav-mobile-menu');
@@ -372,10 +447,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setSelectOptions(neighborhoodEl, neighborhoods);
     setSelectOptions(bedsEl, beds);
     setSelectOptions(bathsEl, baths);
+    // Also populate sidebar selects
+    setSelectOptions(sidebarNeighborhoodEl, neighborhoods);
   }
 
   function applyFilters() {
     if (!Array.isArray(allListings)) return;
+
+    // Sync sidebar values to search bar (sidebar is source of truth when used)
+    syncSidebarToSearchBar();
 
     const minPrice = minPriceEl.value ? Number(minPriceEl.value) : null;
     const maxPrice = maxPriceEl.value ? Number(maxPriceEl.value) : null;
@@ -401,8 +481,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (neighborhood && listing.neighborhood !== neighborhood) return false;
-      if (beds && String(listing.beds || '') !== beds) return false;
-      if (baths && String(listing.baths || '') !== baths) return false;
+      if (beds) {
+        const listBeds = Number(listing.beds);
+        const minBeds = Number(beds);
+        if (!Number.isFinite(listBeds) || listBeds < minBeds) return false;
+      }
+      if (baths) {
+        const listBaths = Number(listing.baths);
+        const minBaths = Number(baths);
+        if (!Number.isFinite(listBaths) || listBaths < minBaths) return false;
+      }
       if (furnished && normalizeFurnished(listing.furnished) !== furnished) return false;
 
       if (useDistanceLimit) {
@@ -461,6 +549,14 @@ document.addEventListener('DOMContentLoaded', () => {
     furnishedEl.value = '';
     if (distanceEl) distanceEl.value = String(DISTANCE_MAX_MILES);
     if (sortEl) sortEl.value = 'newest';
+    // Reset sidebar inputs
+    if (sidebarMinPriceEl) sidebarMinPriceEl.value = '';
+    if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = '';
+    if (sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = '';
+    // Reset toggle groups
+    setToggleValue(bedsToggle, '');
+    setToggleValue(bathsToggle, '');
+    setToggleValue(furnishedToggle, '');
     updateDistanceLabel();
     renderListings(allListings);
   }
@@ -472,6 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!Array.isArray(listings) || listings.length === 0) {
       setStatus('No listings found.', 'empty');
+      updatePills();
+      updateSidebarCount(0);
       return;
     }
 
@@ -482,6 +580,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const hasDistance = listings.some((item) => Number.isFinite(item._distanceMiles));
     const distanceNote = hasDistance ? ' Distance filter uses stored coordinates.' : ' Distance unavailable for some listings.';
     setStatus(`Showing ${listings.length} listing${listings.length === 1 ? '' : 's'}.${distanceNote}`, 'loaded');
+    updatePills();
+    updateSidebarCount(listings.length);
+  }
+
+  /* ── Filter Pills ── */
+  function updatePills() {
+    if (!pillsContainer) return;
+    pillsContainer.innerHTML = '';
+
+    const pills = [];
+    const minP = minPriceEl.value;
+    const maxP = maxPriceEl.value;
+    if (minP || maxP) {
+      const label = minP && maxP ? `$${minP}–$${maxP}` : minP ? `$${minP}+` : `Up to $${maxP}`;
+      pills.push({ label, clear: () => { minPriceEl.value = ''; maxPriceEl.value = ''; if (sidebarMinPriceEl) sidebarMinPriceEl.value = ''; if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = ''; } });
+    }
+    if (neighborhoodEl.value) {
+      pills.push({ label: neighborhoodEl.value, clear: () => { neighborhoodEl.value = ''; if (sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = ''; } });
+    }
+    if (bedsEl.value) {
+      pills.push({ label: `${bedsEl.value}+ Beds`, clear: () => { bedsEl.value = ''; setToggleValue(bedsToggle, ''); } });
+    }
+    if (bathsEl.value) {
+      pills.push({ label: `${bathsEl.value}+ Baths`, clear: () => { bathsEl.value = ''; setToggleValue(bathsToggle, ''); } });
+    }
+    if (furnishedEl.value) {
+      pills.push({ label: furnishedEl.value === 'yes' ? 'Furnished' : 'Unfurnished', clear: () => { furnishedEl.value = ''; setToggleValue(furnishedToggle, ''); } });
+    }
+    const dist = distanceEl ? Number(distanceEl.value) : DISTANCE_MAX_MILES;
+    if (Number.isFinite(dist) && dist < DISTANCE_MAX_MILES) {
+      pills.push({ label: `Under ${dist} mi`, clear: () => { if (distanceEl) distanceEl.value = String(DISTANCE_MAX_MILES); updateDistanceLabel(); } });
+    }
+    if (startDateEl.value || endDateEl.value) {
+      const s = startDateEl.value || '...';
+      const e = endDateEl.value || '...';
+      pills.push({ label: `${s} – ${e}`, clear: () => { startDateEl.value = ''; endDateEl.value = ''; } });
+    }
+
+    pills.forEach(p => {
+      const pill = document.createElement('span');
+      pill.className = 'filter-pill';
+      pill.textContent = p.label;
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'filter-pill-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.addEventListener('click', () => { p.clear(); applyFilters(); });
+      pill.appendChild(closeBtn);
+      pillsContainer.appendChild(pill);
+    });
+
+    // "More Filters" pill on mobile to open sidebar
+    if (window.innerWidth <= 900) {
+      const more = document.createElement('span');
+      more.className = 'filter-pill filter-pill--more';
+      more.textContent = 'More Filters ›';
+      more.addEventListener('click', openSidebar);
+      pillsContainer.appendChild(more);
+    }
+  }
+
+  function setToggleValue(groupEl, val) {
+    if (!groupEl) return;
+    groupEl.querySelectorAll('.toggle-btn').forEach(b => {
+      b.classList.toggle('active', (b.dataset.value || '') === val);
+    });
+  }
+
+  function updateSidebarCount(count) {
+    if (!sidebarApplyBtn) return;
+    sidebarApplyBtn.textContent = `Show ${count} Listing${count === 1 ? '' : 's'} ›`;
   }
 
   async function loadApprovedListings() {
@@ -519,7 +688,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (applyBtn) applyBtn.addEventListener('click', applyFilters);
+  if (applyBtn) applyBtn.addEventListener('click', () => { syncSearchBarToSidebar(); applyFilters(); });
+  if (sidebarApplyBtn) sidebarApplyBtn.addEventListener('click', () => { syncSidebarToSearchBar(); applyFilters(); closeSidebar(); });
   if (clearBtn) clearBtn.addEventListener('click', clearFilters);
   if (distanceEl) distanceEl.addEventListener('input', updateDistanceLabel);
   if (sortEl) sortEl.addEventListener('change', applyFilters);

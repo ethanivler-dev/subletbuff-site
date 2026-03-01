@@ -59,87 +59,138 @@
       <p class="listings-subtitle">Browse currently approved sublets and filter by your preferences.</p>
     </section>
 
-    <section class="listings-filters" aria-label="Filter listings">
-      <div class="listings-filter-grid">
-        <label class="listings-field">
-          <span>Min Price</span>
-          <input type="number" id="filter-min-price" min="0" placeholder="e.g. 800" />
-        </label>
-
-        <label class="listings-field">
-          <span>Max Price</span>
-          <input type="number" id="filter-max-price" min="0" placeholder="e.g. 2200" />
-        </label>
-
-        <label class="listings-field">
-          <span>Neighborhood</span>
-          <select id="filter-neighborhood">
-            <option value="">Any</option>
-          </select>
-        </label>
-
-        <label class="listings-field">
-          <span>Start Date</span>
-          <input type="date" id="filter-start-date" />
-        </label>
-
-        <label class="listings-field">
-          <span>End Date</span>
-          <input type="date" id="filter-end-date" />
-        </label>
-
-        <label class="listings-field">
-          <span>Beds</span>
-          <select id="filter-beds">
-            <option value="">Any</option>
-          </select>
-        </label>
-
-        <label class="listings-field">
-          <span>Baths</span>
-          <select id="filter-baths">
-            <option value="">Any</option>
-          </select>
-        </label>
-
-        <label class="listings-field">
-          <span>Furnished</span>
-          <select id="filter-furnished">
-            <option value="">Any</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </label>
-
-        <label class="listings-field listings-distance-field">
-          <span>Distance from campus <strong id="filter-distance-value">Any</strong></span>
-          <input type="range" id="filter-distance" min="0" max="10" step="0.25" value="10" />
-        </label>
-
-        <label class="listings-field">
-          <span>Sort</span>
+    <!-- ── Top Search Bar ── -->
+    <section class="search-bar" aria-label="Quick search">
+      <div class="search-bar-row">
+        <div class="search-bar-field">
+          <label for="filter-min-price">Min Price</label>
+          <input type="number" id="filter-min-price" min="0" placeholder="$800" />
+        </div>
+        <span class="search-bar-dash">–</span>
+        <div class="search-bar-field">
+          <label for="filter-max-price">Max Price</label>
+          <input type="number" id="filter-max-price" min="0" placeholder="$2200" />
+        </div>
+        <div class="search-bar-field">
+          <label for="filter-neighborhood">Neighborhood</label>
+          <select id="filter-neighborhood"><option value="">Any</option></select>
+        </div>
+        <div class="search-bar-field">
+          <label for="filter-beds">Beds</label>
+          <select id="filter-beds"><option value="">Any</option></select>
+        </div>
+        <div class="search-bar-field">
+          <label for="filter-sort">Sort</label>
           <select id="filter-sort">
             <option value="newest">Newest</option>
             <option value="closest">Closest to campus</option>
             <option value="farthest">Farthest from campus</option>
           </select>
-        </label>
-      </div>
-
-      <div class="listings-filter-actions">
-        <button type="button" id="apply-filters-btn" class="listings-btn-primary">Apply Filters</button>
-        <button type="button" id="clear-filters-btn" class="listings-btn-secondary">Clear</button>
+        </div>
+        <button type="button" id="apply-filters-btn" class="search-bar-btn">Search</button>
       </div>
     </section>
 
-    <section class="listings-results">
-      <div id="listings-status" class="listings-status" aria-live="polite">Loading listings...</div>
-      <div id="listings-grid" class="listings-grid" aria-live="polite"></div>
-    </section>
+    <!-- ── Active Filter Pills ── -->
+    <div class="filter-pills" id="filter-pills" aria-label="Active filters"></div>
+
+    <!-- ── Sidebar + Grid ── -->
+    <div class="listings-layout">
+      <!-- Left Sidebar Filters -->
+      <aside class="filter-sidebar" id="filter-sidebar">
+        <div class="sidebar-header">
+          <h2 class="sidebar-title">Search Filters</h2>
+          <button type="button" id="sidebar-close-btn" class="sidebar-close" aria-label="Close filters">&times;</button>
+        </div>
+
+        <!-- Price Range -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Price Range</span>
+          <div class="sidebar-range-inputs">
+            <input type="number" id="sidebar-min-price" min="0" placeholder="Min" />
+            <span class="sidebar-range-dash">–</span>
+            <input type="number" id="sidebar-max-price" min="0" placeholder="Max" />
+          </div>
+        </div>
+
+        <!-- Neighborhood -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Neighborhood</span>
+          <select id="sidebar-neighborhood"><option value="">Any</option></select>
+        </div>
+
+        <!-- Beds -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Beds</span>
+          <div class="toggle-group" id="sidebar-beds-toggle">
+            <button type="button" class="toggle-btn active" data-value="">Any</button>
+            <button type="button" class="toggle-btn" data-value="1">1+</button>
+            <button type="button" class="toggle-btn" data-value="2">2+</button>
+            <button type="button" class="toggle-btn" data-value="3">3+</button>
+          </div>
+        </div>
+
+        <!-- Distance to campus -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Distance to campus <strong id="filter-distance-value">Any</strong></span>
+          <input type="range" id="filter-distance" min="0" max="10" step="0.25" value="10" class="sidebar-range-slider" />
+          <div class="sidebar-range-labels">
+            <span>0.5 mi</span><span>1 mi</span><span>5 mi</span><span>Any</span>
+          </div>
+        </div>
+
+        <!-- Start Date -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Start Date</span>
+          <div class="sidebar-date-row">
+            <input type="date" id="filter-start-date" />
+            <span class="sidebar-range-dash">–</span>
+            <input type="date" id="filter-end-date" />
+          </div>
+        </div>
+
+        <!-- Baths -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Baths</span>
+          <div class="toggle-group" id="sidebar-baths-toggle">
+            <button type="button" class="toggle-btn active" data-value="">Any</button>
+            <button type="button" class="toggle-btn" data-value="1">1+</button>
+            <button type="button" class="toggle-btn" data-value="2">2+</button>
+            <button type="button" class="toggle-btn" data-value="3">3+</button>
+          </div>
+        </div>
+
+        <!-- Furnished -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Furnished</span>
+          <div class="toggle-group" id="sidebar-furnished-toggle">
+            <button type="button" class="toggle-btn active" data-value="">Any</button>
+            <button type="button" class="toggle-btn" data-value="yes">Yes</button>
+            <button type="button" class="toggle-btn" data-value="no">No</button>
+          </div>
+        </div>
+
+        <!-- Hidden selects for JS compatibility -->
+        <select id="filter-baths" style="display:none"><option value="">Any</option></select>
+        <select id="filter-furnished" style="display:none"><option value="">Any</option></select>
+
+        <!-- Actions -->
+        <div class="sidebar-actions">
+          <button type="button" id="sidebar-apply-btn" class="sidebar-apply-btn">Show Listings &rsaquo;</button>
+          <button type="button" id="clear-filters-btn" class="sidebar-clear-btn">Clear All</button>
+        </div>
+      </aside>
+
+      <!-- Right Results Area -->
+      <div class="listings-main">
+        <div id="listings-status" class="listings-status" aria-live="polite">Loading listings...</div>
+        <div id="listings-grid" class="listings-grid" aria-live="polite"></div>
+      </div>
+    </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="/auth.js" defer></script>
-  <script src="/listings-logic.js?v=2026-02-23a" defer></script>
+  <script src="/listings-logic.js?v=2026-02-23b" defer></script>
 </body>
 </html>
