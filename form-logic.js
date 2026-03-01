@@ -266,43 +266,74 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// ── UPLOAD VIA VERCEL FUNCTION (handles storage + HEIC conversion via Sharp) ──
+	const RETRY_STATUSES = [403, 408, 429, 500, 502, 503, 504];
+	const MAX_RETRIES = 3;
+
 	async function uploadViaEdgeFunction(file) {
 		// Compress large images client-side before upload
 		const fileToSend = await compressImageIfNeeded(file);
-
-		const url = '/api/upload';
-		const formData = new FormData();
 		const listingId = getActiveUploadListingId();
-		formData.append('file', fileToSend);
-		formData.append('listing_id', listingId);
 
-		console.log('[form] uploading:', { name: fileToSend.name, size: fileToSend.size, type: fileToSend.type, listingId });
-
-		const resp = await fetch(url, {
-			method: 'POST',
-			headers: { 'Accept': 'application/json' },
-			body: formData
-		});
-
-		if (!resp.ok) {
-			let errBody = {};
-			try { errBody = await resp.json(); } catch (_) {}
-			console.error('[form] edge function error:', resp.status, errBody);
-			if (resp.status === 413) {
-				throw new Error('Photo is too large. Please use a smaller image (under 4MB).');
+		let lastError = null;
+		for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+			if (attempt > 0) {
+				const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+				console.log(`[form] retry ${attempt}/${MAX_RETRIES} after ${delay}ms`);
+				await new Promise(r => setTimeout(r, delay));
 			}
-			const msg = [errBody.error, errBody.details].filter(Boolean).join(' — ');
-			throw new Error(msg || `Upload failed (${resp.status})`);
-		}
 
-		const json = await resp.json();
-		console.log('convert-image response', json);
-		if (!json?.publicUrl || !json?.path) {
-			throw new Error('Upload succeeded but response was incomplete.');
+			const url = '/api/upload';
+			const formData = new FormData();
+			formData.append('file', fileToSend);
+			formData.append('listing_id', listingId);
+
+			console.log('[form] uploading:', { name: fileToSend.name, size: fileToSend.size, type: fileToSend.type, listingId, attempt });
+
+			try {
+				const resp = await fetch(url, {
+					method: 'POST',
+					headers: { 'Accept': 'application/json' },
+					body: formData
+				});
+
+				if (!resp.ok) {
+					let errBody = {};
+					let rawText = '';
+					try { rawText = await resp.text(); } catch (_) {}
+					try { errBody = JSON.parse(rawText); } catch (_) {}
+					console.error('[form] edge function error:', resp.status, errBody || rawText);
+
+					if (resp.status === 413) {
+						throw new Error('Photo is too large. Please use a smaller image (under 4MB).');
+					}
+
+					// Retry on transient errors
+					if (RETRY_STATUSES.includes(resp.status) && attempt < MAX_RETRIES) {
+						lastError = new Error(`Upload failed (${resp.status})`);
+						continue;
+					}
+
+					const msg = [errBody.error, errBody.details].filter(Boolean).join(' — ');
+					throw new Error(msg || `Upload failed (${resp.status})${rawText ? ': ' + rawText.slice(0, 200) : ''}`);
+				}
+
+				const json = await resp.json();
+				console.log('convert-image response', json);
+				if (!json?.publicUrl || !json?.path) {
+					throw new Error('Upload succeeded but response was incomplete.');
+				}
+				const resolvedListingId = json.listingId || listingId;
+				persistUploadListingId(resolvedListingId);
+				return { path: json.path, url: json.publicUrl, listingId: resolvedListingId };
+			} catch (err) {
+				// Non-retryable errors (thrown above) propagate immediately
+				if (!RETRY_STATUSES.some(s => err.message?.includes(`(${s})`)) || attempt >= MAX_RETRIES) {
+					throw err;
+				}
+				lastError = err;
+			}
 		}
-		const resolvedListingId = json.listingId || listingId;
-		persistUploadListingId(resolvedListingId);
-		return { path: json.path, url: json.publicUrl, listingId: resolvedListingId };
+		throw lastError || new Error('Upload failed after retries');
 	}
 
 	// ── DRAFT PHOTO PERSISTENCE ────────────────────────
