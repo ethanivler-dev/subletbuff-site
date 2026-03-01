@@ -61,7 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
     editPhotosGrid: document.getElementById('edit-photos-grid'),
     editPhotoCount: document.getElementById('edit-photo-count'),
     editPhotoAddInput: document.getElementById('edit-photo-add-input'),
-    editPhotoAddBtn: document.getElementById('edit-photo-add-btn')
+    editPhotoAddBtn: document.getElementById('edit-photo-add-btn'),
+    editModalBody: document.getElementById('edit-modal-body'),
+    editScrollHint: document.getElementById('edit-scroll-hint')
   };
 
   const editFields = {
@@ -403,6 +405,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!elements.editOverlay) return;
     elements.editOverlay.classList.add('open');
     elements.editOverlay.setAttribute('aria-hidden', 'false');
+    // Reset scroll and show hint after content renders
+    requestAnimationFrame(() => { updateScrollHint(); });
   }
 
   function closeEditOverlay() {
@@ -411,6 +415,21 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.editOverlay.classList.remove('open');
     elements.editOverlay.setAttribute('aria-hidden', 'true');
     setEditMessage('');
+    if (elements.editScrollHint) elements.editScrollHint.classList.remove('visible');
+  }
+
+  function updateScrollHint() {
+    const body = elements.editModalBody;
+    const hint = elements.editScrollHint;
+    if (!body || !hint) return;
+    const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+    hint.classList.toggle('visible', !atBottom && body.scrollHeight > body.clientHeight + 60);
+  }
+
+  function scrollEditModalDown() {
+    const body = elements.editModalBody;
+    if (!body) return;
+    body.scrollBy({ top: body.clientHeight * 0.6, behavior: 'smooth' });
   }
 
   async function loadCurrentModeList() {
@@ -615,6 +634,9 @@ document.addEventListener('DOMContentLoaded', () => {
       renderEditPhotos();
 
       setEditMessage('');
+      // Scroll to top and refresh scroll hint after content is rendered
+      if (elements.editModalBody) elements.editModalBody.scrollTop = 0;
+      requestAnimationFrame(() => { updateScrollHint(); });
     } catch (err) {
       console.error('[admin] openEditModal error', err);
       setEditMessage('Error loading listing: ' + (err && err.message ? err.message : String(err)), '#C0392B');
@@ -926,6 +948,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && state.currentEditId) closeEditOverlay();
     });
+
+    // Scroll-down hint in edit modal
+    if (elements.editModalBody) {
+      elements.editModalBody.addEventListener('scroll', () => { updateScrollHint(); });
+    }
+    if (elements.editScrollHint) {
+      elements.editScrollHint.addEventListener('click', () => { scrollEditModalDown(); });
+    }
 
     document.addEventListener('click', async (event) => {
       const logoutBtn = event.target && event.target.closest ? event.target.closest('#admin-logout') : null;
