@@ -194,10 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function normalizeFurnished(value) {
     if (value == null) return '';
+    if (typeof value === 'boolean') return value ? 'yes' : 'no';
     const normalized = String(value).trim().toLowerCase();
     if (!normalized) return '';
-    if (['yes', 'y', 'true', '1', 'furnished'].includes(normalized)) return 'yes';
-    if (['no', 'n', 'false', '0', 'unfurnished'].includes(normalized)) return 'no';
+    if (normalized.includes('yes') || normalized.includes('true') || normalized.includes('furnished') || normalized === 'y' || normalized === '1') return 'yes';
+    if (normalized.includes('no') || normalized.includes('false') || normalized.includes('unfurnished') || normalized === 'n' || normalized === '0') return 'no';
     return normalized;
   }
 
