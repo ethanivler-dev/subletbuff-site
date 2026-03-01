@@ -1014,8 +1014,8 @@ const BOULDER_NEIGHBORHOODS = [
 	// The Hill (already handled separately, listed here for completeness)
 	{ name: 'The Hill',               s: 40.000, n: 40.013, w: -105.285, e: -105.260 },
 
-	// North Boulder
-	{ name: 'North Boulder',          s: 40.035, n: 40.065, w: -105.300, e: -105.245 },
+	// North Boulder — starts around Iris Ave (~40.023) up to city limits
+	{ name: 'North Boulder',          s: 40.023, n: 40.065, w: -105.300, e: -105.245 },
 	// Northfield / Gunbarrel fringe
 	{ name: 'Gunbarrel',              s: 40.055, n: 40.080, w: -105.195, e: -105.140 },
 
@@ -1028,7 +1028,7 @@ const BOULDER_NEIGHBORHOODS = [
 	// Central / Downtown
 	{ name: 'Downtown Boulder',       s: 40.013, n: 40.022, w: -105.285, e: -105.270 },
 	{ name: 'Pearl Street',           s: 40.017, n: 40.022, w: -105.285, e: -105.255 },
-	{ name: 'Mapleton Hill',          s: 40.020, n: 40.030, w: -105.290, e: -105.270 },
+	{ name: 'Mapleton Hill',          s: 40.020, n: 40.028, w: -105.295, e: -105.283 },
 	{ name: 'Newlands',               s: 40.028, n: 40.040, w: -105.295, e: -105.270 },
 
 	// East Boulder
@@ -1061,7 +1061,7 @@ function classifyNeighborhood(lat, lng) {
 /**
  * Check if a neighborhood name from Google is too generic and should be replaced.
  */
-const GENERIC_NEIGHBORHOODS = ['boulder', 'central boulder', 'boulder county'];
+const GENERIC_NEIGHBORHOODS = ['boulder', 'central boulder', 'boulder county', 'downtown boulder'];
 function isGenericNeighborhood(name) {
 	return GENERIC_NEIGHBORHOODS.includes((name || '').toLowerCase().trim());
 }
