@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const signInBtn = document.getElementById('account-signin-btn');
   const signOutBtn = document.getElementById('account-signout-btn');
 
+  let _session = null;
+  let _editingListingId = null;
+
   // Sign in button on the page (for users who aren't signed in yet)
   if (signInBtn) {
     signInBtn.addEventListener('click', () => {
@@ -63,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadDashboard(session) {
+    _session = session;
     const user = session.user;
     const email = user.email || '';
     const userId = user.id || null;
@@ -142,29 +146,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const statusClass = (listing.status || 'pending').toLowerCase();
         const statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
+        // Filled / paused take display priority over approval status
+        const displayClass = listing.filled ? 'filled' : (listing.paused ? 'paused' : statusClass);
+        const displayLabel = listing.filled ? 'Filled' : (listing.paused ? 'Paused' : statusLabel);
 
         const createdDate = listing.created_at
           ? new Date(listing.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
           : '';
 
-        card.innerHTML =
-          imgHtml +
-          '<div class="my-listing-info">' +
-            '<div class="my-listing-address">' + address + '</div>' +
-            '<div class="my-listing-meta">' + metaParts + (createdDate ? ' · ' + createdDate : '') + '</div>' +
-          '</div>' +
-          '<div class="my-listing-stats">' +
-            '<div class="my-listing-stat">' +
-              '<div class="my-listing-stat-value">' + views.toLocaleString() + '</div>' +
-              '<div class="my-listing-stat-label">Views</div>' +
-            '</div>' +
-          '</div>' +
-          '<span class="my-listing-status ' + statusClass + '">' + statusLabel + '</span>';
+        // Action buttons — only for approved listings
+        let actionsHtml = '';
+        if (listing.status === 'approved') {
+          const pauseLabel = listing.paused ? 'Unpause' : 'Pause';
+          actionsHtml = '<div class="my-listing-actions">'
+            + '<button type="button" class="my-listing-action-btn" data-action="edit">Edit</button>';
+          if (!listing.filled) {
+            actionsHtml +=
+              '<button type="button" class="my-listing-action-btn" data-action="pause">' + pauseLabel + '</button>'
+              + '<button type="button" class="my-listing-action-btn" data-action="fill">Mark Filled</button>'
+              + '<button type="button" class="my-listing-action-btn" data-action="lower-price">Lower Price</button>'
+              + '<button type="button" class="my-listing-action-btn" data-action="renew">Renew</button>';
+          }
+          actionsHtml += '</div>';
+        }
 
-        // Click to view listing detail
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', () => {
-          window.location.href = '/listing.html?id=' + encodeURIComponent(listing.id);
+        card.innerHTML =
+          '<div class="my-listing-main">'
+          + imgHtml
+          + '<div class="my-listing-info">'
+          +   '<div class="my-listing-address">' + address + '</div>'
+          +   '<div class="my-listing-meta">' + metaParts + (createdDate ? ' · ' + createdDate : '') + '</div>'
+          + '</div>'
+          + '<div class="my-listing-stats">'
+          +   '<div class="my-listing-stat">'
+          +     '<div class="my-listing-stat-value">' + views.toLocaleString() + '</div>'
+          +     '<div class="my-listing-stat-label">Views</div>'
+          +   '</div>'
+          + '</div>'
+          + '<span class="my-listing-status ' + displayClass + '">' + displayLabel + '</span>'
+          + '</div>'
+          + actionsHtml;
+
+        // Clicking the main row navigates to the listing
+        const mainEl = card.querySelector('.my-listing-main');
+        if (mainEl) {
+          mainEl.style.cursor = 'pointer';
+          mainEl.addEventListener('click', () => {
+            window.location.href = '/listing.html?id=' + encodeURIComponent(listing.id);
+          });
+        }
+
+        // Wire up action buttons (stop propagation so they don't trigger the row click)
+        card.querySelectorAll('[data-action]').forEach(btn => {
+          btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const action = btn.dataset.action;
+            if (action === 'edit') openEditModal(listing);
+            else if (action === 'pause') pauseListing(listing);
+            else if (action === 'fill') markFilled(listing);
+            else if (action === 'lower-price') lowerPrice(listing);
+            else if (action === 'renew') renewListing(listing);
+          });
         });
 
         listingsEl.appendChild(card);
@@ -225,6 +267,143 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── Self-serve listing management ──
+
+  async function callUpdateListing(listingId, updates) {
+    const token = _session?.access_token;
+    if (!token) throw new Error('Not signed in');
+    const res = await fetch('/api/update-listing', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ listing_id: listingId, updates }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Update failed');
+    return json.listing;
+  }
+
+  function openEditModal(listing) {
+    _editingListingId = listing.id;
+    document.getElementById('edit-field-description').value = listing.description || '';
+    document.getElementById('edit-field-rent').value = listing.monthly_rent != null ? listing.monthly_rent : '';
+    document.getElementById('edit-field-deposit').value = listing.security_deposit != null ? listing.security_deposit : '';
+    document.getElementById('edit-field-start').value = listing.start_date ? listing.start_date.slice(0, 10) : '';
+    document.getElementById('edit-field-end').value = listing.end_date ? listing.end_date.slice(0, 10) : '';
+    document.getElementById('edit-field-phone').value = listing.phone || '';
+    document.getElementById('edit-field-contact').value = listing.preferred_contact || '';
+    document.getElementById('edit-field-besttime').value = listing.best_time || '';
+    const msgEl = document.getElementById('edit-modal-msg');
+    msgEl.textContent = '';
+    msgEl.className = 'account-modal-msg';
+    const submitBtn = document.getElementById('edit-modal-submit');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save Changes';
+    document.getElementById('edit-listing-modal').classList.remove('account-modal-hidden');
+    document.getElementById('edit-listing-modal').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-listing-modal').classList.add('account-modal-hidden');
+    document.getElementById('edit-listing-modal').setAttribute('aria-hidden', 'true');
+    _editingListingId = null;
+  }
+
+  async function submitEdit() {
+    if (!_editingListingId) return;
+    const submitBtn = document.getElementById('edit-modal-submit');
+    const msgEl = document.getElementById('edit-modal-msg');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+    msgEl.textContent = '';
+    msgEl.className = 'account-modal-msg';
+
+    const rentVal = document.getElementById('edit-field-rent').value;
+    const depositVal = document.getElementById('edit-field-deposit').value;
+    const updates = {
+      description: document.getElementById('edit-field-description').value.trim() || null,
+      monthly_rent: rentVal !== '' ? parseFloat(rentVal) : null,
+      security_deposit: depositVal !== '' ? parseFloat(depositVal) : null,
+      start_date: document.getElementById('edit-field-start').value || null,
+      end_date: document.getElementById('edit-field-end').value || null,
+      phone: document.getElementById('edit-field-phone').value.trim() || null,
+      preferred_contact: document.getElementById('edit-field-contact').value.trim() || null,
+      best_time: document.getElementById('edit-field-besttime').value.trim() || null,
+    };
+
+    try {
+      await callUpdateListing(_editingListingId, updates);
+      closeEditModal();
+      loadDashboard(_session);
+    } catch (err) {
+      msgEl.textContent = err.message || 'Failed to save changes.';
+      msgEl.className = 'account-modal-msg error';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Changes';
+    }
+  }
+
+  async function pauseListing(listing) {
+    const willPause = !listing.paused;
+    const msg = willPause
+      ? 'Pause this listing? It will be hidden from public view until you unpause it.'
+      : 'Unpause this listing? It will reappear in public search.';
+    if (!confirm(msg)) return;
+    try {
+      await callUpdateListing(listing.id, { paused: willPause });
+      loadDashboard(_session);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function markFilled(listing) {
+    if (!confirm('Mark this listing as filled? It will be removed from public search.')) return;
+    try {
+      await callUpdateListing(listing.id, { filled: true, filled_at: new Date().toISOString() });
+      loadDashboard(_session);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function lowerPrice(listing) {
+    const current = listing.monthly_rent;
+    const input = prompt('Current rent: $' + (current || 0) + '/mo\n\nEnter the new monthly rent (must be lower):');
+    if (!input) return;
+    const newRent = parseFloat(input);
+    if (isNaN(newRent) || newRent <= 0) { alert('Please enter a valid dollar amount.'); return; }
+    if (newRent >= current) { alert('New rent must be lower than the current rent ($' + current + '/mo).'); return; }
+    try {
+      await callUpdateListing(listing.id, { monthly_rent: newRent });
+      loadDashboard(_session);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function renewListing(listing) {
+    const input = prompt('Enter new end date (YYYY-MM-DD):');
+    if (!input) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) { alert('Please use YYYY-MM-DD format (e.g. 2026-08-08).'); return; }
+    if (isNaN(new Date(input).getTime())) { alert('Invalid date.'); return; }
+    try {
+      await callUpdateListing(listing.id, { end_date: input });
+      loadDashboard(_session);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  function setupModalEvents() {
+    document.getElementById('edit-modal-close')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-cancel')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-submit')?.addEventListener('click', submitEdit);
+    // Close on backdrop click
+    document.getElementById('edit-listing-modal')?.addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeEditModal();
+    });
+  }
+
   // ── Init: check session ──
   async function init() {
     if (!window.sbAuth) { showPrompt(); return; }
@@ -245,5 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  setupModalEvents();
   init();
 });
