@@ -55,8 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     editMsg: document.getElementById('admin-modal-msg'),
     editCancel: document.getElementById('admin-edit-cancel'),
     editSave: document.getElementById('admin-edit-save'),
-    editPhotosToggle: document.getElementById('edit-photos-toggle'),
-    editPhotosWrap: document.getElementById('edit-photos-wrap')
+    editClose: document.getElementById('admin-edit-close'),
+    editPreviewImg: document.getElementById('edit-preview-img'),
+    editPreviewSubtitle: document.getElementById('edit-preview-subtitle'),
+    editPhotosGrid: document.getElementById('edit-photos-grid'),
+    editPhotoCount: document.getElementById('edit-photo-count'),
+    editPhotoAddInput: document.getElementById('edit-photo-add-input'),
+    editPhotoAddBtn: document.getElementById('edit-photo-add-btn')
   };
 
   const editFields = {
@@ -74,8 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lease_type: document.getElementById('edit-lease-type'),
     housing_type: document.getElementById('edit-housing-type'),
     unit_type: document.getElementById('edit-unit-type'),
-    verified: document.getElementById('edit-verified'),
-    photo_urls: document.getElementById('edit-photo-urls')
+    verified: document.getElementById('edit-verified')
   };
 
   const state = {
@@ -84,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     total: 0,
     query: '',
     rows: [],
+    editPhotos: [],
     session: null,
     isAdmin: false,
     requestId: 0,
@@ -353,11 +358,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function updatePhotoSectionCount(urls) {
-    if (!elements.editPhotosToggle) return;
-    const count = Array.isArray(urls) ? urls.length : 0;
-    const isOpen = !(elements.editPhotosWrap && elements.editPhotosWrap.classList.contains('admin-hidden'));
-    elements.editPhotosToggle.textContent = `Photos (${count}) ${isOpen ? '▾' : '▸'}`;
+  function renderEditPhotos() {
+    if (!elements.editPhotosGrid) return;
+    elements.editPhotosGrid.innerHTML = '';
+    const photos = state.editPhotos;
+
+    photos.forEach((url, idx) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'edit-photo-thumb';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Photo ' + (idx + 1);
+      img.onerror = () => { img.src = 'https://via.placeholder.com/110x110?text=Error'; };
+      thumb.appendChild(img);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'edit-photo-remove';
+      removeBtn.textContent = '✕';
+      removeBtn.title = 'Remove photo';
+      removeBtn.addEventListener('click', () => {
+        state.editPhotos.splice(idx, 1);
+        renderEditPhotos();
+      });
+      thumb.appendChild(removeBtn);
+      elements.editPhotosGrid.appendChild(thumb);
+    });
+
+    if (elements.editPhotoCount) {
+      elements.editPhotoCount.textContent = photos.length ? '(' + photos.length + ')' : '';
+    }
+  }
+
+  function addEditPhoto() {
+    if (!elements.editPhotoAddInput) return;
+    const url = elements.editPhotoAddInput.value.trim();
+    if (!url) return;
+    state.editPhotos.push(url);
+    elements.editPhotoAddInput.value = '';
+    renderEditPhotos();
   }
 
   function openEditOverlay() {
@@ -561,9 +600,20 @@ document.addEventListener('DOMContentLoaded', () => {
       editFields.housing_type.value = data.housing_type || '';
       editFields.unit_type.value = data.unit_type || '';
       editFields.verified.value = data.verified ? 'true' : 'false';
-      editFields.photo_urls.value = Array.isArray(data.photo_urls) ? data.photo_urls.join('\n') : '';
 
-      updatePhotoSectionCount(Array.isArray(data.photo_urls) ? data.photo_urls : []);
+      // Populate header preview
+      const photos = Array.isArray(data.photo_urls) ? data.photo_urls : [];
+      if (elements.editPreviewImg) {
+        elements.editPreviewImg.src = photos.length > 0 ? photos[0] : 'https://via.placeholder.com/56x56?text=No+Photo';
+      }
+      if (elements.editPreviewSubtitle) {
+        elements.editPreviewSubtitle.textContent = '$' + (data.monthly_rent || '?') + ' — ' + (data.address || 'No address');
+      }
+
+      // Populate photo grid
+      state.editPhotos = photos.slice();
+      renderEditPhotos();
+
       setEditMessage('');
     } catch (err) {
       console.error('[admin] openEditModal error', err);
@@ -590,10 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
       housing_type: editFields.housing_type.value.trim() || null,
       unit_type: editFields.unit_type.value.trim() || null,
       verified: editFields.verified.value === 'true',
-      photo_urls: editFields.photo_urls.value
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
+      photo_urls: state.editPhotos.filter(Boolean)
     };
 
     setEditMessage('Saving...');
@@ -858,23 +905,27 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    if (elements.editPhotosToggle) {
-      elements.editPhotosToggle.addEventListener('click', () => {
-        if (!elements.editPhotosWrap) return;
-        elements.editPhotosWrap.classList.toggle('admin-hidden');
-        const urls = (editFields.photo_urls && editFields.photo_urls.value)
-          ? editFields.photo_urls.value.split('\n').map((line) => line.trim()).filter(Boolean)
-          : [];
-        updatePhotoSectionCount(urls);
+    // Close button (X) in edit modal header
+    if (elements.editClose) {
+      elements.editClose.addEventListener('click', () => {
+        closeEditOverlay();
       });
     }
 
-    if (editFields.photo_urls) {
-      editFields.photo_urls.addEventListener('input', () => {
-        const urls = editFields.photo_urls.value.split('\n').map((line) => line.trim()).filter(Boolean);
-        updatePhotoSectionCount(urls);
+    // Add photo button
+    if (elements.editPhotoAddBtn) {
+      elements.editPhotoAddBtn.addEventListener('click', () => { addEditPhoto(); });
+    }
+    if (elements.editPhotoAddInput) {
+      elements.editPhotoAddInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addEditPhoto(); }
       });
     }
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && state.currentEditId) closeEditOverlay();
+    });
 
     document.addEventListener('click', async (event) => {
       const logoutBtn = event.target && event.target.closest ? event.target.closest('#admin-logout') : null;
