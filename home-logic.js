@@ -116,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		const rent = document.createElement('div');
 		rent.style.fontWeight = '700';
 		rent.style.color = 'var(--gold)';
+		rent.style.fontSize = '1.1rem';
+		rent.style.marginTop = '10px';
 		if (pricing.reduced) {
 			rent.innerHTML = '<span style="text-decoration:line-through;opacity:0.5;font-size:0.85em;margin-right:6px">$' + pricing.original + '</span>$' + pricing.effective + ' / mo';
 		} else {
@@ -133,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const addr = document.createElement('div');
 		addr.style.fontSize = '0.8rem';
 		addr.style.color = 'var(--ink-soft)';
-		addr.textContent = (item && item.address) ? '📍 ' + item.address : '';
+		addr.textContent = (item && item.address) ? '\uD83D\uDCCD ' + item.address : '';
 		link.appendChild(addr);
 
 		// Distance from campus
@@ -147,30 +149,75 @@ document.addEventListener('DOMContentLoaded', () => {
 				dist.style.color = 'var(--gold)';
 				dist.style.fontWeight = '600';
 				dist.style.marginTop = '4px';
-				dist.textContent = miles.toFixed(2).replace(/\.00$/, '') + ' mi from campus';
+				dist.textContent = miles.toFixed(1) + ' mi from campus';
 				link.appendChild(dist);
 			}
 		}
 
-		const firstNote = (function() {
-			if (item && Array.isArray(item.photos_meta)) {
-				const sorted = item.photos_meta.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
-				const entry = sorted.find(e => e && e.note);
-				return entry ? entry.note : '';
-			}
-			return '';
-		})();
-		if (firstNote) {
-			const note = document.createElement('div');
-			note.style.fontSize = '0.85rem';
-			note.style.color = 'var(--ink-soft)';
-			note.style.marginTop = '6px';
-			note.style.fontStyle = 'italic';
-			note.textContent = firstNote;
-			link.appendChild(note);
+		// Description snippet
+		const desc = (item && item.description) ? String(item.description).replace(/\s+/g, ' ').trim() : '';
+		if (desc) {
+			const snippet = document.createElement('div');
+			snippet.style.fontSize = '0.82rem';
+			snippet.style.color = 'var(--ink-soft)';
+			snippet.style.marginTop = '6px';
+			snippet.style.lineHeight = '1.45';
+			snippet.textContent = desc.length > 80 ? desc.substring(0, 80) + '\u2026' : desc;
+			link.appendChild(snippet);
+		}
+
+		// Feature tags
+		const tags = buildFeatureTags(item);
+		if (tags.length > 0) {
+			const tagsWrap = document.createElement('div');
+			tagsWrap.className = 'card-tags';
+			tags.forEach(function(t) {
+				const tag = document.createElement('span');
+				tag.className = 'card-tag';
+				tag.innerHTML = t.icon + ' ' + t.label;
+				tagsWrap.appendChild(tag);
+			});
+			link.appendChild(tagsWrap);
 		}
 
 		return link;
+	}
+
+	/** Build feature tags from listing data */
+	function buildFeatureTags(item) {
+		const tags = [];
+		if (!item) return tags;
+
+		// Furnished
+		const furn = String(item.furnished || '').toLowerCase();
+		if (furn.startsWith('yes')) {
+			tags.push({ label: 'Furnished', icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M20 9V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2a3 3 0 0 0-3 3v5h2v2h2v-2h14v2h2v-2h2v-5a3 3 0 0 0-3-3z"/></svg>' });
+		}
+
+		// Pets OK
+		const pets = String(item.pets || '').toLowerCase();
+		if (pets && pets !== 'no') {
+			tags.push({ label: 'Pets OK', icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M4.5 9.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm5-4a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm5 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm5 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-2.59 4.68A3.7 3.7 0 0 0 14.5 9.5c-1.03 0-2 .42-2.5 1.5-.5-1.08-1.47-1.5-2.5-1.5a3.7 3.7 0 0 0-2.41.82C5.43 11.74 4.5 13.61 4.5 15c0 1.75 1.57 4 4 5.02v.48a1.5 1.5 0 0 0 3 0v-.15c.16.01.33.02.5.02s.34-.01.5-.02v.15a1.5 1.5 0 0 0 3 0v-.48C17.93 19 19.5 16.75 19.5 15c0-1.39-.93-3.26-2.59-4.82z"/></svg>' });
+		}
+
+		// Parking (check description)
+		const descLower = String(item.description || '').toLowerCase();
+		if (descLower.includes('parking')) {
+			tags.push({ label: 'Parking', icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M13 3H6v18h4v-6h3a5 5 0 0 0 0-10h-2zm0 8h-3V7h3a2 2 0 1 1 0 4z"/></svg>' });
+		}
+
+		// Summer (dates fall roughly May-Aug)
+		if (item.start_date || item.end_date) {
+			const start = item.start_date ? new Date(item.start_date) : null;
+			const end = item.end_date ? new Date(item.end_date) : null;
+			const sm = start ? start.getMonth() : -1;
+			const em = end ? end.getMonth() : -1;
+			if ((sm >= 4 && sm <= 7) || (em >= 5 && em <= 7)) {
+				tags.push({ label: 'Summer', icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><circle cx="12" cy="12" r="5"/><g stroke="var(--gold)" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></g></svg>' });
+			}
+		}
+
+		return tags;
 	}
 
 	async function loadListings() {
@@ -185,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				.eq('paused', false)
 				.eq('filled', false)
 				.order('created_at', { ascending: false })
-				.limit(6);
+				.limit(3);
 
 			if (error) {
 				console.error('[home] Supabase query error', error);
@@ -229,45 +276,26 @@ document.addEventListener('DOMContentLoaded', () => {
 				.eq('status', 'approved')
 				.eq('paused', false)
 				.eq('filled', false);
-			if (activeErr || !activeCount) return; // hide block if 0 or error
+			if (activeErr) return;
 
-			document.getElementById('stat-active-count').textContent = activeCount.toLocaleString();
+			document.getElementById('stat-active-count').textContent = (activeCount || 0).toLocaleString();
 
-			// Views this month (best-effort — hides stat item if query fails)
+			// Listings filled this week (best-effort)
 			try {
-				const startOfMonth = new Date();
-				startOfMonth.setDate(1);
-				startOfMonth.setHours(0, 0, 0, 0);
-				const { count: viewsCount, error: viewErr } = await supabaseClient
-					.from('listing_views')
-					.select('*', { count: 'exact', head: true })
-					.gte('created_at', startOfMonth.toISOString());
-				if (!viewErr && viewsCount != null) {
-					document.getElementById('stat-views-count').textContent = viewsCount.toLocaleString();
-				} else {
-					const el = document.getElementById('home-stat-views');
-					if (el) el.style.display = 'none';
-				}
-			} catch (_) {
-				const el = document.getElementById('home-stat-views');
-				if (el) el.style.display = 'none';
-			}
-
-			// Listings filled (best-effort)
-			try {
+				const weekAgo = new Date();
+				weekAgo.setDate(weekAgo.getDate() - 7);
 				const { count: filledCount, error: filledErr } = await supabaseClient
 					.from('listings')
 					.select('*', { count: 'exact', head: true })
-					.eq('filled', true);
+					.eq('filled', true)
+					.gte('updated_at', weekAgo.toISOString());
 				if (!filledErr && filledCount != null) {
 					document.getElementById('stat-filled-count').textContent = filledCount.toLocaleString();
 				} else {
-					const el = document.getElementById('home-stat-filled');
-					if (el) el.style.display = 'none';
+					document.getElementById('stat-filled-count').textContent = '0';
 				}
 			} catch (_) {
-				const el = document.getElementById('home-stat-filled');
-				if (el) el.style.display = 'none';
+				document.getElementById('stat-filled-count').textContent = '0';
 			}
 
 			statsEl.style.display = 'flex';

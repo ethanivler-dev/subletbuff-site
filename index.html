@@ -54,37 +54,88 @@
   </nav>
 
   <main class="home">
-    <section class="home-hero">
-      <h1 class="home-title">Find student subleases in Boulder</h1>
-
-      <a class="btn-submit home-cta" href="/form.html">Post a Listing</a>
-      <a class="btn-submit home-cta" href="/listings.html">View All Listings</a>
-
-      <p class="home-note">
-        Only CU Boulder students with <strong>@colorado.edu</strong> email addresses can post listings. Listings are manually reviewed before being posted.
-      </p>
+    <!-- ── HERO ── -->
+    <section class="home-hero-banner">
+      <div class="home-hero-content">
+        <h1 class="home-hero-title">Find trusted student subleases<br>near CU Boulder</h1>
+        <p class="home-hero-sub">Browse verified listings from CU students and find a place that fits your budget, timeline, and location.</p>
+        <div class="home-hero-btns">
+          <a class="btn-submit home-cta" href="/listings.html">Browse Listings</a>
+          <a class="btn-outline home-cta" href="/form.html">Post a Listing</a>
+        </div>
+        <div class="home-trust-badges">
+          <span class="trust-badge"><span class="trust-dot"></span> CU Boulder only</span>
+          <span class="trust-badge"><span class="trust-dot"></span> Manually reviewed</span>
+          <span class="trust-badge"><span class="trust-dot"></span> Free to post</span>
+        </div>
+      </div>
     </section>
 
-    <!-- Live marketplace stats (shown only when data loads) -->
+    <!-- ── FEATURED LISTINGS ── -->
+    <section class="home-featured">
+      <h2 class="home-section-title">Featured Listings</h2>
+      <div id="featured-grid" class="home-featured-grid"></div>
+      <div class="home-view-all">
+        <a href="/listings.html" class="view-all-link">View all listings <span class="view-all-arrow">&rsaquo;</span></a>
+      </div>
+    </section>
+
+    <!-- ── WHY SUBLETBUFF ── -->
+    <section class="home-why">
+      <h2 class="home-section-title">Why SubletBuff?</h2>
+      <div class="home-why-grid">
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg>
+          </div>
+          <h3>Student-focused</h3>
+          <p>Built specifically for CU Boulder sublets.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M13 8h4"/><path d="M13 12h4"/><path d="M13 16h4"/></svg>
+          </div>
+          <h3>Reviewed before posting</h3>
+          <p>Every listing is checked before it goes live.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
+          </div>
+          <h3>Easy to browse</h3>
+          <p>Compare rent, distance, dates, and features quickly.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STATS BAR ── -->
     <div id="home-stats" class="home-stats" style="display:none" aria-label="Marketplace stats">
       <div class="home-stat-item" id="home-stat-active">
         <div class="home-stat-value" id="stat-active-count">—</div>
         <div class="home-stat-label">Active Listings</div>
       </div>
-      <div class="home-stat-item" id="home-stat-views">
-        <div class="home-stat-value" id="stat-views-count">—</div>
-        <div class="home-stat-label">Views This Month</div>
-      </div>
       <div class="home-stat-item" id="home-stat-filled">
         <div class="home-stat-value" id="stat-filled-count">—</div>
-        <div class="home-stat-label">Listings Filled</div>
+        <div class="home-stat-label">Filled This Week</div>
+      </div>
+      <div class="home-stat-item" id="home-stat-campus">
+        <svg class="stat-icon" width="16" height="16" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+        <div class="home-stat-label">CU Boulder Only</div>
       </div>
     </div>
 
-    <!-- Listings inject here -->
-    <section class="home-results">
-      <div id="featured-grid" class="listings-grid"></div>
-    </section>
+    <!-- ── FOOTER ── -->
+    <footer class="home-footer">
+      <div class="footer-inner">
+        <a href="/how-it-works.html" class="footer-link">About</a>
+        <a href="mailto:subletbuff@gmail.com" class="footer-link">Contact</a>
+        <a href="/" class="footer-logo-link">
+          <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg" alt="SubletBuff" style="height:28px;width:auto;" />
+        </a>
+        <a href="/terms-config.js" class="footer-link">Terms</a>
+        <a href="mailto:subletbuff@gmail.com" class="footer-link">Contact</a>
+      </div>
+    </footer>
   </main>
 
   <!-- Libraries + page logic -->
