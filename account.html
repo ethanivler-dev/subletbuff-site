@@ -59,6 +59,11 @@
 
     .no-listings { text-align: center; padding: 40px 0; color: var(--ink-soft); font-size: 0.9rem; }
 
+    /* Tabs */
+    .account-tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+    .account-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: 10px 18px; font-family: 'DM Sans', sans-serif; font-size: .9375rem; font-weight: 500; color: var(--ink-soft); cursor: pointer; transition: color 0.15s; }
+    .account-tab.active { border-bottom-color: var(--gold); color: var(--ink); font-weight: 600; }
+
     @media (max-width: 640px) {
       .my-listing-card { flex-wrap: wrap; }
       .my-listing-stats { width: 100%; justify-content: space-around; padding-top: 8px; border-top: 1px solid var(--border); }
@@ -150,8 +155,16 @@
         </div>
       </div>
 
-      <h2 class="account-section-title">My Listings</h2>
-      <div id="account-listings"></div>
+      <div class="account-tabs">
+        <button class="account-tab active" id="tab-my-listings" data-tab="my-listings">My Listings</button>
+        <button class="account-tab" id="tab-saved" data-tab="saved">Saved</button>
+      </div>
+      <div id="panel-my-listings">
+        <div id="account-listings"></div>
+      </div>
+      <div id="panel-saved" style="display:none">
+        <div id="saved-listings-list"></div>
+      </div>
 
       <!-- Admin-only section (hidden for non-admins) -->
       <div id="admin-section" style="display:none">

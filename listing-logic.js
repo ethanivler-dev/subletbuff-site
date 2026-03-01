@@ -771,6 +771,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function initHeartBtn(listingId) {
+    const btn = document.getElementById('listing-heart-btn');
+    if (!btn || !window.sbAuth) return;
+    const { data: { session } } = await window.sbAuth.getSession();
+    if (session) {
+      const sb = window.sbAuth.supabaseClient;
+      const { data } = await sb.from('user_favorites').select('listing_id')
+        .eq('user_id', session.user.id).eq('listing_id', listingId).maybeSingle();
+      if (data) btn.classList.add('saved');
+    }
+    btn.addEventListener('click', async () => {
+      const { data: { session: s } } = await window.sbAuth.getSession();
+      if (!s) { window.sbAuth.signInWithGoogle(); return; }
+      const sb = window.sbAuth.supabaseClient;
+      if (btn.classList.contains('saved')) {
+        await sb.from('user_favorites').delete()
+          .eq('user_id', s.user.id).eq('listing_id', listingId);
+        btn.classList.remove('saved');
+      } else {
+        await sb.from('user_favorites').insert([{ user_id: s.user.id, listing_id: listingId }]);
+        btn.classList.add('saved');
+      }
+    });
+  }
+
   function renderPreviewBanner() {
     if (!previewMode || !el.status) return;
     const previewInfo = document.createElement('div');
@@ -813,6 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       renderPreviewBanner();
       showContent(true);
+      initHeartBtn(listing.id);
     } catch (err) {
       console.error('[listing] init error', err);
       if (err && err._kind === 'unauthorized') {

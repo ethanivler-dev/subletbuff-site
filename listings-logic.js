@@ -49,6 +49,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let allListings = [];
 
+  // ── Favorites (hearts) ──
+  let savedIds = new Set();
+
+  async function loadSavedIds() {
+    if (!window.sbAuth) return;
+    const { data: { session } } = await window.sbAuth.getSession();
+    if (!session) return;
+    const sb = window.sbAuth.supabaseClient;
+    if (!sb) return;
+    const { data } = await sb.from('user_favorites').select('listing_id');
+    if (data) data.forEach(r => savedIds.add(r.listing_id));
+  }
+
+  async function toggleFavorite(listingId, btn) {
+    if (!window.sbAuth) return;
+    const { data: { session } } = await window.sbAuth.getSession();
+    if (!session) { window.sbAuth.signInWithGoogle(); return; }
+    const sb = window.sbAuth.supabaseClient;
+    if (savedIds.has(listingId)) {
+      await sb.from('user_favorites').delete()
+        .eq('user_id', session.user.id).eq('listing_id', listingId);
+      savedIds.delete(listingId);
+      btn.classList.remove('saved');
+    } else {
+      await sb.from('user_favorites').insert([{ user_id: session.user.id, listing_id: listingId }]);
+      savedIds.add(listingId);
+      btn.classList.add('saved');
+    }
+  }
+
   function setStatus(message, state) {
     if (!statusEl) return;
     statusEl.textContent = message;
@@ -181,6 +211,17 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       photoWrap.appendChild(makePlaceholderPhoto());
     }
+
+    const heartBtn = document.createElement('button');
+    heartBtn.type = 'button';
+    heartBtn.className = 'card-heart-btn' + (savedIds.has(listing.id) ? ' saved' : '');
+    heartBtn.setAttribute('aria-label', 'Save listing');
+    heartBtn.textContent = '♥';
+    heartBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      await toggleFavorite(listing.id, heartBtn);
+    });
+    photoWrap.appendChild(heartBtn);
 
     const rent = document.createElement('div');
     rent.className = 'listings-rent';
@@ -407,5 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateDistanceLabel();
 
+  loadSavedIds();
   loadApprovedListings();
 });

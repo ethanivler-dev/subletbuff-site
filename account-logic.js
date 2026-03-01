@@ -37,6 +37,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── Tab switching ──
+  function switchTab(tab) {
+    const myPanel = document.getElementById('panel-my-listings');
+    const savedPanel = document.getElementById('panel-saved');
+    if (myPanel) myPanel.style.display = tab === 'my-listings' ? '' : 'none';
+    if (savedPanel) savedPanel.style.display = tab === 'saved' ? '' : 'none';
+    document.querySelectorAll('.account-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  }
+  document.getElementById('tab-my-listings')?.addEventListener('click', () => switchTab('my-listings'));
+  document.getElementById('tab-saved')?.addEventListener('click', () => switchTab('saved'));
+
   function showPrompt() {
     if (promptEl) promptEl.style.display = '';
     if (dashEl) dashEl.style.display = 'none';
@@ -165,8 +176,56 @@ document.addEventListener('DOMContentLoaded', () => {
       setStatus('Error loading listings: ' + (err.message || 'Unknown error'));
     }
 
+    // ── Saved listings ──
+    loadSavedListings(session);
+
     // ── Admin section ──
     await loadAdminSection(session);
+  }
+
+  async function loadSavedListings(session) {
+    const sb = window.sbAuth?.supabaseClient;
+    const savedEl = document.getElementById('saved-listings-list');
+    if (!sb || !savedEl) return;
+
+    const { data: favs, error: favErr } = await sb.from('user_favorites')
+      .select('listing_id, saved_at').eq('user_id', session.user.id)
+      .order('saved_at', { ascending: false });
+
+    if (favErr) { console.warn('[account] could not fetch favorites', favErr); return; }
+
+    if (!favs || favs.length === 0) {
+      savedEl.innerHTML = '<div class="no-listings">No saved listings yet. <a href="/listings.html" style="color:var(--gold);font-weight:600;">Browse listings →</a></div>';
+      return;
+    }
+
+    const ids = favs.map(f => f.listing_id);
+    const { data: listings, error: listErr } = await sb.from('listings').select('*').in('id', ids);
+    if (listErr || !listings || !listings.length) {
+      savedEl.innerHTML = '<div class="no-listings">No listings found.</div>';
+      return;
+    }
+
+    const ordered = ids.map(id => listings.find(l => l.id === id)).filter(Boolean);
+    savedEl.innerHTML = '';
+    ordered.forEach(listing => {
+      const card = document.createElement('div');
+      card.className = 'my-listing-card';
+      card.style.cursor = 'pointer';
+      const imgSrc = listing.photo_urls?.[0] || '';
+      const imgHtml = imgSrc
+        ? '<img class="my-listing-img" src="' + imgSrc + '" alt="Listing photo" loading="lazy">'
+        : '<div class="my-listing-img" style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--ink-soft);">No photo</div>';
+      const rent = listing.monthly_rent ? '$' + Number(listing.monthly_rent).toLocaleString() + '/mo' : '';
+      const meta = [rent, listing.neighborhood].filter(Boolean).join(' · ');
+      card.innerHTML = imgHtml +
+        '<div class="my-listing-info">' +
+          '<div class="my-listing-address">' + (listing.address || '') + '</div>' +
+          '<div class="my-listing-meta">' + meta + '</div>' +
+        '</div>';
+      card.addEventListener('click', () => window.open('/listing.html?id=' + encodeURIComponent(listing.id), '_blank', 'noopener'));
+      savedEl.appendChild(card);
+    });
   }
 
   // ── Admin Management ──
