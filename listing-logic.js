@@ -113,6 +113,31 @@ document.addEventListener('DOMContentLoaded', () => {
     return `$${rounded.toLocaleString()}`;
   }
 
+  /**
+   * Compute the current effective price after auto-reductions.
+   * Returns { effective, original, reduced } where reduced is true if price was lowered.
+   */
+  function getEffectivePrice(listing) {
+    const original = Number(listing.monthly_rent);
+    if (!Number.isFinite(original)) return { effective: 0, original: 0, reduced: false };
+    if (!listing.price_reduction_enabled) return { effective: original, original, reduced: false };
+
+    const days = Number(listing.price_reduction_days);
+    const amount = Number(listing.price_reduction_amount);
+    const maxCount = Number(listing.price_reduction_count) || 1;
+    if (!days || days <= 0 || !amount || amount <= 0) return { effective: original, original, reduced: false };
+
+    const created = new Date(listing.created_at);
+    if (isNaN(created.getTime())) return { effective: original, original, reduced: false };
+
+    const daysSinceCreated = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+    const reductionsApplied = Math.min(Math.floor(daysSinceCreated / days), maxCount);
+    if (reductionsApplied <= 0) return { effective: original, original, reduced: false };
+
+    const effective = Math.max(0, original - (reductionsApplied * amount));
+    return { effective, original, reduced: effective < original };
+  }
+
   function formatDate(value) {
     if (!value) return null;
     const parsed = new Date(value);
@@ -646,10 +671,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderLeftContent(listing) {
-    // ── Price row ──
+    // ── Price row (with auto-reduction) ──
     if (el.priceBig) {
-      const rent = formatMoney(listing.monthly_rent);
-      el.priceBig.textContent = rent || '$0';
+      const pricing = getEffectivePrice(listing);
+      el.priceBig.textContent = formatMoney(pricing.effective) || '$0';
+
+      // Show original price struck-through + reduction badge if reduced
+      const priceRow = el.priceBig.closest('.listing-price-main') || el.priceBig.parentElement;
+      const existingOrig = priceRow.querySelector('.listing-price-original');
+      if (existingOrig) existingOrig.remove();
+      const existingBadge = priceRow.querySelector('.listing-price-reduced-badge');
+      if (existingBadge) existingBadge.remove();
+
+      if (pricing.reduced) {
+        const origSpan = document.createElement('span');
+        origSpan.className = 'listing-price-original';
+        origSpan.textContent = formatMoney(pricing.original);
+        priceRow.insertBefore(origSpan, el.priceBig);
+
+        const badge = document.createElement('span');
+        badge.className = 'listing-price-reduced-badge';
+        badge.textContent = 'Price Reduced';
+        priceRow.appendChild(badge);
+      }
     }
 
     // ── Description card ──

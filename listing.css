@@ -217,6 +217,7 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .listing-price-big {
@@ -224,6 +225,28 @@
   font-size: 2.2rem;
   font-weight: 600;
   color: var(--ink);
+}
+
+.listing-price-original {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.listing-price-reduced-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-left: 4px;
+  white-space: nowrap;
 }
 
 .listing-price-suffix {

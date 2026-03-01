@@ -160,6 +160,31 @@ document.addEventListener('DOMContentLoaded', () => {
     return `$${num.toLocaleString()}`;
   }
 
+  /**
+   * Compute the current effective price after auto-reductions.
+   * Returns { effective, original, reduced } where reduced is true if price was lowered.
+   */
+  function getEffectivePrice(listing) {
+    const original = Number(listing.monthly_rent);
+    if (!Number.isFinite(original)) return { effective: 0, original: 0, reduced: false };
+    if (!listing.price_reduction_enabled) return { effective: original, original, reduced: false };
+
+    const days = Number(listing.price_reduction_days);
+    const amount = Number(listing.price_reduction_amount);
+    const maxCount = Number(listing.price_reduction_count) || 1;
+    if (!days || days <= 0 || !amount || amount <= 0) return { effective: original, original, reduced: false };
+
+    const created = new Date(listing.created_at);
+    if (isNaN(created.getTime())) return { effective: original, original, reduced: false };
+
+    const daysSinceCreated = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+    const reductionsApplied = Math.min(Math.floor(daysSinceCreated / days), maxCount);
+    if (reductionsApplied <= 0) return { effective: original, original, reduced: false };
+
+    const effective = Math.max(0, original - (reductionsApplied * amount));
+    return { effective, original, reduced: effective < original };
+  }
+
   function makePlaceholderPhoto() {
     const placeholder = document.createElement('div');
     placeholder.className = 'listings-photo-placeholder';
@@ -223,9 +248,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     photoWrap.appendChild(heartBtn);
 
+    const pricing = getEffectivePrice(listing);
     const rent = document.createElement('div');
     rent.className = 'listings-rent';
-    rent.textContent = `${formatRent(listing.monthly_rent)} / mo`;
+    if (pricing.reduced) {
+      rent.innerHTML = `<span class="listings-rent-original">${formatRent(pricing.original)}</span> ${formatRent(pricing.effective)} / mo`;
+    } else {
+      rent.textContent = `${formatRent(pricing.effective)} / mo`;
+    }
 
     const neighborhood = document.createElement('div');
     neighborhood.className = 'listings-neighborhood';
@@ -314,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const useDateFilter = !!(filterStart || filterEnd);
 
     const filtered = allListings.filter((listing) => {
-      const rent = Number(listing.monthly_rent);
+      const rent = getEffectivePrice(listing).effective;
       if (minPrice != null && Number.isFinite(minPrice)) {
         if (!Number.isFinite(rent) || rent < minPrice) return false;
       }

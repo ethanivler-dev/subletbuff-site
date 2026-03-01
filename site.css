@@ -328,6 +328,13 @@ nav.ss-nav .nav-links a.active {
   margin-top: 8px;
 }
 
+.listings-rent-original {
+  text-decoration: line-through;
+  opacity: 0.5;
+  font-size: 0.85em;
+  margin-right: 5px;
+}
+
 .listings-neighborhood {
   font-family: 'Playfair Display', serif;
   font-size: 1.15rem;
