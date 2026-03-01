@@ -78,6 +78,19 @@
               <div id="listing-flex-content" class="listing-card-body"></div>
             </div>
           </div>
+
+          <div class="listing-card listing-safety-notice">
+            <div class="listing-card-header">
+              <svg class="listing-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <h3>Stay Safe</h3>
+            </div>
+            <ul class="listing-safety-list">
+              <li>Verify the lister's identity before sending any money</li>
+              <li>Visit the space in person before signing anything</li>
+              <li>Never pay a deposit without a written sublease agreement</li>
+              <li>If something feels off, trust your instincts and report it below</li>
+            </ul>
+          </div>
         </div>
 
         <!-- RIGHT SIDEBAR -->
@@ -103,8 +116,40 @@
           </div>
         </aside>
       </div>
+      <div id="listing-report-wrap" class="listing-report-wrap listing-hidden">
+        <button type="button" id="listing-report-btn" class="listing-report-link">Report this listing</button>
+      </div>
     </section>
   </main>
+
+  <div id="listing-report-modal" class="listing-report-modal listing-hidden" aria-hidden="true">
+    <div class="listing-report-card">
+      <button type="button" id="report-close" class="listing-qr-close" aria-label="Close report modal">✕</button>
+      <h3>Report Listing</h3>
+      <p style="font-size:0.88rem; color:#4A4035; margin:4px 0 16px;">Help us keep SubletBuff safe. Reports are reviewed by the SubletBuff team.</p>
+      <div class="report-field">
+        <label>Reason <span style="color:#C0392B">*</span></label>
+        <select id="report-reason">
+          <option value="">Select a reason...</option>
+          <option value="scam">Possible scam or fraud</option>
+          <option value="inaccurate">Inaccurate information</option>
+          <option value="already_filled">Already filled / no longer available</option>
+          <option value="inappropriate">Inappropriate content</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="report-field">
+        <label>Additional notes <span style="color:#8A7D6B; font-weight:400">(optional)</span></label>
+        <textarea id="report-notes" maxlength="500" rows="3" placeholder="Any additional details..."></textarea>
+      </div>
+      <div class="report-field">
+        <label>Your email <span style="color:#8A7D6B; font-weight:400">(optional, for follow-up)</span></label>
+        <input type="email" id="report-email" placeholder="your@email.com" />
+      </div>
+      <div id="report-msg"></div>
+      <button type="button" id="report-submit-btn">Submit Report</button>
+    </div>
+  </div>
 
   <div id="listing-lightbox" class="listing-lightbox listing-hidden" aria-hidden="true">
     <button type="button" id="lightbox-close" class="listing-lightbox-close" aria-label="Close lightbox">✕</button>

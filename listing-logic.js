@@ -83,7 +83,17 @@ document.addEventListener('DOMContentLoaded', () => {
     flexContent: document.getElementById('listing-flex-content'),
     overviewRows: document.getElementById('listing-overview-rows'),
     contactDetails: document.getElementById('listing-contact-details'),
-    contactCta2: document.getElementById('listing-contact-cta-2')
+    contactCta2: document.getElementById('listing-contact-cta-2'),
+
+    reportWrap: document.getElementById('listing-report-wrap'),
+    reportBtn: document.getElementById('listing-report-btn'),
+    reportModal: document.getElementById('listing-report-modal'),
+    reportClose: document.getElementById('report-close'),
+    reportReason: document.getElementById('report-reason'),
+    reportNotes: document.getElementById('report-notes'),
+    reportEmail: document.getElementById('report-email'),
+    reportMsg: document.getElementById('report-msg'),
+    reportSubmit: document.getElementById('report-submit-btn')
   };
 
   const state = {
@@ -968,6 +978,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       renderPreviewBanner();
       showContent(true);
+      if (el.reportWrap) el.reportWrap.classList.remove('listing-hidden');
       initHeartBtn(listing.id);
       loadFavoriteCount(listing.id);
     } catch (err) {
@@ -983,7 +994,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function openReportModal() {
+    if (!el.reportModal) return;
+    el.reportModal.classList.remove('listing-hidden');
+    el.reportModal.setAttribute('aria-hidden', 'false');
+    if (el.reportMsg) { el.reportMsg.textContent = ''; el.reportMsg.style.color = ''; }
+    if (el.reportReason) el.reportReason.value = '';
+    if (el.reportNotes) el.reportNotes.value = '';
+    if (el.reportEmail) el.reportEmail.value = '';
+    if (el.reportSubmit) el.reportSubmit.disabled = false;
+  }
+
+  function closeReportModal() {
+    if (!el.reportModal) return;
+    el.reportModal.classList.add('listing-hidden');
+    el.reportModal.setAttribute('aria-hidden', 'true');
+  }
+
+  async function submitReport() {
+    if (!el.reportReason || !el.reportSubmit) return;
+    const reason = el.reportReason.value.trim();
+    if (!reason) {
+      if (el.reportMsg) { el.reportMsg.textContent = 'Please select a reason.'; el.reportMsg.style.color = '#C0392B'; }
+      return;
+    }
+
+    el.reportSubmit.disabled = true;
+    if (el.reportMsg) { el.reportMsg.textContent = 'Submitting...'; el.reportMsg.style.color = '#4A4035'; }
+
+    let reporterUserId = null;
+    try {
+      if (window.sbAuth) {
+        const { data: { session } } = await window.sbAuth.getSession();
+        if (session) reporterUserId = session.user.id;
+      }
+    } catch (_) {}
+
+    try {
+      const resp = await fetch('/api/report-listing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listing_id: listingId,
+          reason,
+          notes: el.reportNotes ? el.reportNotes.value.trim() || null : null,
+          reporter_email: el.reportEmail ? el.reportEmail.value.trim() || null : null,
+          reporter_user_id: reporterUserId
+        })
+      });
+
+      if (!resp.ok) {
+        const json = await resp.json().catch(() => ({}));
+        throw new Error(json.error || 'Server error');
+      }
+
+      if (el.reportMsg) { el.reportMsg.textContent = 'Report submitted. Thank you for helping keep SubletBuff safe.'; el.reportMsg.style.color = '#3D8A58'; }
+      setTimeout(closeReportModal, 2500);
+    } catch (err) {
+      if (el.reportMsg) { el.reportMsg.textContent = 'Error: ' + (err.message || 'Could not submit report.'); el.reportMsg.style.color = '#C0392B'; }
+      if (el.reportSubmit) el.reportSubmit.disabled = false;
+    }
+  }
+
+  function setupReportInteractions() {
+    if (el.reportBtn) el.reportBtn.addEventListener('click', openReportModal);
+    if (el.reportClose) el.reportClose.addEventListener('click', closeReportModal);
+    if (el.reportModal) {
+      el.reportModal.addEventListener('click', (e) => {
+        if (e.target === el.reportModal) closeReportModal();
+      });
+    }
+    if (el.reportSubmit) el.reportSubmit.addEventListener('click', submitReport);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && el.reportModal && !el.reportModal.classList.contains('listing-hidden')) {
+        closeReportModal();
+      }
+    });
+  }
+
   setupGalleryInteractions();
   setupShareInteractions();
+  setupReportInteractions();
   init();
 });

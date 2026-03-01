@@ -666,6 +666,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .from('listings')
         .select('*')
         .eq('status', 'approved')
+        .eq('paused', false)
+        .eq('filled', false)
         .order('created_at', { ascending: false });
 
       if (error) {

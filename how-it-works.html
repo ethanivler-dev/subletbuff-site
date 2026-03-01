@@ -192,6 +192,50 @@
       line-height: 1.5;
     }
 
+    /* ── Sublease Checklist ── */
+    .hiw-checklist-section {
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    .hiw-checklist {
+      max-width: 640px;
+      margin: 0 auto;
+      padding-left: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .hiw-checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.93rem;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    .hiw-checklist li::before {
+      content: '✓';
+      color: var(--gold);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .hiw-checklist-download {
+      max-width: 640px;
+      margin: 20px auto 0;
+      padding: 14px 16px;
+      background: var(--gold-pale, #F5EDD6);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-align: center;
+    }
+
     /* ── FAQ ── */
     .hiw-faq {
       max-width: 720px;
@@ -415,6 +459,24 @@
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <section class="hiw-section hiw-checklist-section">
+        <h2 class="hiw-section-title">Sublease Checklist</h2>
+        <p style="color:var(--ink-soft); margin:0 0 20px; font-size:0.95rem;">Before you sign anything, make sure you've covered these basics.</p>
+        <ul class="hiw-checklist">
+          <li>Confirm your landlord allows subleasing (check your original lease)</li>
+          <li>Verify the lister's identity — meet in person or over video call</li>
+          <li>Confirm exact move-in and move-out dates in writing</li>
+          <li>Clarify what's included in rent (utilities, parking, Wi-Fi)</li>
+          <li>Document the security deposit amount and return conditions</li>
+          <li>Take a photo walkthrough before moving in to record any existing damage</li>
+          <li>Get a written sublease agreement signed by both parties</li>
+          <li>Keep a copy of all signed documents</li>
+        </ul>
+        <div class="hiw-checklist-download">
+          <span style="font-size:0.85rem; color:var(--ink-muted);">Sublease agreement template — coming soon</span>
         </div>
       </section>
     </div>

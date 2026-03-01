@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     subtitle: document.getElementById('admin-subtitle'),
     modePending: document.getElementById('mode-pending'),
     modeApproved: document.getElementById('mode-approved'),
+    modeReports: document.getElementById('mode-reports'),
     refreshBtn: document.getElementById('admin-refresh'),
     searchInput: document.getElementById('admin-search'),
     userLabel: document.getElementById('admin-user-label'),
@@ -180,15 +181,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateModeButtons() {
-    if (!elements.modePending || !elements.modeApproved) return;
-    elements.modePending.classList.toggle('active', state.mode === 'pending');
-    elements.modeApproved.classList.toggle('active', state.mode === 'approved');
+    if (elements.modePending) elements.modePending.classList.toggle('active', state.mode === 'pending');
+    if (elements.modeApproved) elements.modeApproved.classList.toggle('active', state.mode === 'approved');
+    if (elements.modeReports) elements.modeReports.classList.toggle('active', state.mode === 'reports');
   }
 
   function updateSubtitle() {
     if (!elements.subtitle) return;
-    const label = state.mode === 'approved' ? 'Approved' : 'Pending';
-    elements.subtitle.innerHTML = `Reviewing all <strong>${label}</strong> submissions.`;
+    if (state.mode === 'reports') {
+      elements.subtitle.innerHTML = 'Reviewing submitted <strong>Reports</strong>.';
+    } else {
+      const label = state.mode === 'approved' ? 'Approved' : 'Pending';
+      elements.subtitle.innerHTML = `Reviewing all <strong>${label}</strong> submissions.`;
+    }
   }
 
   function renderPagination() {
@@ -216,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.list.innerHTML = '';
     const empty = document.createElement('div');
     empty.style.cssText = 'padding: 60px; border: 2px dashed #E0D5C0; text-align: center; border-radius: 16px; color: #8A7D6B;';
-    empty.textContent = state.mode === 'approved' ? 'No approved listings found.' : '🎉 All caught up! No pending listings.';
+    empty.textContent = state.mode === 'reports' ? '✓ No open reports.' : state.mode === 'approved' ? 'No approved listings found.' : '🎉 All caught up! No pending listings.';
     elements.list.appendChild(empty);
   }
 
@@ -414,9 +419,101 @@ document.addEventListener('DOMContentLoaded', () => {
     setEditMessage('');
   }
 
+  async function loadReportsList() {
+    if (!supabaseClient) return;
+
+    updateSubtitle();
+    updateModeButtons();
+    renderListLoading();
+    setStatus('Loading reports...');
+    updateButtonsLoading(true);
+
+    try {
+      const { data, error } = await withTimeout(
+        supabaseClient
+          .from('listing_reports')
+          .select('id, listing_id, reason, notes, reporter_email, status, created_at, listings(address)')
+          .eq('status', 'open')
+          .order('created_at', { ascending: false }),
+        LIST_TIMEOUT_MS,
+        'Reports fetch'
+      );
+
+      if (error) {
+        renderListError('Error loading reports: ' + error.message);
+        setStatus('Error loading reports.', '#C0392B');
+        return;
+      }
+
+      const rows = Array.isArray(data) ? data : [];
+      state.total = rows.length;
+
+      if (!elements.list) return;
+      elements.list.innerHTML = '';
+
+      if (rows.length === 0) {
+        renderListEmpty();
+        setStatus('');
+        return;
+      }
+
+      rows.forEach((report) => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:#fff; border:1px solid #E0D5C0; border-radius:12px; padding:16px 20px; display:flex; flex-direction:column; gap:8px;';
+
+        const address = (report.listings && report.listings.address) ? report.listings.address : '(unknown address)';
+        const date = new Date(report.created_at).toLocaleDateString();
+
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:600; font-size:0.95rem;">${address}</div>
+              <div style="font-size:0.82rem; color:#8A7D6B; margin-top:2px;">Reported ${date} · Reason: ${report.reason || '—'}</div>
+              ${report.notes ? `<div style="font-size:0.85rem; color:#4A4035; margin-top:4px;">${report.notes}</div>` : ''}
+              ${report.reporter_email ? `<div style="font-size:0.78rem; color:#8A7D6B; margin-top:2px;">From: ${report.reporter_email}</div>` : ''}
+            </div>
+            <div style="display:flex; gap:8px; flex-shrink:0;">
+              <a href="/listing.html?id=${report.listing_id}" target="_blank" style="padding:8px 14px; border:1px solid #E0D5C0; border-radius:8px; font-size:0.82rem; font-weight:600; text-decoration:none; color:#1C1810; background:#fff;">View Listing</a>
+              <button type="button" data-report-id="${report.id}" class="admin-dismiss-report-btn" style="padding:8px 14px; border:none; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; background:#F0EBE0; color:#1C1810;">Dismiss</button>
+            </div>
+          </div>
+        `;
+        elements.list.appendChild(card);
+      });
+
+      // Pagination not needed for reports — just hide it
+      if (elements.pagination) elements.pagination.style.display = 'none';
+      setStatus('');
+    } catch (err) {
+      renderListError('Error loading reports: ' + (err && err.message ? err.message : String(err)));
+      setStatus('Error loading reports.', '#C0392B');
+    } finally {
+      updateButtonsLoading(false);
+    }
+  }
+
+  async function handleDismissReport(reportId) {
+    const { error } = await supabaseClient
+      .from('listing_reports')
+      .update({ status: 'dismissed' })
+      .eq('id', reportId);
+    if (error) {
+      setFlash('Error dismissing report: ' + error.message, '#C0392B');
+      return;
+    }
+    setFlash('Report dismissed.', '#3D8A58');
+    await loadReportsList();
+  }
+
   async function loadCurrentModeList() {
     if (!supabaseClient) return;
 
+    if (state.mode === 'reports') {
+      if (elements.pagination) elements.pagination.style.display = '';
+      return loadReportsList();
+    }
+
+    if (elements.pagination) elements.pagination.style.display = '';
     const requestId = ++state.requestId;
     const from = (state.page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -850,6 +947,28 @@ document.addEventListener('DOMContentLoaded', () => {
         state.mode = 'approved';
         state.page = 1;
         await loadCurrentModeList();
+      });
+    }
+
+    if (elements.modeReports) {
+      elements.modeReports.addEventListener('click', async () => {
+        if (state.mode === 'reports') return;
+        state.mode = 'reports';
+        state.page = 1;
+        await loadCurrentModeList();
+      });
+    }
+
+    // Dismiss report — event delegation on the list container
+    if (elements.list) {
+      elements.list.addEventListener('click', async (event) => {
+        const btn = event.target && event.target.closest ? event.target.closest('.admin-dismiss-report-btn') : null;
+        if (!btn) return;
+        const reportId = btn.dataset.reportId;
+        if (!reportId) return;
+        btn.textContent = 'Dismissing...';
+        btn.disabled = true;
+        await handleDismissReport(reportId);
       });
     }
 

@@ -652,3 +652,129 @@
     min-width: 80px;
   }
 }
+
+/* ── Safety Notice ── */
+.listing-safety-notice {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-pale, #F5EDD6);
+  margin-top: 16px;
+}
+
+.listing-safety-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--ink-soft, #4A4035);
+  line-height: 1.6;
+}
+
+/* ── Report Link ── */
+.listing-report-wrap {
+  text-align: center;
+  padding: 20px 0 4px;
+}
+
+.listing-report-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  color: var(--ink-muted, #8A7D6B);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0;
+}
+
+.listing-report-link:hover {
+  color: var(--ink-soft, #4A4035);
+}
+
+/* ── Report Modal ── */
+.listing-report-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 24, 16, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 9999;
+  backdrop-filter: blur(3px);
+}
+
+.listing-report-card {
+  background: #fff;
+  border: 1px solid var(--border, #E0D5C0);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  position: relative;
+}
+
+.listing-report-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  margin: 0 0 4px;
+}
+
+.report-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.report-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft, #4A4035);
+}
+
+.report-field select,
+.report-field textarea,
+.report-field input[type="email"] {
+  border: 1px solid var(--border, #E0D5C0);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  color: var(--ink, #1C1810);
+  background: #FAFAF8;
+}
+
+.report-field select:focus,
+.report-field textarea:focus,
+.report-field input[type="email"]:focus {
+  outline: none;
+  border-color: var(--gold, #B8922A);
+  box-shadow: 0 0 0 3px rgba(184, 146, 42, 0.12);
+}
+
+.report-field textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+#report-msg {
+  font-size: 0.82rem;
+  min-height: 18px;
+  margin-bottom: 8px;
+}
+
+#report-submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #C9A84C, #B8922A);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#report-submit-btn:hover { opacity: 0.92; }
+#report-submit-btn:disabled { opacity: 0.6; cursor: default; }
