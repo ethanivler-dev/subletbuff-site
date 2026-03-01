@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	// 1. INITIALIZE SUPABASE
 	// ==========================================
 	const SUPABASE_URL = 'https://doehqqwqwjebhfgdvyum.supabase.co';
-	const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWhxcXdxd2plYmhmZ2R2eXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjI5NjksImV4cCI6MjA4NzEzODk2OX0.oDepDKzyGBP72NLgdF0MXdh8wPWN0ozW_SNCuBhKnU0';
+	const SUPABASE_ANON_KEY = 'sb_publishable_ZZ4mKcw6_e9diz7oFfbVag_YA9zkqFW';
 
 	let supabaseClient = null;
 
@@ -1578,31 +1578,30 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 				if (error) { console.error('[form] Supabase update error', error); throw error; }
 			} else {
 				console.error('[form] inserting listing', { photosCount: photosMeta.length });
-				const { data, error } = await supabaseClient
+				const newId = crypto.randomUUID();
+				payload.id = newId;
+				const { error } = await supabaseClient
 					.from('listings')
-					.insert([payload])
-					.select();
+					.insert([payload]);
 				if (error) { console.error('[form] Supabase insert error', error); throw error; }
-				if (data && data.length > 0) {
-					currentListingId = data[0].id;
-					persistUploadListingId(currentListingId);
-					const fullAddress = buildFullAddressForGeocode();
-					if (fullAddress && currentListingId) {
-						try {
-							const { data: geocodeData, error: geocodeError } = await supabaseClient.functions.invoke('geocode-listing', {
-								body: {
-									listing_id: currentListingId,
-									address: fullAddress
-								}
-							});
-							if (geocodeError) {
-								console.error('[form] geocode-listing invoke failed (non-blocking):', geocodeError.message || geocodeError);
-							} else if (!geocodeData || geocodeData.ok !== true) {
-								console.error('[form] geocode-listing returned non-ok response (non-blocking):', geocodeData);
+				currentListingId = newId;
+				persistUploadListingId(currentListingId);
+				const fullAddress = buildFullAddressForGeocode();
+				if (fullAddress && currentListingId) {
+					try {
+						const { data: geocodeData, error: geocodeError } = await supabaseClient.functions.invoke('geocode-listing', {
+							body: {
+								listing_id: currentListingId,
+								address: fullAddress
 							}
-						} catch (geocodeInvokeErr) {
-							console.error('[form] geocode-listing invoke threw (non-blocking):', geocodeInvokeErr);
+						});
+						if (geocodeError) {
+							console.error('[form] geocode-listing invoke failed (non-blocking):', geocodeError.message || geocodeError);
+						} else if (!geocodeData || geocodeData.ok !== true) {
+							console.error('[form] geocode-listing returned non-ok response (non-blocking):', geocodeData);
 						}
+					} catch (geocodeInvokeErr) {
+						console.error('[form] geocode-listing invoke threw (non-blocking):', geocodeInvokeErr);
 					}
 				}
 			}
