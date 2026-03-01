@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Favorites (hearts) ──
   let savedIds = new Set();
+  let favoriteCounts = {}; // { listing_id: count }
 
   async function loadSavedIds() {
     if (!window.sbAuth) return;
@@ -62,20 +63,50 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data) data.forEach(r => savedIds.add(r.listing_id));
   }
 
+  async function loadFavoriteCounts() {
+    try {
+      const resp = await fetch('/api/favorite-counts');
+      if (resp.ok) {
+        favoriteCounts = await resp.json();
+      }
+    } catch (e) { console.warn('[listings] fav counts failed', e); }
+  }
+
   async function toggleFavorite(listingId, btn) {
     if (!window.sbAuth) return;
     const { data: { session } } = await window.sbAuth.getSession();
     if (!session) { window.sbAuth.signInWithGoogle(); return; }
     const sb = window.sbAuth.supabaseClient;
+    const card = btn.closest('.listings-card') || btn.parentElement?.parentElement;
     if (savedIds.has(listingId)) {
       await sb.from('user_favorites').delete()
         .eq('user_id', session.user.id).eq('listing_id', listingId);
       savedIds.delete(listingId);
       btn.classList.remove('saved');
+      favoriteCounts[listingId] = Math.max(0, (favoriteCounts[listingId] || 0) - 1);
+      updateFavBadge(card, favoriteCounts[listingId]);
     } else {
       await sb.from('user_favorites').insert([{ user_id: session.user.id, listing_id: listingId }]);
       savedIds.add(listingId);
       btn.classList.add('saved');
+      favoriteCounts[listingId] = (favoriteCounts[listingId] || 0) + 1;
+      updateFavBadge(card, favoriteCounts[listingId]);
+    }
+  }
+
+  function updateFavBadge(card, count) {
+    if (!card) return;
+    let badge = card.querySelector('.card-fav-count');
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'card-fav-count';
+        const photoWrap = card.querySelector('.listings-photo-wrap');
+        if (photoWrap) photoWrap.appendChild(badge);
+      }
+      if (badge) badge.textContent = '\u2665 ' + count;
+    } else if (badge) {
+      badge.remove();
     }
   }
 
@@ -248,7 +279,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     photoWrap.appendChild(heartBtn);
 
+    // Price Drop badge overlay
     const pricing = getEffectivePrice(listing);
+    if (pricing.reduced) {
+      const dropBadge = document.createElement('span');
+      dropBadge.className = 'card-price-drop-badge';
+      dropBadge.textContent = 'Price Drop';
+      photoWrap.appendChild(dropBadge);
+    }
+
+    // Favorite count badge
+    const favCount = favoriteCounts[listing.id] || 0;
+    if (favCount > 0) {
+      const favBadge = document.createElement('span');
+      favBadge.className = 'card-fav-count';
+      favBadge.textContent = '♥ ' + favCount;
+      photoWrap.appendChild(favBadge);
+    }
+
     const rent = document.createElement('div');
     rent.className = 'listings-rent';
     if (pricing.reduced) {
@@ -479,5 +527,5 @@ document.addEventListener('DOMContentLoaded', () => {
   updateDistanceLabel();
 
   loadSavedIds();
-  loadApprovedListings();
+  loadFavoriteCounts().then(() => loadApprovedListings());
 });

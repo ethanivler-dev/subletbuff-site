@@ -857,6 +857,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function loadFavoriteCount(listingId) {
+    try {
+      const resp = await fetch('/api/favorite-counts');
+      if (!resp.ok) return;
+      const counts = await resp.json();
+      const count = counts[listingId] || 0;
+      if (count > 0) {
+        const imageWrap = document.getElementById('listing-main-image-wrap');
+        if (imageWrap) {
+          const badge = document.createElement('span');
+          badge.className = 'card-fav-count';
+          badge.id = 'listing-fav-count';
+          badge.textContent = '\u2665 ' + count;
+          imageWrap.appendChild(badge);
+        }
+      }
+    } catch (e) { console.warn('[listing] fav count failed', e); }
+  }
+
   async function initHeartBtn(listingId) {
     const btn = document.getElementById('listing-heart-btn');
     if (!btn || !window.sbAuth) return;
@@ -871,13 +890,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const { data: { session: s } } = await window.sbAuth.getSession();
       if (!s) { window.sbAuth.signInWithGoogle(); return; }
       const sb = window.sbAuth.supabaseClient;
+      const countBadge = document.getElementById('listing-fav-count');
       if (btn.classList.contains('saved')) {
         await sb.from('user_favorites').delete()
           .eq('user_id', s.user.id).eq('listing_id', listingId);
         btn.classList.remove('saved');
+        // Update count badge
+        if (countBadge) {
+          const cur = parseInt(countBadge.textContent.replace(/\D/g, '')) || 0;
+          const next = Math.max(0, cur - 1);
+          if (next === 0) { countBadge.remove(); }
+          else { countBadge.textContent = '\u2665 ' + next; }
+        }
       } else {
         await sb.from('user_favorites').insert([{ user_id: s.user.id, listing_id: listingId }]);
         btn.classList.add('saved');
+        // Update count badge
+        if (countBadge) {
+          const cur = parseInt(countBadge.textContent.replace(/\D/g, '')) || 0;
+          countBadge.textContent = '\u2665 ' + (cur + 1);
+        } else {
+          const imageWrap = document.getElementById('listing-main-image-wrap');
+          if (imageWrap) {
+            const badge = document.createElement('span');
+            badge.className = 'card-fav-count';
+            badge.id = 'listing-fav-count';
+            badge.textContent = '\u2665 1';
+            imageWrap.appendChild(badge);
+          }
+        }
       }
     });
   }
@@ -928,6 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderPreviewBanner();
       showContent(true);
       initHeartBtn(listing.id);
+      loadFavoriteCount(listing.id);
     } catch (err) {
       console.error('[listing] init error', err);
       if (err && err._kind === 'unauthorized') {

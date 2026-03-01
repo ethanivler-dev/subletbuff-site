@@ -74,11 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// Helper to safely create listing card nodes
-	function createListingCard(item) {
+	function createListingCard(item, favCounts) {
 		const link = document.createElement('a');
 		link.className = 'listing-card';
+		link.style.position = 'relative';
 		const hrefId = item && item.id != null ? String(item.id) : '';
 		link.href = '/listing.html?id=' + encodeURIComponent(hrefId);
+
+		const imgWrap = document.createElement('div');
+		imgWrap.style.position = 'relative';
 
 		const img = document.createElement('img');
 		img.className = 'card-img';
@@ -86,9 +90,29 @@ document.addEventListener('DOMContentLoaded', () => {
 		img.decoding = 'async';
 		img.src = (item && item.photo_urls && item.photo_urls[0]) ? item.photo_urls[0] : 'https://via.placeholder.com/400';
 		img.alt = (item && item.neighborhood) ? (item.neighborhood + ' photo') : 'Listing photo';
-		link.appendChild(img);
+		imgWrap.appendChild(img);
 
 		const pricing = getEffectivePrice(item);
+
+		// Price Drop badge
+		if (pricing.reduced) {
+			const badge = document.createElement('span');
+			badge.className = 'card-price-drop-badge';
+			badge.textContent = 'Price Drop';
+			imgWrap.appendChild(badge);
+		}
+
+		// Favorite count badge
+		const favCount = (favCounts && item && favCounts[item.id]) || 0;
+		if (favCount > 0) {
+			const favBadge = document.createElement('span');
+			favBadge.className = 'card-fav-count';
+			favBadge.textContent = '\u2665 ' + favCount;
+			imgWrap.appendChild(favBadge);
+		}
+
+		link.appendChild(imgWrap);
+
 		const rent = document.createElement('div');
 		rent.style.fontWeight = '700';
 		rent.style.color = 'var(--gold)';
@@ -176,8 +200,15 @@ document.addEventListener('DOMContentLoaded', () => {
 				return;
 			}
 
+			// Fetch favorite counts
+			let favCounts = {};
+			try {
+				const resp = await fetch('/api/favorite-counts');
+				if (resp.ok) favCounts = await resp.json();
+			} catch (_) {}
+
 			data.forEach(item => {
-				const card = createListingCard(item);
+				const card = createListingCard(item, favCounts);
 				grid.appendChild(card);
 			});
 		} catch (err) {
