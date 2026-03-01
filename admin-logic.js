@@ -6,7 +6,7 @@ ROUTES + FILE PURPOSES
 - Visibility rules: admin-only portal (authenticated user + id exists in public.admins)
 - Allowed listing visibility: pending + approved + preview workflows for admins only
 */
-const BUILD_VERSION = '2026-02-28a';
+const BUILD_VERSION = '2026-02-28b';
 
 console.log('[admin] admin-logic.js loaded');
 
@@ -18,14 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const LIST_TIMEOUT_MS = 10000;
   const PAGE_SIZE = 25;
 
-  const supabaseClient = (window.supabase && window.supabase.createClient)
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true
-        }
-      })
-    : null;
+  // Reuse auth.js's single client to avoid Web Lock conflicts.
+  // Fall back to creating our own only if auth.js is not present.
+  const supabaseClient = (window.sbAuth && window.sbAuth.supabaseClient)
+    ? window.sbAuth.supabaseClient
+    : (window.supabase && window.supabase.createClient)
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: { persistSession: true, autoRefreshToken: true }
+        })
+      : null;
 
   const elements = {
     status: document.getElementById('admin-status'),
@@ -623,20 +624,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (error) throw error;
     if (data && data.id === userId) return true;
 
-    // Fall back: check by email
+    // Fall back: check by email (case-insensitive)
     const { data: { session } } = await supabaseClient.auth.getSession();
     const email = session?.user?.email;
     if (email) {
       const { data: d2, error: e2 } = await supabaseClient
         .from('admins')
         .select('id, email')
-        .eq('email', email)
+        .ilike('email', email)
         .maybeSingle();
       if (e2) throw e2;
       if (d2) {
         // Backfill UUID
         if (!d2.id || d2.id !== userId) {
-          await supabaseClient.from('admins').update({ id: userId }).eq('email', email);
+          await supabaseClient.from('admins').update({ id: userId }).eq('email', d2.email);
         }
         return true;
       }
@@ -741,6 +742,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function bindEventsOnce() {
+    const hamburger = document.getElementById('nav-hamburger');
+    const mobileMenu = document.getElementById('nav-mobile-menu');
+    if (hamburger && mobileMenu) {
+      hamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mobileMenu.classList.toggle('open');
+      });
+    }
+
     if (elements.googleBtn) {
       elements.googleBtn.addEventListener('click', async () => {
         if (!supabaseClient || state.isBusyAuth) return;
