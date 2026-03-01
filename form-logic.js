@@ -1635,6 +1635,7 @@ function buildPayload(photoUrls = []) {
 		housing_type: document.querySelector('#housing-type .toggle-btn.active')?.dataset.val || null,
 		unit_type: document.querySelector('#unit-type .toggle-btn.active')?.dataset.val || null,
 		gender_preference: document.getElementById('gender-pref').value || null,
+		parking: document.getElementById('parking').value || null,
 		pets: petsVal === 'yes' ? [pets, petsNotes].filter(Boolean).join('; ') : 'No',
 		description: document.getElementById('description').value,
 		lease_type: document.querySelector('input[name="lease-type"]:checked')?.value || null,

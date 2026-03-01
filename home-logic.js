@@ -200,9 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
 			tags.push({ label: 'Pets OK', icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M4.5 9.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm5-4a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm5 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm5 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-2.59 4.68A3.7 3.7 0 0 0 14.5 9.5c-1.03 0-2 .42-2.5 1.5-.5-1.08-1.47-1.5-2.5-1.5a3.7 3.7 0 0 0-2.41.82C5.43 11.74 4.5 13.61 4.5 15c0 1.75 1.57 4 4 5.02v.48a1.5 1.5 0 0 0 3 0v-.15c.16.01.33.02.5.02s.34-.01.5-.02v.15a1.5 1.5 0 0 0 3 0v-.48C17.93 19 19.5 16.75 19.5 15c0-1.39-.93-3.26-2.59-4.82z"/></svg>' });
 		}
 
-		// Parking (check description)
-		const descLower = String(item.description || '').toLowerCase();
-		if (descLower.includes('parking')) {
+		// Parking
+		const parkingVal = String(item.parking || '').toLowerCase();
+		if (parkingVal && parkingVal !== 'none') {
 			tags.push({ label: 'Parking', icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M13 3H6v18h4v-6h3a5 5 0 0 0 0-10h-2zm0 8h-3V7h3a2 2 0 1 1 0 4z"/></svg>' });
 		}
 
@@ -269,17 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		const statsEl = document.getElementById('home-stats');
 		if (!statsEl || !supabaseClient) return;
 		try {
-			// Active listings count
-			const { count: activeCount, error: activeErr } = await supabaseClient
-				.from('listings')
-				.select('*', { count: 'exact', head: true })
-				.eq('status', 'approved')
-				.eq('paused', false)
-				.eq('filled', false);
-			if (activeErr) return;
-
-			document.getElementById('stat-active-count').textContent = (activeCount || 0).toLocaleString();
-
 			// Listings filled this week (best-effort)
 			try {
 				const weekAgo = new Date();
