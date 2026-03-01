@@ -293,6 +293,16 @@
   font-weight: 500;
 }
 
+.listing-duo-cards {
+  display: flex;
+  gap: 16px;
+}
+
+.listing-card-half {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .listing-sidebar {
   position: sticky;
   top: 24px;
@@ -588,6 +598,10 @@
 
   .listing-price-big {
     font-size: 1.8rem;
+  }
+
+  .listing-duo-cards {
+    flex-direction: column;
   }
 
   .listing-overview-label {
