@@ -196,7 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mainEl) {
           mainEl.style.cursor = 'pointer';
           mainEl.addEventListener('click', () => {
-            window.location.href = '/listing.html?id=' + encodeURIComponent(listing.id);
+            const previewParam = (listing.status !== 'approved') ? '&preview=1' : '';
+            window.location.href = '/listing.html?id=' + encodeURIComponent(listing.id) + previewParam;
           });
         }
 

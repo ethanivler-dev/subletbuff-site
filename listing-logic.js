@@ -403,6 +403,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return { ok: false, message: 'Not authorized.' };
     }
 
+    // Allow if user owns this listing
+    if (listingId) {
+      const { data: ownerCheck } = await supabaseClient
+        .from('listings')
+        .select('user_id')
+        .eq('id', listingId)
+        .maybeSingle();
+      if (ownerCheck && ownerCheck.user_id === user.id) {
+        return { ok: true };
+      }
+    }
+
+    // Allow if user is an admin
     const { data: adminData, error: adminError } = await supabaseClient
       .from('admins')
       .select('id')
