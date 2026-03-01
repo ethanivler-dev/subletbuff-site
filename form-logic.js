@@ -845,7 +845,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		// Add placeholder entries immediately so spinner cards appear at once
 		const pendingEntries = filesToUpload.map((file) => {
-			const previewUrl = isHeicFile(file) ? '' : URL.createObjectURL(file);
+			const previewUrl = URL.createObjectURL(file); // works natively in Safari for HEIC; onerror handles non-Safari gracefully
 			const entry = {
 				path: '', url: '', listingId: null,
 				order: photoDraft.length,
@@ -871,6 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
 						finalPreviewUrl = URL.createObjectURL(fileToUpload);
 						const pidx = photoDraft.indexOf(placeholder);
 						if (pidx !== -1) {
+							revokePreviewUrlIfNeeded(photoDraft[pidx].previewUrl); // revoke original HEIC blob URL
 							photoDraft[pidx] = { ...photoDraft[pidx], previewUrl: finalPreviewUrl };
 						}
 						try { renderPhotos(); } catch(e2) {}
