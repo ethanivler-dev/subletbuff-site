@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
           persistSession: true,
-          autoRefreshToken: true
+          autoRefreshToken: true,
+          storageKey: 'sb-admin-auth-token'
         }
       })
     : null;
