@@ -171,6 +171,24 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(value);
   }
 
+  const UNIT_TYPE_LABELS = {
+    'entire': 'Entire Unit',
+    'room-shared': 'Room in Shared Unit',
+    'shared-room': 'Shared Room'
+  };
+  const HOUSING_TYPE_LABELS = {
+    'apartment': 'Apartment',
+    'house': 'House',
+    'condo': 'Condo'
+  };
+  function formatTypeLabel(value, labelMap) {
+    if (value == null || value === '') return null;
+    const key = String(value).trim().toLowerCase();
+    if (labelMap[key]) return labelMap[key];
+    // Fallback: title-case the slug
+    return key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || null;
+  }
+
   function getFurnishedLabel(value) {
     if (value == null || value === '') return null;
     if (typeof value === 'boolean') return value ? 'Furnished' : 'Unfurnished';
@@ -622,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
       createOverviewRow('beds', 'Beds', listing.beds),
       createOverviewRow('baths', 'Baths', listing.baths),
       createOverviewRow('furnished', 'Furnished', getFurnishedLabel(listing.furnished)),
-      createOverviewRow('housing', 'Housing Type', listing.housing_type),
+      createOverviewRow('housing', 'Housing Type', formatTypeLabel(listing.housing_type, HOUSING_TYPE_LABELS)),
       createOverviewRow('calendar', 'Lease Dates', (() => {
         const s = formatDate(listing.start_date);
         const e = formatDate(listing.end_date);
@@ -731,7 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
       el.briefContent.innerHTML = '';
       const briefItems = [
         { label: 'Lease Type', value: listing.lease_type },
-        { label: 'Unit Type', value: listing.unit_type },
+        { label: 'Unit Type', value: formatTypeLabel(listing.unit_type, UNIT_TYPE_LABELS) },
         { label: 'Gender Pref.', value: listing.gender_preference }
       ].filter(item => isPresent(item.value));
 
