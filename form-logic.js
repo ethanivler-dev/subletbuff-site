@@ -1007,6 +1007,65 @@ function isOnTheHill(lat, lng) {
 	return lat >= HILL_BOUNDS.s && lat <= HILL_BOUNDS.n && lng >= HILL_BOUNDS.w && lng <= HILL_BOUNDS.e;
 }
 
+// ── BOULDER NEIGHBORHOOD GEO-MAP ──
+// More specific than what Google Places API returns.
+// Checked top-to-bottom; first match wins. Ordered from most specific to broadest.
+const BOULDER_NEIGHBORHOODS = [
+	// The Hill (already handled separately, listed here for completeness)
+	{ name: 'The Hill',               s: 40.000, n: 40.013, w: -105.285, e: -105.260 },
+
+	// North Boulder
+	{ name: 'North Boulder',          s: 40.035, n: 40.065, w: -105.300, e: -105.245 },
+	// Northfield / Gunbarrel fringe
+	{ name: 'Gunbarrel',              s: 40.055, n: 40.080, w: -105.195, e: -105.140 },
+
+	// Near campus areas
+	{ name: 'University Hill',        s: 39.995, n: 40.005, w: -105.285, e: -105.265 },
+	{ name: 'Chautauqua',             s: 39.990, n: 40.000, w: -105.295, e: -105.275 },
+	{ name: 'Goss-Grove',             s: 40.010, n: 40.018, w: -105.285, e: -105.270 },
+	{ name: 'Whittier',               s: 40.013, n: 40.022, w: -105.275, e: -105.255 },
+
+	// Central / Downtown
+	{ name: 'Downtown Boulder',       s: 40.013, n: 40.022, w: -105.285, e: -105.270 },
+	{ name: 'Pearl Street',           s: 40.017, n: 40.022, w: -105.285, e: -105.255 },
+	{ name: 'Mapleton Hill',          s: 40.020, n: 40.030, w: -105.290, e: -105.270 },
+	{ name: 'Newlands',               s: 40.028, n: 40.040, w: -105.295, e: -105.270 },
+
+	// East Boulder
+	{ name: 'East Boulder',           s: 40.000, n: 40.035, w: -105.235, e: -105.195 },
+	{ name: 'Flatirons Park',         s: 40.000, n: 40.015, w: -105.250, e: -105.235 },
+
+	// South Boulder
+	{ name: 'South Boulder',          s: 39.970, n: 39.998, w: -105.280, e: -105.230 },
+	{ name: 'Table Mesa',             s: 39.978, n: 39.995, w: -105.270, e: -105.245 },
+	{ name: 'Martin Acres',           s: 39.985, n: 39.998, w: -105.260, e: -105.240 },
+
+	// Broader areas (catch-all)
+	{ name: 'North Central Boulder',  s: 40.022, n: 40.035, w: -105.290, e: -105.245 },
+	{ name: 'Central Boulder',        s: 40.005, n: 40.022, w: -105.290, e: -105.245 },
+	{ name: 'South Central Boulder',  s: 39.990, n: 40.005, w: -105.290, e: -105.245 },
+];
+
+/**
+ * Given lat/lng, return the most specific Boulder neighborhood name, or '' if outside all bounds.
+ */
+function classifyNeighborhood(lat, lng) {
+	for (const n of BOULDER_NEIGHBORHOODS) {
+		if (lat >= n.s && lat <= n.n && lng >= n.w && lng <= n.e) {
+			return n.name;
+		}
+	}
+	return '';
+}
+
+/**
+ * Check if a neighborhood name from Google is too generic and should be replaced.
+ */
+const GENERIC_NEIGHBORHOODS = ['boulder', 'central boulder', 'boulder county'];
+function isGenericNeighborhood(name) {
+	return GENERIC_NEIGHBORHOODS.includes((name || '').toLowerCase().trim());
+}
+
 function setNeighborhood(nbhd, isHill = false) {
 	document.getElementById('neighborhood').value = nbhd;
 	document.getElementById('neighborhood-text').textContent = isHill ? '⛰ The Hill · Boulder, CO' : '📍 ' + nbhd;
@@ -1029,9 +1088,10 @@ suggestions.addEventListener('click', e => {
 		sessionToken = new google.maps.places.AutocompleteSessionToken();
 		placesService.getDetails({ placeId, fields: ['address_components', 'geometry'] }, (place, status) => {
 			if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+				let lat, lng;
 				if (place.geometry?.location) {
-					const lat = place.geometry.location.lat();
-					const lng = place.geometry.location.lng();
+					lat = place.geometry.location.lat();
+					lng = place.geometry.location.lng();
 					console.log('[address] lat:', lat, 'lng:', lng);
 					// Store coordinates so buildPayload can include them for distance calculation
 					const latEl = document.getElementById('lat-hidden');
@@ -1056,6 +1116,14 @@ suggestions.addEventListener('click', e => {
 				if (!nbhd) {
 					const localityComp = place.address_components.find(c => c.types.includes('locality'));
 					if (localityComp) nbhd = localityComp.long_name;
+				}
+				// If Google returned something too generic, use our geo-map instead
+				if ((!nbhd || isGenericNeighborhood(nbhd)) && lat != null && lng != null) {
+					const geoNbhd = classifyNeighborhood(lat, lng);
+					if (geoNbhd) {
+						console.log('[address] overriding generic "' + nbhd + '" → "' + geoNbhd + '"');
+						nbhd = geoNbhd;
+					}
 				}
 				if (nbhd) setNeighborhood(nbhd);
 				else lookupNeighborhood();
@@ -1085,11 +1153,36 @@ async function lookupNeighborhood() {
 		const data = await res.json();
 		if (data && data[0]) {
 			const a    = data[0].address;
-			const nbhd = a.neighbourhood || a.suburb || a.city_district || a.quarter;
+			let nbhd = a.neighbourhood || a.suburb || a.city_district || a.quarter || '';
+
+			// If Nominatim gave something generic, try our geo-map using coords
+			const lat = parseFloat(data[0].lat);
+			const lng = parseFloat(data[0].lon);
+			if ((!nbhd || isGenericNeighborhood(nbhd)) && !isNaN(lat) && !isNaN(lng)) {
+				const geoNbhd = classifyNeighborhood(lat, lng);
+				if (geoNbhd) {
+					console.log('[address] Nominatim override: "' + nbhd + '" → "' + geoNbhd + '"');
+					nbhd = geoNbhd;
+				}
+			}
+
 			if (nbhd) {
 				setNeighborhood(nbhd);
 				saveDraft();
 			} else {
+				// Last resort: try geo-map with stored lat/lng
+				const latEl = document.getElementById('lat-hidden');
+				const lngEl = document.getElementById('lng-hidden');
+				const sLat = parseFloat(latEl?.value);
+				const sLng = parseFloat(lngEl?.value);
+				if (!isNaN(sLat) && !isNaN(sLng)) {
+					const geoNbhd = classifyNeighborhood(sLat, sLng);
+					if (geoNbhd) {
+						setNeighborhood(geoNbhd);
+						saveDraft();
+						return;
+					}
+				}
 				badge.classList.remove('visible');
 			}
 		} else {
