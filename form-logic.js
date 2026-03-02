@@ -518,6 +518,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	// Photo constants — declared here (before renderPhotos) to avoid TDZ ReferenceError
+	const MAX_PHOTOS = 10;
+	const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB raw — will be compressed before upload
+
 	// Safe initial render — photo errors must NOT prevent form button listeners below from attaching
 	try { renderPhotos(); } catch(e) { console.error('[form] renderPhotos init error (non-fatal)', e); }
 
@@ -800,9 +804,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 	}
-
-	const MAX_PHOTOS = 10;
-	const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB raw — will be compressed before upload
 
 	function addFilesToStore(fileList) {
 		console.log('[form] addFilesToStore called, incoming files:', fileList && fileList.length);
@@ -2027,17 +2028,20 @@ document.getElementById('otp-send-btn').addEventListener('click', async () => {
 		return;
 	}
 	const email = document.getElementById('otp-email-display').textContent.trim();
+	console.log('[otp] send code clicked', email);
 	const errEl = document.getElementById('otp-error');
 	const btn = document.getElementById('otp-send-btn');
 	errEl.style.display = 'none';
 	btn.disabled = true; btn.textContent = 'Sending…';
 	const { error } = await otpClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
 	if (error) {
+		console.log('[otp] signInWithOtp error', error);
 		errEl.textContent = error.message || 'Failed to send code. Try again.';
 		errEl.style.display = 'block';
 		btn.disabled = false; btn.textContent = 'Send Code';
 		return;
 	}
+	console.log('[otp] signInWithOtp success');
 	document.getElementById('otp-send-state').style.display = 'none';
 	document.getElementById('otp-verify-state').style.display = '';
 	document.getElementById('otp-code-input').focus();
@@ -2054,6 +2058,7 @@ document.getElementById('otp-resend-btn').addEventListener('click', () => {
 document.getElementById('otp-verify-btn').addEventListener('click', async () => {
 	const email = document.getElementById('otp-email-display').textContent.trim();
 	const token = document.getElementById('otp-code-input').value.trim();
+	console.log('[otp] verify clicked', email);
 	const errEl = document.getElementById('otp-error');
 	const btn = document.getElementById('otp-verify-btn');
 	errEl.style.display = 'none';
@@ -2065,11 +2070,13 @@ document.getElementById('otp-verify-btn').addEventListener('click', async () => 
 	btn.disabled = true; btn.textContent = 'Verifying…';
 	const { error } = await otpClient.auth.verifyOtp({ email, token, type: 'email' });
 	if (error) {
+		console.log('[otp] verify error', error);
 		errEl.textContent = error.message || 'Invalid or expired code. Try again.';
 		errEl.style.display = 'block';
 		btn.disabled = false; btn.textContent = 'Verify';
 		return;
 	}
+	console.log('[otp] verify success');
 	// Mark verified — store per-email key so changing the email requires re-verification
 	otpVerified = true; otpEmail = email;
 	try { sessionStorage.setItem('otp_verified:' + email, '1'); } catch(e) {}
