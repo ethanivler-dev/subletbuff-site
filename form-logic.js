@@ -31,6 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
 		console.error('Error setting up Supabase:', error);
 	}
 
+	// Separate client for OTP — persistSession:false avoids clobbering the Google OAuth session
+	let otpClient = null;
+	try {
+		if (window.supabase && window.supabase.createClient) {
+			otpClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+				auth: { persistSession: false, autoRefreshToken: false }
+			});
+		}
+	} catch(e) { console.error('[otp] client init error', e); }
+
+	// OTP verification state
+	let otpVerified = false;
+	let otpEmail = ''; // the exact CU email that was OTP-verified; must match form email at insert
+	let submitting  = false; // prevents duplicate inserts from re-dispatched events or double-clicks
+
 	const DRAFT_KEY = 'subletbuff_draft_v1';
 	try {
 		const _old = localStorage.getItem('subswap_draft_v1');
@@ -1662,6 +1677,7 @@ function buildFullAddressForGeocode() {
 // ── SUBMIT TO SUPABASE ─────────────
 document.getElementById('listing-form').addEventListener('submit', async e => {
 	e.preventDefault();
+	if (submitting) return; // prevent duplicate inserts from re-dispatched events or double-clicks
 	let valid = true;
   
 	// 1. Email Regex
@@ -1769,6 +1785,29 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		return;
 	}
 
+	// ── CU email enforcement ──
+	const cuEmail = document.getElementById('email').value.trim().toLowerCase();
+	if (!cuEmail.endsWith('@colorado.edu')) {
+		showFieldError('email', 'Must be a @colorado.edu address.');
+		document.getElementById('email').scrollIntoView({ behavior: 'smooth', block: 'center' });
+		return;
+	}
+
+	// ── OTP gate: require verification of this exact CU email before inserting ──
+	// sessionStorage key is per-email, so changing the email invalidates a prior verification.
+	const _savedOtp = (() => { try { return sessionStorage.getItem('otp_verified:' + cuEmail); } catch(e) { return null; } })();
+	if (!otpVerified || otpEmail !== cuEmail) {
+		if (_savedOtp === '1') {
+			// Verified this exact email earlier in this browser session
+			otpVerified = true; otpEmail = cuEmail;
+		} else {
+			showOtpModal(cuEmail);
+			return;
+		}
+	}
+	// Lock against duplicate submissions (double-click, re-dispatch from OTP verify)
+	submitting = true;
+
 	const submitBtn = document.querySelector('.btn-submit');
 	const originalBtnText = submitBtn.textContent;
 
@@ -1806,6 +1845,8 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		const payload = buildPayload(uploadedUrls);
 		// attach photos_meta (array of {path, url, order, note}) built from the draft
 		payload.photos_meta = photosMeta;
+		payload.verified = true;                        // OTP confirmed before this insert
+		payload.owner_login_email = session.user.email; // Google account email
 
 		try {
 			if (currentListingId) {
@@ -1827,6 +1868,22 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 				if (error) { console.error('[form] Supabase insert error', error); throw error; }
 				currentListingId = newId;
 				persistUploadListingId(currentListingId);
+				// Send "under review" transactional email — non-blocking, never blocks listing success
+				(async () => {
+					try {
+						const efRes = await fetch(
+							`${SUPABASE_URL}/functions/v1/send-listing-under-review`,
+							{
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+								body: JSON.stringify({ email: payload.email, listingId: currentListingId, title: payload.address || '' })
+							}
+						);
+						if (!efRes.ok) console.warn('[listing] under-review email failed:', await efRes.text());
+					} catch(efErr) {
+						console.warn('[listing] under-review email threw (non-blocking):', efErr);
+					}
+				})();
 				const fullAddress = buildFullAddressForGeocode();
 				if (fullAddress && currentListingId) {
 					try {
@@ -1857,6 +1914,7 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		alert("There was an issue: " + err.message);
 		submitBtn.textContent = originalBtnText;
 		submitBtn.disabled = false;
+		submitting = false; // allow retry after error
 		return;
 	}
   
@@ -1864,6 +1922,8 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 	clearDraftPhotos(); // Clear photo draft after successful submit
 	document.getElementById('listing-form').style.display = 'none';
 	document.getElementById('success-screen').classList.add('visible');
+	const successEmailEl = document.getElementById('success-email-display');
+	if (successEmailEl) successEmailEl.textContent = otpEmail || cuEmail;
 	document.querySelector('.page-title').style.display = 'none';
 	document.querySelector('.email-notice').style.display = 'none';
 	document.getElementById('autosave-badge').style.display = 'none'; 
@@ -1944,12 +2004,85 @@ if (resetFormBtn) {
 	});
 }
 
-document.getElementById('btn-verify').addEventListener('click', () => {
-	const code = document.getElementById('verify-code').value.trim();
-	const errEl = document.getElementById('verify-error');
-	if (!code) { errEl.textContent = 'Please enter the verification code.'; errEl.style.display = 'block'; return; }
+// ── OTP MODAL ──────────────────────────────────────────────────────────────
+function showOtpModal(email) {
+	document.getElementById('otp-email-display').textContent = email;
+	document.getElementById('otp-send-state').style.display = '';
+	document.getElementById('otp-verify-state').style.display = 'none';
+	document.getElementById('otp-error').style.display = 'none';
+	document.getElementById('otp-code-input').value = '';
+	const sendBtn = document.getElementById('otp-send-btn');
+	sendBtn.disabled = false; sendBtn.textContent = 'Send Code';
+	document.getElementById('otp-modal-overlay').classList.add('open');
+}
+
+function hideOtpModal() {
+	document.getElementById('otp-modal-overlay').classList.remove('open');
+}
+
+document.getElementById('otp-send-btn').addEventListener('click', async () => {
+	if (!otpClient) {
+		document.getElementById('otp-error').textContent = 'OTP service unavailable. Please refresh.';
+		document.getElementById('otp-error').style.display = 'block';
+		return;
+	}
+	const email = document.getElementById('otp-email-display').textContent.trim();
+	const errEl = document.getElementById('otp-error');
+	const btn = document.getElementById('otp-send-btn');
 	errEl.style.display = 'none';
-	document.querySelector('.verify-box').innerHTML = '<p style="color:var(--green);font-weight:600;font-size:.9375rem">✓ Email verified! Your listing is now in review.</p>';
+	btn.disabled = true; btn.textContent = 'Sending…';
+	const { error } = await otpClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+	if (error) {
+		errEl.textContent = error.message || 'Failed to send code. Try again.';
+		errEl.style.display = 'block';
+		btn.disabled = false; btn.textContent = 'Send Code';
+		return;
+	}
+	document.getElementById('otp-send-state').style.display = 'none';
+	document.getElementById('otp-verify-state').style.display = '';
+	document.getElementById('otp-code-input').focus();
+});
+
+document.getElementById('otp-resend-btn').addEventListener('click', () => {
+	document.getElementById('otp-send-state').style.display = '';
+	document.getElementById('otp-verify-state').style.display = 'none';
+	document.getElementById('otp-error').style.display = 'none';
+	const btn = document.getElementById('otp-send-btn');
+	btn.disabled = false; btn.textContent = 'Send Code';
+});
+
+document.getElementById('otp-verify-btn').addEventListener('click', async () => {
+	const email = document.getElementById('otp-email-display').textContent.trim();
+	const token = document.getElementById('otp-code-input').value.trim();
+	const errEl = document.getElementById('otp-error');
+	const btn = document.getElementById('otp-verify-btn');
+	errEl.style.display = 'none';
+	if (!token || token.length < 6) {
+		errEl.textContent = 'Please enter the 6-digit code.';
+		errEl.style.display = 'block';
+		return;
+	}
+	btn.disabled = true; btn.textContent = 'Verifying…';
+	const { error } = await otpClient.auth.verifyOtp({ email, token, type: 'email' });
+	if (error) {
+		errEl.textContent = error.message || 'Invalid or expired code. Try again.';
+		errEl.style.display = 'block';
+		btn.disabled = false; btn.textContent = 'Verify';
+		return;
+	}
+	// Mark verified — store per-email key so changing the email requires re-verification
+	otpVerified = true; otpEmail = email;
+	try { sessionStorage.setItem('otp_verified:' + email, '1'); } catch(e) {}
+	hideOtpModal();
+	// Re-dispatch submit; this time otpVerified===true so insert proceeds
+	document.getElementById('listing-form').dispatchEvent(
+		new Event('submit', { bubbles: true, cancelable: true })
+	);
+});
+
+document.getElementById('otp-cancel-btn').addEventListener('click', hideOtpModal);
+document.getElementById('otp-modal-overlay').addEventListener('click', e => {
+	if (e.target.id === 'otp-modal-overlay') hideOtpModal();
 });
 
 // ═══════════════════════════════════════════════

@@ -166,6 +166,20 @@
   .photo-modal-count { font-size: 0.875rem; color: var(--ink-muted); }
   .photo-modal-done { padding: 12px 32px; background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all var(--transition); }
   .photo-modal-done:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(184,146,42,0.4); }
+
+  /* ── OTP VERIFICATION MODAL ── */
+  .otp-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(28,24,16,0.55); backdrop-filter: blur(4px); z-index: 10001; align-items: center; justify-content: center; padding: 20px; }
+  .otp-modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+  .otp-modal { background: var(--white); border-radius: var(--radius-lg); width: 100%; max-width: 420px; padding: 32px 28px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 16px; }
+  .otp-modal-header h2 { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--ink); margin: 0 0 4px 0; }
+  .otp-modal-header p { font-size: 0.875rem; color: var(--ink-soft); margin: 0; }
+  .otp-email-display { font-weight: 600; color: var(--ink); font-size: 0.9rem; word-break: break-all; margin: 0; }
+  .otp-send-btn, .otp-verify-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--gold-btn), var(--gold)); color: var(--white); border: none; border-radius: var(--radius-md); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+  .otp-send-btn:disabled, .otp-verify-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  #otp-code-input { width: 100%; padding: 12px 14px; font-size: 1.4rem; letter-spacing: 0.3em; text-align: center; border: 1.5px solid var(--border); border-radius: var(--radius-md); font-family: 'DM Sans', sans-serif; box-sizing: border-box; margin-bottom: 10px; }
+  #otp-code-input:focus { border-color: var(--gold); outline: none; }
+  .otp-resend-btn { background: none; border: none; color: var(--gold); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; padding: 0; text-decoration: underline; display: block; }
+  .otp-cancel-btn { background: none; border: none; color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; padding: 0; align-self: flex-start; }
   
   /* ── PHOTO GRID IN MODAL ── */
   .photo-card-modal { background: var(--cream); border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 16px; position: relative; transition: all var(--transition); }
@@ -786,31 +800,40 @@
         <path d="M8 18l7 7L28 11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
-    <h2 class="success-title">Thank You for Your Submission!</h2>
-    <p class="success-sub">Your listing has been received. Before it goes live, please verify your CU Boulder email below.</p>
-
-    <div class="verify-box">
-      <h3>Verify Your Email</h3>
-      <p>A verification code has been sent to your @colorado.edu address. Enter it below to confirm your listing.</p>
-      <p style="font-size:.78rem;color:var(--ink-muted);margin-top:6px;margin-bottom:16px">
-        ⚠️ Verification will only be accepted if the code matches what was sent to your actual CU Boulder inbox.
-      </p>
-      <div class="verify-input-row">
-        <input type="text" id="verify-code" placeholder="· · · · · ·" maxlength="8" autocomplete="off" />
-        <button type="button" class="btn-verify" id="btn-verify">Verify</button>
-      </div>
-      <span class="error-msg" id="verify-error" style="display:none;margin-top:8px;text-align:left"></span>
-    </div>
+    <h2 class="success-title">Listing Submitted!</h2>
+    <p class="success-sub">Your listing is under review. We'll email you at <strong id="success-email-display"></strong> when it goes live.</p>
 
     <button type="button" class="btn-edit" id="btn-edit">← Edit my listing</button>
 
     <div class="success-next">
       <h4>What happens next</h4>
       <ul>
-        <li>Once your email is verified, your listing enters our review queue</li>
+        <li>Your listing is now in our review queue</li>
         <li>Someone will reach out if we have any questions</li>
         <li>Once approved, your listing goes live on SubletBuff for other CU Boulder students</li>
       </ul>
+    </div>
+  </div>
+
+  <!-- OTP email verification modal — shown before listing insert -->
+  <div id="otp-modal-overlay" class="otp-modal-overlay">
+    <div class="otp-modal">
+      <div class="otp-modal-header">
+        <h2>Verify your CU email</h2>
+        <p>We'll send a 6-digit code to confirm you own this address.</p>
+      </div>
+      <div id="otp-send-state">
+        <p class="otp-email-display" id="otp-email-display"></p>
+        <button type="button" id="otp-send-btn" class="otp-send-btn">Send Code</button>
+      </div>
+      <div id="otp-verify-state" style="display:none">
+        <input type="text" id="otp-code-input" placeholder="· · · · · ·"
+               maxlength="6" autocomplete="one-time-code" inputmode="numeric" />
+        <button type="button" id="otp-verify-btn" class="otp-verify-btn">Verify</button>
+        <button type="button" id="otp-resend-btn" class="otp-resend-btn">Resend code</button>
+      </div>
+      <span class="error-msg" id="otp-error" style="display:none"></span>
+      <button type="button" id="otp-cancel-btn" class="otp-cancel-btn">← Back to form</button>
     </div>
   </div>
 </main>
