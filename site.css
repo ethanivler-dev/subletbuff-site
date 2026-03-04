@@ -1,4 +1,5 @@
 :root {
+  /* ── Colour tokens ── */
   --gold: #B8922A;
   --gold-pale: #F5EDD6;
   --ink: #1C1810;
@@ -6,6 +7,41 @@
   --border: #E0D5C0;
   --white: #FFFFFF;
   --transition: 0.18s ease;
+
+  /* ── Spacing scale ── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* ── Type scale ── */
+  --text-xs:   0.72rem;
+  --text-sm:   0.85rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.4rem;
+  --text-2xl:  2rem;
+
+  /* ── Border radii ── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 4px rgba(28,24,16,.07);
+  --shadow-md: 0 4px 18px rgba(28,24,16,.09);
+  --shadow-lg: 0 8px 32px rgba(28,24,16,.12);
+
+  /* ── Z-index scale ── */
+  --z-sidebar: 1000;
+  --z-overlay: 999;
+  --z-modal:   1100;
+  --z-nav:     9999;
 }
 
 body {
@@ -1665,4 +1701,331 @@ nav.ss-nav .nav-links a.active {
   color: var(--gold);
   border-left: 3px solid var(--gold);
 }
+
+/* ════════════════════════════════════════════
+   DESIGN-SYSTEM COMPONENT LIBRARY
+   Additive aliases — existing classes unchanged
+   ════════════════════════════════════════════ */
+
+/* ── Layout helpers ── */
+.container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--sp-5);
+  padding-right: var(--sp-5);
+}
+.section {
+  padding-top: var(--sp-7);
+  padding-bottom: var(--sp-7);
+}
+
+/* ── Global focus-visible ring ── */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ── Button system ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: .02em;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition);
+  white-space: nowrap;
+  padding: 13px var(--sp-6);
+  line-height: 1;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, #C9A84C, var(--gold));
+  color: var(--white);
+  box-shadow: 0 4px 18px rgba(184,146,42,.3);
+}
+.btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(184,146,42,.42);
+}
+.btn--primary:active { transform: translateY(0); }
+
+.btn--secondary {
+  background: var(--white);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+}
+.btn--secondary:hover {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  border: none;
+  padding: 8px var(--sp-3);
+}
+.btn--ghost:hover { color: var(--gold); }
+
+.btn--sm {
+  font-size: var(--text-sm);
+  padding: 8px var(--sp-4);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Input / select fields ── */
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: var(--white);
+  transition: border-color var(--transition);
+  outline: none;
+}
+.input:focus { border-color: var(--gold); }
+
+.select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: var(--white);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  appearance: auto;
+}
+.select:focus { border-color: var(--gold); }
+
+/* ── Card ── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--sp-5);
+}
+
+/* ── Badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--gold-pale);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Pill (filter-pill alias) ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--gold-pale);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Skeleton loader ── */
+@keyframes skeleton-slide {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #ede8df 25%, #f5f1ea 50%, #ede8df 75%);
+  background-size: 200% 100%;
+  animation: skeleton-slide 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Phase 1: Listings search bar ── */
+.listings-search-row {
+  padding: var(--sp-3) 0 var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.listings-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.listings-search-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--ink-soft);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.listings-search-input {
+  padding-left: 40px !important;
+  font-size: var(--text-base);
+  border-radius: var(--radius-md);
+  border-width: 1.5px;
+  height: 44px;
+}
+.listings-search-input:focus { border-color: var(--gold); }
+@media (max-width: 900px) {
+  .listings-search-row {
+    position: sticky;
+    top: 60px;
+    z-index: 101;
+    background: #FAF7F2;
+    padding: var(--sp-2) 0;
+    margin-bottom: 0;
+  }
+}
+
+/* ── Phase 1: Empty state ── */
+.listings-empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-7) var(--sp-5);
+  text-align: center;
+}
+.listings-empty-state p {
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* ── Phase 1: object-fit fix ── */
+.card-img { object-fit: cover; }
+
+/* ── Phase 1: Sidebar result count ── */
+#sidebar-result-count {
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--gold-pale);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+}
+
+/* ── Phase 2: Gallery counter ── */
+.gallery-counter {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  pointer-events: none;
+  z-index: 2;
+  user-select: none;
+}
+
+/* ── Phase 2: Leaflet map ── */
+.listing-map {
+  height: 260px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: var(--sp-4);
+  border: 1px solid var(--border);
+}
+
+/* ── Phase 2: Similar listings ── */
+.similar-section {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-5) var(--sp-7);
+  border-top: 1px solid var(--border);
+  margin-top: var(--sp-6);
+}
+.similar-title {
+  font-family: 'Playfair Display', serif;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin: 0 0 var(--sp-5);
+  color: var(--ink);
+}
+
+/* ── Phase 3: Home search field ── */
+.filter-strip-field--search { flex: 2 1 180px; }
+.filter-strip-field--search input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Phase 3: Onboarding modal ── */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28,24,16,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--sp-4);
+}
+.onboarding-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6) var(--sp-5);
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+.onboarding-title {
+  font-family: 'Playfair Display', serif;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin: 0 0 var(--sp-4);
+  color: var(--ink);
+}
+.onboarding-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.onboarding-list li {
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.onboarding-card .btn--primary { width: 100%; }
 
