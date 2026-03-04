@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         groupEl.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         if (hiddenSelectEl) hiddenSelectEl.value = btn.dataset.value || '';
+        applyFilters();
       });
     });
   }
@@ -101,6 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let allListings = [];
+
+  // ── Search ──
+  let searchQuery = '';
+  const searchInputEl = document.getElementById('listings-search');
 
   // ── Favorites (hearts) ──
   let savedIds = new Set();
@@ -429,6 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyFilters() {
     if (!Array.isArray(allListings)) return;
 
+    const q = searchQuery.toLowerCase().trim();
+
     const minPrice = sidebarMinPriceEl ? (sidebarMinPriceEl.value ? Number(sidebarMinPriceEl.value) : null) : null;
     const maxPrice = sidebarMaxPriceEl ? (sidebarMaxPriceEl.value ? Number(sidebarMaxPriceEl.value) : null) : null;
     const neighborhood = sidebarNeighborhoodEl ? sidebarNeighborhoodEl.value : '';
@@ -448,6 +455,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const useDateFilter = !!(filterStart || filterEnd);
 
     const filtered = allListings.filter((listing) => {
+      if (q && !(
+        (listing.neighborhood || '').toLowerCase().includes(q) ||
+        (listing.address     || '').toLowerCase().includes(q) ||
+        (listing.description || '').toLowerCase().includes(q)
+      )) return false;
+
       const rent = getEffectivePrice(listing).effective;
       if (minPrice != null && Number.isFinite(minPrice)) {
         if (!Number.isFinite(rent) || rent < minPrice) return false;
@@ -520,6 +533,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function clearFilters() {
+    searchQuery = '';
+    if (searchInputEl) searchInputEl.value = '';
     if (sidebarMinPriceEl) sidebarMinPriceEl.value = '';
     if (sidebarMaxPriceEl) sidebarMaxPriceEl.value = '';
     if (sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = '';
@@ -549,7 +564,18 @@ document.addEventListener('DOMContentLoaded', () => {
     gridEl.innerHTML = '';
 
     if (!Array.isArray(listings) || listings.length === 0) {
-      setStatus('No listings found.', 'empty');
+      const empty = document.createElement('div');
+      empty.className = 'listings-empty-state';
+      empty.innerHTML = '<p>No listings match your filters.</p>';
+      const clearBtn2 = document.createElement('button');
+      clearBtn2.type = 'button';
+      clearBtn2.className = 'btn btn--primary btn--sm';
+      clearBtn2.textContent = 'Clear filters';
+      clearBtn2.addEventListener('click', clearFilters);
+      empty.appendChild(clearBtn2);
+      gridEl.appendChild(empty);
+
+      setStatus('0 listings found.', 'empty');
       updatePills();
       updateSidebarCount(0);
       return;
@@ -559,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
       gridEl.appendChild(createCard(listing));
     });
 
-    setStatus(`Showing ${listings.length} listing${listings.length === 1 ? '' : 's'}.`, 'loaded');
+    setStatus(`${listings.length} listing${listings.length === 1 ? '' : 's'} found.`, 'loaded');
     updatePills();
     updateSidebarCount(listings.length);
   }
@@ -570,6 +596,9 @@ document.addEventListener('DOMContentLoaded', () => {
     pillsContainer.innerHTML = '';
 
     const pills = [];
+    if (searchQuery.trim()) {
+      pills.push({ label: `"${searchQuery.trim()}"`, clear: () => { searchQuery = ''; if (searchInputEl) searchInputEl.value = ''; } });
+    }
     const minP = sidebarMinPriceEl ? sidebarMinPriceEl.value : '';
     const maxP = sidebarMaxPriceEl ? sidebarMaxPriceEl.value : '';
     if (minP || maxP) {
@@ -639,8 +668,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateSidebarCount(count) {
-    if (!sidebarApplyBtn) return;
-    sidebarApplyBtn.textContent = `Show ${count} Listing${count === 1 ? '' : 's'} ›`;
+    const countEl = document.getElementById('sidebar-result-count');
+    if (countEl) countEl.textContent = count > 0 ? `${count} found` : '';
   }
 
   async function loadApprovedListings() {
@@ -674,15 +703,56 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       });
       populateFilterOptions(allListings);
-      renderListings(allListings);
+
+      // Pre-fill search query from URL ?q= param
+      const qParam = new URLSearchParams(window.location.search).get('q') || '';
+      if (qParam && searchInputEl) {
+        searchQuery = qParam;
+        searchInputEl.value = qParam;
+      }
+
+      applyFilters();
     } catch (err) {
       setStatus(`Error loading listings: ${err.message || 'Unknown error'}`, 'error');
     }
   }
 
-  if (sidebarApplyBtn) sidebarApplyBtn.addEventListener('click', () => { applyFilters(); closeSidebar(); });
+  // ── Debounce helper ──
+  function debounce(fn, ms) {
+    let timer;
+    return function (...args) { clearTimeout(timer); timer = setTimeout(() => fn.apply(this, args), ms); };
+  }
+  const debouncedApply = debounce(applyFilters, 300);
+
+  // ── Apply btn: mobile "Show Results" just closes the sidebar (filters are now live) ──
+  if (sidebarApplyBtn) sidebarApplyBtn.addEventListener('click', closeSidebar);
+
+  // ── Clear all ──
   if (clearBtn) clearBtn.addEventListener('click', clearFilters);
-  if (distanceEl) distanceEl.addEventListener('input', updateDistanceLabel);
+
+  // ── Distance slider: update label + live apply ──
+  if (distanceEl) distanceEl.addEventListener('input', () => { updateDistanceLabel(); debouncedApply(); });
+
+  // ── Price inputs ──
+  if (sidebarMinPriceEl) sidebarMinPriceEl.addEventListener('input', debouncedApply);
+  if (sidebarMaxPriceEl) sidebarMaxPriceEl.addEventListener('input', debouncedApply);
+
+  // ── Select-based filters ──
+  [sidebarNeighborhoodEl, sortEl, parkingEl, genderEl].forEach(el => {
+    if (el) el.addEventListener('change', applyFilters);
+  });
+
+  // ── Date inputs ──
+  if (startDateEl) startDateEl.addEventListener('input', debouncedApply);
+  if (endDateEl)   endDateEl.addEventListener('input', debouncedApply);
+
+  // ── Search input ──
+  if (searchInputEl) {
+    searchInputEl.addEventListener('input', e => {
+      searchQuery = e.target.value;
+      debouncedApply();
+    });
+  }
 
   updateDistanceLabel();
 

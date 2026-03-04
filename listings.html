@@ -60,6 +60,18 @@
     </section>
 
 
+    <!-- ── Global Search Bar ── -->
+    <div class="listings-search-row">
+      <div class="listings-search-input-wrap">
+        <svg class="listings-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="search" id="listings-search" class="input listings-search-input"
+               placeholder="Search by neighborhood, building, or keyword…" autocomplete="off"
+               aria-label="Search listings" />
+      </div>
+    </div>
+
     <!-- ── Mobile Filter Bar ── -->
     <div class="mobile-filter-bar" id="mobile-filter-bar">
       <button type="button" id="mobile-filter-btn" class="mobile-filter-btn">
@@ -80,7 +92,7 @@
       <aside class="filter-sidebar" id="filter-sidebar">
         <div class="sidebar-drag-handle"></div>
         <div class="sidebar-header">
-          <h2 class="sidebar-title">Search Filters</h2>
+          <h2 class="sidebar-title">Filters <span id="sidebar-result-count"></span></h2>
           <button type="button" id="sidebar-close-btn" class="sidebar-close" aria-label="Close filters">&times;</button>
         </div>
 
@@ -215,7 +227,7 @@
 
         <!-- Actions -->
         <div class="sidebar-actions">
-          <button type="button" id="sidebar-apply-btn" class="sidebar-apply-btn">Show Listings &rsaquo;</button>
+          <button type="button" id="sidebar-apply-btn" class="sidebar-apply-btn">Show Results &rsaquo;</button>
           <button type="button" id="clear-filters-btn" class="sidebar-clear-btn">Clear All</button>
         </div>
       </aside>
