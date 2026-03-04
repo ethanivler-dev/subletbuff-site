@@ -79,14 +79,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // Fetch listings by user_id (new) or email (legacy fallback)
-      let query = sb.from('listings').select('*');
+      let query = sb.from('listings').select('id, address, neighborhood, monthly_rent, beds, baths, start_date, end_date, photo_urls, status, paused, filled, created_at, views, description, security_deposit, phone, preferred_contact, best_time');
       if (userId) {
         query = query.or(`user_id.eq.${userId},email.eq.${email}`);
       } else {
         query = query.eq('email', email);
       }
-      const { data: listings, error } = await query
-        .order('created_at', { ascending: false });
+      const [{ data: listings, error }, { data: views, error: viewErr }] = await Promise.all([
+        query.order('created_at', { ascending: false }),
+        sb.from('listing_views').select('listing_id')
+      ]);
 
       if (error) throw error;
 
@@ -97,21 +99,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Fetch view counts for all this user's listings
+      // Build view counts for this user's listings
       const listingIds = listings.map(l => l.id);
       let viewCounts = {};
-      try {
-        const { data: views, error: viewErr } = await sb
-          .from('listing_views')
-          .select('listing_id')
-          .in('listing_id', listingIds);
-
-        if (!viewErr && views) {
-          views.forEach(v => {
-            viewCounts[v.listing_id] = (viewCounts[v.listing_id] || 0) + 1;
-          });
-        }
-      } catch (_) {
+      if (!viewErr && views) {
+        const listingIdSet = new Set(listingIds);
+        views.forEach(v => {
+          if (!listingIdSet.has(v.listing_id)) return;
+          viewCounts[v.listing_id] = (viewCounts[v.listing_id] || 0) + 1;
+        });
+      } else if (viewErr) {
         console.warn('[account] could not fetch views');
       }
 
@@ -245,7 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const ids = favs.map(f => f.listing_id);
-    const { data: listings, error: listErr } = await sb.from('listings').select('*').in('id', ids);
+    const { data: listings, error: listErr } = await sb
+      .from('listings')
+      .select('id, address, neighborhood, monthly_rent, photo_urls')
+      .in('id', ids);
     if (listErr || !listings || !listings.length) {
       savedEl.innerHTML = '<div class="no-listings">No listings found.</div>';
       return;

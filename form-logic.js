@@ -1013,6 +1013,18 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	const semInfoBtn = document.getElementById('sem-info-btn');
+	const SCHOOL_TERMS = [
+		{ name: 'Spring 2026', start: 'Jan 12', end: 'May 8' },
+		{ name: 'Summer 2026', start: 'May 9', end: 'Aug 8' },
+		{ name: 'Fall 2026', start: 'Aug 24', end: 'Dec 19' },
+		{ name: 'Spring 2027', start: 'Jan 11', end: 'May 7' }
+	];
+	const termDatesText = document.getElementById('term-dates-text');
+	if (termDatesText) {
+		termDatesText.innerHTML = SCHOOL_TERMS
+			.map((term) => `${term.name}: ${term.start} - ${term.end}`)
+			.join('<br/>');
+	}
 	if (semInfoBtn) {
 		semInfoBtn.addEventListener('click', () => {
 			const popup = document.getElementById('sem-info-popup');

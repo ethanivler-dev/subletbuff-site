@@ -683,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { data, error } = await supabaseClient
         .from('listings')
-        .select('*')
+        .select('id, address, neighborhood, monthly_rent, beds, baths, start_date, end_date, photo_urls, lat, lng, lease_type, pets, gender_preference, created_at, furnished, parking, description, housing_type, price_reduction_enabled, price_reduction_days, price_reduction_amount, price_reduction_count')
         .eq('status', 'approved')
         .eq('paused', false)
         .eq('filled', false)
@@ -757,5 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateDistanceLabel();
 
   loadSavedIds();
-  loadFavoriteCounts().then(() => loadApprovedListings());
+  (async () => {
+    await Promise.all([loadFavoriteCounts(), loadApprovedListings()]);
+  })();
 });
