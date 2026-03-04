@@ -652,6 +652,30 @@ nav.ss-nav .nav-links a.active {
   margin-bottom: 0;
 }
 
+.listings-trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.listings-trust-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--gold-pale);
+  color: var(--ink);
+}
+
+.listings-lister {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
 @media (max-width: 720px) {
   nav.ss-nav {
     padding: 0 20px;
@@ -1101,6 +1125,35 @@ nav.ss-nav .nav-links a.active {
   flex-wrap: wrap;
 }
 
+.home-team-note {
+  max-width: 760px;
+  margin: 18px auto 0;
+  padding: 0 24px;
+}
+
+.home-team-note-inner {
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 14px;
+  padding: 14px 18px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.home-team-note-quote {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.93rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.home-team-note-attrib {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
 .trust-badge {
   display: inline-flex;
   align-items: center;
@@ -1244,6 +1297,21 @@ nav.ss-nav .nav-links a.active {
   max-width: 960px;
   margin: 0 auto;
   padding: 32px 24px 32px;
+}
+
+.home-featured-empty {
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.home-featured-empty strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 6px;
 }
 
 .home-section-title {
@@ -2204,6 +2272,53 @@ nav.ss-nav .nav-links a.active {
   box-sizing: border-box;
 }
 
+.filter-strip-field--search input {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #FAF7F2;
+  color: var(--ink);
+}
+
+.filter-strip-field--search input:focus {
+  border-color: var(--gold);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(184,146,42,0.12);
+}
+
+.listings-verify-note {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--gold-pale);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.card-verified-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--gold-pale);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.card-lister-line {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+
 /* ── Phase 3: Onboarding modal ── */
 .onboarding-overlay {
   position: fixed;
@@ -2245,4 +2360,3 @@ nav.ss-nav .nav-links a.active {
   line-height: 1.5;
 }
 .onboarding-card .btn--primary { width: 100%; }
-

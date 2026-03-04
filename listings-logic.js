@@ -105,7 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Search ──
   let searchQuery = '';
+  let quickRoomType = '';
   const searchInputEl = document.getElementById('listings-search');
+  const initialParams = new URLSearchParams(window.location.search);
 
   // ── Favorites (hearts) ──
   let savedIds = new Set();
@@ -190,6 +192,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (normalized === 'yes') return 'Furnished';
     if (normalized === 'no') return 'Unfurnished';
     return 'Furnished: N/A';
+  }
+
+  function getListerLabel(listing) {
+    const first = String(listing?.first_name || '').trim();
+    if (first) return `${first} · CU student lister`;
+    return 'CU student lister';
+  }
+
+  function getRoomTypeLabel(listing) {
+    const unitType = String(listing?.unit_type || '').toLowerCase();
+    if (unitType === 'room-shared' || unitType === 'shared-room') return 'Shared room';
+    if (unitType === 'entire') return 'Entire unit';
+    const housingType = String(listing?.housing_type || '').toLowerCase();
+    if (housingType === 'apartment') return 'Apartment';
+    if (housingType === 'house') return 'House';
+    if (housingType === 'condo') return 'Condo';
+    return 'Room type not specified';
   }
 
   function toRadians(value) {
@@ -368,9 +387,13 @@ document.addEventListener('DOMContentLoaded', () => {
     neighborhood.className = 'listings-neighborhood';
     neighborhood.textContent = listing.neighborhood || 'Neighborhood N/A';
 
+    const lister = document.createElement('div');
+    lister.className = 'listings-lister';
+    lister.textContent = getListerLabel(listing);
+
     const details = document.createElement('div');
     details.className = 'listings-details';
-    details.textContent = `${listing.beds || 'N/A'} beds • ${listing.baths || 'N/A'} baths • ${getFurnishedLabel(listing.furnished)}`;
+    details.textContent = `${listing.beds || 'N/A'} beds • ${listing.baths || 'N/A'} baths • ${getRoomTypeLabel(listing)}`;
 
     const dates = document.createElement('div');
     dates.className = 'listings-dates';
@@ -380,12 +403,25 @@ document.addEventListener('DOMContentLoaded', () => {
     description.className = 'listings-description';
     description.textContent = getDescriptionSnippet(listing.description);
 
+    const trustRow = document.createElement('div');
+    trustRow.className = 'listings-trust-row';
+    const reviewedChip = document.createElement('span');
+    reviewedChip.className = 'listings-trust-chip';
+    reviewedChip.textContent = 'Reviewed before posting';
+    const verifiedChip = document.createElement('span');
+    verifiedChip.className = 'listings-trust-chip';
+    verifiedChip.textContent = 'CU email verified';
+    trustRow.appendChild(reviewedChip);
+    trustRow.appendChild(verifiedChip);
+
     card.appendChild(photoWrap);
     card.appendChild(rent);
     card.appendChild(neighborhood);
+    card.appendChild(lister);
     card.appendChild(details);
     card.appendChild(dates);
     card.appendChild(description);
+    card.appendChild(trustRow);
 
     if (Number.isFinite(listing._distanceMiles)) {
       const distance = document.createElement('div');
@@ -486,6 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pets === 'no' && listing.pets !== 'No') return false;
       if (housing && listing.housing_type !== housing) return false;
       if (gender && listing.gender_preference !== gender) return false;
+      if (quickRoomType === 'shared' && !['room-shared', 'shared-room'].includes(String(listing.unit_type || '').toLowerCase())) return false;
+      if (quickRoomType === 'entire' && String(listing.unit_type || '').toLowerCase() !== 'entire') return false;
 
       if (useDistanceLimit) {
         if (!Number.isFinite(listing._distanceMiles) || listing._distanceMiles > distanceLimit) {
@@ -547,6 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (petsEl) petsEl.value = '';
     if (housingEl) housingEl.value = '';
     if (genderEl) genderEl.value = '';
+    quickRoomType = '';
     if (distanceEl) distanceEl.value = String(DISTANCE_MAX_MILES);
     if (sortEl) sortEl.value = 'newest';
     setToggleValue(bedsToggle, '');
@@ -683,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { data, error } = await supabaseClient
         .from('listings')
-        .select('id, address, neighborhood, monthly_rent, beds, baths, start_date, end_date, photo_urls, lat, lng, lease_type, pets, gender_preference, created_at, furnished, parking, description, housing_type, price_reduction_enabled, price_reduction_days, price_reduction_amount, price_reduction_count')
+        .select('id, first_name, address, neighborhood, monthly_rent, beds, baths, start_date, end_date, photo_urls, lat, lng, lease_type, pets, gender_preference, created_at, furnished, parking, description, housing_type, unit_type, price_reduction_enabled, price_reduction_days, price_reduction_amount, price_reduction_count')
         .eq('status', 'approved')
         .eq('paused', false)
         .eq('filled', false)
@@ -704,11 +743,36 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       populateFilterOptions(allListings);
 
-      // Pre-fill search query from URL ?q= param
-      const qParam = new URLSearchParams(window.location.search).get('q') || '';
+      // Pre-fill filters from URL params from home quick filter.
+      const qParam = initialParams.get('q') || '';
       if (qParam && searchInputEl) {
         searchQuery = qParam;
         searchInputEl.value = qParam;
+      }
+      const neighborhoodParam = initialParams.get('neighborhood') || '';
+      if (neighborhoodParam && sidebarNeighborhoodEl) sidebarNeighborhoodEl.value = neighborhoodParam;
+      const maxRentParam = initialParams.get('maxRent') || '';
+      if (maxRentParam && sidebarMaxPriceEl) sidebarMaxPriceEl.value = maxRentParam;
+      const roomTypeParam = (initialParams.get('roomType') || '').toLowerCase();
+      if (roomTypeParam) {
+        if (['apartment', 'house', 'condo'].includes(roomTypeParam)) {
+          if (housingEl) housingEl.value = roomTypeParam;
+          setToggleValue(housingToggle, roomTypeParam);
+        } else if (['shared', 'entire'].includes(roomTypeParam)) {
+          quickRoomType = roomTypeParam;
+        }
+      }
+      const moveInMonthParam = initialParams.get('moveInMonth') || '';
+      if (/^\d{4}-\d{2}$/.test(moveInMonthParam)) {
+        const [yearStr, monthStr] = moveInMonthParam.split('-');
+        const year = Number(yearStr);
+        const monthIndex = Number(monthStr) - 1;
+        if (Number.isInteger(year) && Number.isInteger(monthIndex) && monthIndex >= 0 && monthIndex <= 11) {
+          const monthStart = new Date(year, monthIndex, 1);
+          const monthEnd = new Date(year, monthIndex + 1, 0);
+          if (startDateEl) startDateEl.value = monthStart.toISOString().slice(0, 10);
+          if (endDateEl) endDateEl.value = monthEnd.toISOString().slice(0, 10);
+        }
       }
 
       applyFilters();

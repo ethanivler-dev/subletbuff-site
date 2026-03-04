@@ -68,6 +68,43 @@
   .page { max-width: 1200px; margin: 0 auto; padding: 48px 40px 80px; }
   .page-title { font-family: 'Playfair Display', serif; font-size: 2.25rem; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
   .email-notice { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: 28px; }
+  .form-quickstart {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .form-quickstart h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .form-quickstart ul {
+    list-style: none;
+    display: grid;
+    gap: 7px;
+    padding: 0;
+  }
+  .form-quickstart li {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    line-height: 1.45;
+  }
+  .field-help {
+    font-size: 0.76rem;
+    color: var(--ink-muted);
+    margin-top: 6px;
+    line-height: 1.45;
+  }
+  .submit-reassurance {
+    margin: 14px 0 0;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
   .name-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 12px; margin-bottom: 28px; }
   .name-row input { background: var(--white) !important; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; pointer-events: auto; }
@@ -403,6 +440,15 @@
 <main class="page">
   <h1 class="page-title">Post a Listing</h1>
   <p class="email-notice">A verification email will be sent to your CU email when this form is submitted</p>
+  <section class="form-quickstart" aria-label="Posting checklist">
+    <h2>List Your Room in 5 Minutes</h2>
+    <ul>
+      <li>Have your address, dates, and monthly rent ready.</li>
+      <li>Upload at least 3 photos so renters can evaluate the space.</li>
+      <li>Use your CU Boulder email to verify your listing.</li>
+      <li>Listings are reviewed before they go live.</li>
+    </ul>
+  </section>
 
   <div class="step-header" id="step-header">
     <div class="step-progress-bar">
@@ -627,6 +673,7 @@
 
       <div class="card">
         <div class="card-title">Lease Type <span class="tag-required">Required</span></div>
+        <p class="field-help" style="margin-top:-4px; margin-bottom:10px;">Sublease: you return after the term. Lease takeover: renter takes over your lease and you are off it.</p>
         <label class="lease-check" id="lease-check-sublease"><input type="radio" name="lease-type" id="lease-sublease" value="Sublease" /> Sublease</label>
         <label class="lease-check" id="lease-check-takeover"><input type="radio" name="lease-type" id="lease-takeover" value="Lease Takeover" /> Lease Takeover</label>
         <span class="error-msg" id="lease-type-error" style="display:none">Please select a lease type.</span>
@@ -694,6 +741,7 @@
         <div class="card-title">Contact Information <span class="tag-required">Required</span></div>
         <div class="field">
           <input type="email" id="email" placeholder="CU Boulder Email (@colorado.edu)" autocomplete="off" />
+          <p class="field-help">Posting requires CU email verification before the listing is submitted.</p>
           <span class="error-msg" id="email-error" style="display:none"></span>
         </div>
         <div class="two-col field">
@@ -706,6 +754,7 @@
         </div>
         <div class="field">
           <label>Preferred Contact</label>
+          <p class="field-help" style="margin-top:-2px; margin-bottom:8px;">Renter inquiries will use this method first.</p>
           <div class="contact-toggle">
             <button type="button" class="contact-btn" id="pref-email">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -749,6 +798,7 @@
       </div>
 
         <div class="review-summary" id="review-summary"></div>
+        <p class="submit-reassurance">Before your listing goes live, it will be reviewed by the SubletBuff team.</p>
 
       </div>
 

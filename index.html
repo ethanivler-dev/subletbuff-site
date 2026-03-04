@@ -72,12 +72,33 @@
       </div>
     </section>
 
+    <!-- ── TEAM TRUST NOTE ── -->
+    <section class="home-team-note" aria-label="Team note">
+      <div class="home-team-note-inner">
+        <p class="home-team-note-quote">“Built by CU students who wanted a safer, more transparent alternative to Facebook groups.”</p>
+        <p class="home-team-note-attrib">— The SubletBuff team</p>
+      </div>
+    </section>
+
     <!-- ── QUICK FILTER STRIP ── -->
     <section class="home-filter-strip" aria-label="Quick filter">
       <form class="filter-strip-row" id="home-quick-filter" action="/listings.html" method="GET">
         <div class="filter-strip-field">
+          <label for="hf-neighborhood">Neighborhood</label>
+          <select id="hf-neighborhood" name="neighborhood">
+            <option value="">Any</option>
+            <option value="The Hill">The Hill</option>
+            <option value="University Hill">University Hill</option>
+            <option value="Downtown Boulder">Downtown Boulder</option>
+            <option value="Goss-Grove">Goss-Grove</option>
+            <option value="Whittier">Whittier</option>
+            <option value="North Boulder">North Boulder</option>
+            <option value="South Boulder">South Boulder</option>
+          </select>
+        </div>
+        <div class="filter-strip-field">
           <label for="hf-max-price">Max Rent</label>
-          <select id="hf-max-price" name="maxPrice">
+          <select id="hf-max-price" name="maxRent">
             <option value="">Any</option>
             <option value="800">Under $800</option>
             <option value="1000">Under $1,000</option>
@@ -87,20 +108,36 @@
           </select>
         </div>
         <div class="filter-strip-field">
-          <label for="hf-lease">Lease Term</label>
-          <select id="hf-lease" name="leaseTerm">
+          <label for="hf-movein">Move-In Month</label>
+          <select id="hf-movein" name="moveInMonth">
             <option value="">Any</option>
-            <option value="summer">Summer</option>
-            <option value="semester">Semester</option>
-            <option value="year">Full Year</option>
+            <option value="2026-03">March 2026</option>
+            <option value="2026-04">April 2026</option>
+            <option value="2026-05">May 2026</option>
+            <option value="2026-06">June 2026</option>
+            <option value="2026-07">July 2026</option>
+            <option value="2026-08">August 2026</option>
+            <option value="2026-09">September 2026</option>
+            <option value="2026-10">October 2026</option>
+            <option value="2026-11">November 2026</option>
+            <option value="2026-12">December 2026</option>
+            <option value="2027-01">January 2027</option>
+            <option value="2027-02">February 2027</option>
           </select>
         </div>
-        <div class="filter-strip-field filter-strip-field--slider">
-          <label for="hf-distance">Distance <span id="hf-distance-val">5 mi</span></label>
-          <input type="range" id="hf-distance" name="distance" min="0.5" max="5" step="0.5" value="5" />
+        <div class="filter-strip-field">
+          <label for="hf-room-type">Room Type</label>
+          <select id="hf-room-type" name="roomType">
+            <option value="">Any</option>
+            <option value="apartment">Apartment</option>
+            <option value="house">House</option>
+            <option value="condo">Condo</option>
+            <option value="shared">Shared room</option>
+            <option value="entire">Entire unit</option>
+          </select>
         </div>
         <div class="filter-strip-field filter-strip-field--search">
-          <label for="hf-search">Search</label>
+          <label for="hf-search">Search keyword</label>
           <input type="search" id="hf-search" name="q" class="input"
                  placeholder="Neighborhood or keyword" autocomplete="off" />
         </div>
@@ -339,13 +376,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/auth.js"></script>
   <script src="/home-logic.js"></script>
-  <script>
-    (function() {
-      var s = document.getElementById('hf-distance');
-      var v = document.getElementById('hf-distance-val');
-      if (s && v) s.addEventListener('input', function() { v.textContent = s.value + ' mi'; });
-    })();
-  </script>
 
   <!-- ── Onboarding modal (shown once per browser) ── -->
   <div id="onboarding-modal" class="onboarding-overlay" role="dialog" aria-modal="true"

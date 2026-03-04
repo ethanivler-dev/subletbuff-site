@@ -73,6 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		return { effective, original, reduced: effective < original };
 	}
 
+	function getListerLabel(item) {
+		const first = String(item?.first_name || '').trim();
+		if (first) return `${first} · CU student lister`;
+		return 'CU student lister';
+	}
+
 	// Helper to safely create listing card nodes
 	function createListingCard(item, favCounts) {
 		const link = document.createElement('a');
@@ -118,6 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
 		body.className = 'card-body';
 
 		// Price
+		const verifiedChip = document.createElement('div');
+		verifiedChip.className = 'card-verified-chip';
+		verifiedChip.textContent = 'Verified listing';
+		body.appendChild(verifiedChip);
+
+		const lister = document.createElement('div');
+		lister.className = 'card-lister-line';
+		lister.textContent = getListerLabel(item);
+		body.appendChild(lister);
+
 		const rent = document.createElement('div');
 		rent.className = 'card-price';
 		if (pricing.reduced) {
@@ -238,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			const [listingResult, favoriteCountsResult] = await Promise.all([
 				supabaseClient
 					.from('listings')
-					.select('id, address, neighborhood, monthly_rent, beds, baths, photo_urls, lat, lng, lease_type, created_at, start_date, end_date, furnished, pets, parking, price_reduction_enabled, price_reduction_days, price_reduction_amount, price_reduction_count')
+					.select('id, first_name, address, neighborhood, monthly_rent, beds, baths, photo_urls, lat, lng, lease_type, created_at, start_date, end_date, furnished, pets, parking, price_reduction_enabled, price_reduction_days, price_reduction_amount, price_reduction_count')
 					.eq('status', 'approved')
 					.eq('paused', false)
 					.eq('filled', false)
@@ -261,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			grid.innerHTML = '';
 
 			if (!Array.isArray(data) || data.length === 0) {
-				grid.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:40px 0;">No approved listings yet.</div>';
+				grid.innerHTML = '<div class="home-featured-empty"><strong>More verified listings are coming in as the marketplace grows.</strong><span>New listings are reviewed before they appear.</span></div>';
 				return;
 			}
 
