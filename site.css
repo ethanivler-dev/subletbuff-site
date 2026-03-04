@@ -1587,6 +1587,177 @@ nav.ss-nav .nav-links a.active {
   width: auto;
 }
 
+/* ── WHO THIS IS FOR ── */
+.home-audience {
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 24px;
+}
+.home-audience-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.audience-card {
+  background: #FAF7F2;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.audience-icon {
+  margin-bottom: 2px;
+}
+.audience-card-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.3;
+}
+.audience-card-desc {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+.audience-card-btn {
+  display: inline-block;
+  margin-top: 4px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gold);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: 7px 16px;
+  text-decoration: none;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.audience-card-btn:hover {
+  background: var(--gold);
+  color: var(--white);
+}
+
+/* ── HOW IT WORKS ── */
+.home-hiw {
+  padding: 56px 24px;
+}
+.home-hiw-inner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.hiw-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  position: relative;
+}
+.hiw-steps::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: calc(16.66% + 16px);
+  right: calc(16.66% + 16px);
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+.hiw-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+.hiw-step-num {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--white);
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(184,146,42,0.3);
+}
+.hiw-step-icon {
+  display: none;
+}
+.hiw-step-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+.hiw-step-desc {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── PROBLEM SECTION ── */
+.home-problem {
+  background: var(--ink);
+  padding: 64px 24px;
+}
+.home-problem-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+}
+.home-problem-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--white);
+  margin: 0 0 20px;
+  line-height: 1.2;
+}
+.home-problem-text {
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ── FINAL CTA ── */
+.home-final-cta {
+  padding: 72px 24px;
+  text-align: center;
+}
+.home-final-cta-inner {
+  max-width: 560px;
+  margin: 0 auto;
+}
+.home-final-cta-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 28px;
+  line-height: 1.2;
+}
+
 /* ── MOBILE: HOME ── */
 @media (max-width: 768px) {
   .home-hero-title {
@@ -1629,6 +1800,22 @@ nav.ss-nav .nav-links a.active {
     align-items: center;
     gap: 14px;
   }
+  .audience-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hiw-steps {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .hiw-steps::before {
+    display: none;
+  }
+  .home-problem-title {
+    font-size: 1.5rem;
+  }
+  .home-final-cta-title {
+    font-size: 1.7rem;
+  }
   .home-safety-grid {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -1644,6 +1831,9 @@ nav.ss-nav .nav-links a.active {
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .home-featured-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .audience-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .filter-strip-row {
