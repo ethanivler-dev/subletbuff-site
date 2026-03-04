@@ -81,30 +81,56 @@ ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS save_count INTEGER DEFAULT 
 ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS inquiry_count INTEGER DEFAULT 0;
 
 -- ============================================================
--- STEP 3: listing_photos — add spec-aligned alias columns
--- Existing cols: photo_path, photo_url, order, note, listing_id
--- Spec expects:  storage_path, url, display_order, is_primary
+-- STEP 3: Create listing_photos table (photos were stored as
+-- JSON arrays in listings.photos_meta — normalize them here)
 -- ============================================================
-ALTER TABLE public.listing_photos ADD COLUMN IF NOT EXISTS storage_path TEXT;
-ALTER TABLE public.listing_photos ADD COLUMN IF NOT EXISTS url TEXT;
-ALTER TABLE public.listing_photos ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
-ALTER TABLE public.listing_photos ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT false;
-ALTER TABLE public.listing_photos ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
-
-UPDATE public.listing_photos SET
-  storage_path  = photo_path,
-  url           = photo_url,
-  display_order = COALESCE("order", 0)
-WHERE storage_path IS NULL;
-
--- Mark one primary photo per listing (lowest order)
-UPDATE public.listing_photos lp
-SET is_primary = true
-WHERE lp.id IN (
-  SELECT DISTINCT ON (listing_id) id
-  FROM public.listing_photos
-  ORDER BY listing_id, COALESCE("order", 0) ASC
+CREATE TABLE IF NOT EXISTS public.listing_photos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+  storage_path TEXT,
+  url TEXT NOT NULL,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_primary BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Backfill from listings.photos_meta JSON array
+-- photos_meta rows look like: {"path":"...", "url":"...", "order":0, "note":"..."}
+INSERT INTO public.listing_photos (listing_id, storage_path, url, display_order, is_primary)
+SELECT
+  l.id AS listing_id,
+  (p->>'path')::text AS storage_path,
+  (p->>'url')::text AS url,
+  COALESCE((p->>'order')::integer, idx) AS display_order,
+  (idx = 0) AS is_primary
+FROM public.listings l,
+     jsonb_array_elements(
+       CASE
+         WHEN l.photos_meta IS NOT NULL AND jsonb_typeof(l.photos_meta::jsonb) = 'array'
+         THEN l.photos_meta::jsonb
+         ELSE '[]'::jsonb
+       END
+     ) WITH ORDINALITY AS t(p, idx)
+WHERE (p->>'url') IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM public.listing_photos lp WHERE lp.listing_id = l.id
+  );
+
+-- Fallback: also backfill from photo_urls text[] if photos_meta was empty
+INSERT INTO public.listing_photos (listing_id, url, display_order, is_primary)
+SELECT
+  l.id,
+  u.url,
+  u.idx - 1,
+  (u.idx = 1)
+FROM public.listings l,
+     unnest(l.photo_urls::text[]) WITH ORDINALITY AS u(url, idx)
+WHERE l.photo_urls IS NOT NULL
+  AND array_length(l.photo_urls::text[], 1) > 0
+  AND NOT EXISTS (
+    SELECT 1 FROM public.listing_photos lp WHERE lp.listing_id = l.id
+  )
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- STEP 4: Create profiles table
