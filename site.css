@@ -1174,7 +1174,7 @@ nav.ss-nav .nav-links a.active {
 /* ── QUICK FILTER STRIP ── */
 .home-filter-strip {
   max-width: 900px;
-  margin: -24px auto 0;
+  margin: 14px auto 0;
   padding: 0 24px;
   position: relative;
   z-index: 10;
@@ -1888,7 +1888,7 @@ nav.ss-nav .nav-links a.active {
     padding: 12px;
   }
   .home-filter-strip {
-    margin-top: -10px;
+    margin-top: 12px;
   }
   .trust-strip-inner {
     flex-direction: column;
