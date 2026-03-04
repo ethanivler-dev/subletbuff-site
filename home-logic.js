@@ -235,14 +235,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!grid) return;
 		if (!supabaseClient) return;
 		try {
-			const { data, error } = await supabaseClient
-				.from('listings')
-				.select('*')
-				.eq('status', 'approved')
-				.eq('paused', false)
-				.eq('filled', false)
-				.order('created_at', { ascending: false })
-				.limit(3);
+			const [listingResult, favoriteCountsResult] = await Promise.all([
+				supabaseClient
+					.from('listings')
+					.select('id, address, neighborhood, monthly_rent, beds, baths, photo_urls, lat, lng, lease_type, created_at, start_date, end_date, furnished, pets, parking, price_reduction_enabled, price_reduction_days, price_reduction_amount, price_reduction_count')
+					.eq('status', 'approved')
+					.eq('paused', false)
+					.eq('filled', false)
+					.order('created_at', { ascending: false })
+					.limit(3),
+				fetch('/api/favorite-counts')
+					.then(async (resp) => (resp.ok ? resp.json() : {}))
+					.catch(() => ({}))
+			]);
+			const { data, error } = listingResult;
 
 			if (error) {
 				console.error('[home] Supabase query error', error);
@@ -259,12 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				return;
 			}
 
-			// Fetch favorite counts
-			let favCounts = {};
-			try {
-				const resp = await fetch('/api/favorite-counts');
-				if (resp.ok) favCounts = await resp.json();
-			} catch (_) {}
+			const favCounts = favoriteCountsResult || {};
 
 			data.forEach(item => {
 				const card = createListingCard(item, favCounts);

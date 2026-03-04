@@ -11,6 +11,20 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const ALLOWED_CONTENT_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/avif',
+  'image/bmp',
+  'image/tiff',
+  '', // allow empty for Chrome HEIC
+]);
+
 function sanitizeFilename(name) {
   const cleaned = (name || 'upload').replace(/[^a-zA-Z0-9._-]/g, '_').trim();
   return cleaned.slice(0, 80) || 'upload';
@@ -29,6 +43,10 @@ module.exports = async function handler(req, res) {
 
   try {
     const { filename, listing_id, content_type } = req.body || {};
+    const normalizedContentType = String(content_type || '').toLowerCase().trim();
+    if (normalizedContentType && !ALLOWED_CONTENT_TYPES.has(normalizedContentType)) {
+      return res.status(400).json({ error: 'Unsupported file type' });
+    }
 
     const sanitizedName = sanitizeFilename(filename);
     const listingId = sanitizeListingId(listing_id) || `draft-${randomUUID()}`;

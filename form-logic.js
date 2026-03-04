@@ -187,15 +187,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	function hasSupportedImageExtension(file) {
 		const name = String(file?.name || '').toLowerCase();
-		return /\.(jpg|jpeg|png|gif|webp|heic|heif|avif|bmp|tif|tiff|svg)$/.test(name);
+		return /\.(jpg|jpeg|png|gif|webp|heic|heif|avif|bmp|tif|tiff)$/.test(name);
 	}
 
 	function isSupportedImageFile(file, validImageTypes) {
 		const type = String(file?.type || '').toLowerCase();
-		if (validImageTypes.includes(type)) return true;
-		if (type.startsWith('image/')) return true;
-		// Chrome can report empty MIME for HEIC/HEIF; trust extension fallback.
-		return hasSupportedImageExtension(file);
+		if (type && validImageTypes.includes(type)) return true;
+		// Chrome can report empty MIME for HEIC/HEIF; trust extension fallback only then.
+		if (!type) return hasSupportedImageExtension(file);
+		return false;
 	}
 
 	// ── CLIENT-SIDE HEIC→JPEG ──
@@ -530,6 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// Photo constants — declared here (before renderPhotos) to avoid TDZ ReferenceError
+	const MIN_PHOTOS = 3;
 	const MAX_PHOTOS = 10;
 	const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB raw — will be compressed before upload
 
@@ -825,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			return;
 		}
 
-		const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/avif', 'image/bmp', 'image/tiff', 'image/svg+xml'];
+		const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/avif', 'image/bmp', 'image/tiff'];
 		const filesToUpload = [];
 		const incomingFiles = Array.from(fileList || []);
 		const incomingHeicNames = incomingFiles.filter(isHeicFile).map(f => f.name);
@@ -1039,6 +1040,15 @@ function initGooglePlaces() {
 	else setTimeout(waitForGoogle, 300);
 })();
 
+function escHtml(str) {
+	return String(str || '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
 async function fetchSuggestionsNominatim(q) {
 	try {
 		const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Boulder, CO')}&format=json&addressdetails=1&limit=5&countrycodes=us`, { headers: { 'Accept-Language': 'en' } });
@@ -1049,9 +1059,9 @@ async function fetchSuggestionsNominatim(q) {
 			const main  = parts[0];
 			const sec   = parts.slice(1, 3).join(',').trim();
 			const nbhd  = r.address.neighbourhood || r.address.suburb || r.address.city_district || r.address.quarter || 'Boulder';
-			return `<div class="addr-suggestion" data-display="${main}" data-nbhd="${nbhd}">
+			return `<div class="addr-suggestion" data-display="${escHtml(main)}" data-nbhd="${escHtml(nbhd)}">
 				<svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 1C4.34 1 3 2.34 3 4c0 2.5 3 7 3 7s3-4.5 3-7c0-1.66-1.34-3-3-3z" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="6" cy="4" r="1" stroke="currentColor" stroke-width="1"/></svg>
-				<div><span class="addr-main">${main}</span><span class="addr-secondary">${sec}</span></div>
+				<div><span class="addr-main">${escHtml(main)}</span><span class="addr-secondary">${escHtml(sec)}</span></div>
 			</div>`;
 		}).join('') + '<div class="google-attribution">Powered by OpenStreetMap</div>';
 		suggestions.classList.add('open');
@@ -1744,12 +1754,12 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		}
 	}
   
-	if (photoDraft.length < 3) {
+	if (photoDraft.length < MIN_PHOTOS) {
 		valid = false;
 		const zone = document.getElementById('upload-zone');
 		zone.style.borderColor = 'var(--red)';
 		const p = zone.parentElement;
-		if (!p.querySelector('.error-msg')) { const err = document.createElement('span'); err.className = 'error-msg'; err.textContent = 'Please upload at least 3 photos.'; zone.after(err); }
+		if (!p.querySelector('.error-msg')) { const err = document.createElement('span'); err.className = 'error-msg'; err.textContent = `Please upload at least ${MIN_PHOTOS} photos.`; zone.after(err); }
 	} else { document.getElementById('upload-zone').style.borderColor = ''; document.getElementById('upload-zone').parentElement.querySelectorAll('.error-msg').forEach(e => e.remove()); }
 
 	const leaseChecked = document.querySelector('input[name="lease-type"]:checked');
@@ -1838,20 +1848,28 @@ document.getElementById('listing-form').addEventListener('submit', async e => {
 		// Use photoDraft (already uploaded during photo selection)
 		// Do NOT re-upload; just build photos_meta from draft
 		const photosMeta = [];
-		if (photoDraft && photoDraft.length > 0) {
-			console.log('[form] building photos_meta from photoDraft:', photoDraft.length);
-			photoDraft.forEach((photo, idx) => {
-				uploadedUrls.push(photo.url);
-				photosMeta.push({
-					path: photo.path,
-					url: photo.url,
-					order: idx,
-					note: photo.note
-				});
-			});
-		} else {
-			console.warn('[form] no draft photos found, photoDraft:', photoDraft);
+		const successfulPhotos = (photoDraft || []).filter(p => p.url && !p.pending);
+		if (successfulPhotos.length < MIN_PHOTOS) {
+			const msg = `Please upload at least ${MIN_PHOTOS} photos before submitting. Currently ${successfulPhotos.length} photo(s) uploaded successfully.`;
+			setPhotoInlineMessage(msg);
+			showFieldError('upload-zone', `Please upload at least ${MIN_PHOTOS} photos.`);
+			const zone = document.getElementById('upload-zone');
+			if (zone) zone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			submitting = false;
+			submitBtn.textContent = originalBtnText;
+			submitBtn.disabled = false;
+			return;
 		}
+		console.log('[form] building photos_meta from successful uploads:', successfulPhotos.length);
+		successfulPhotos.forEach((photo, idx) => {
+			uploadedUrls.push(photo.url);
+			photosMeta.push({
+				path: photo.path,
+				url: photo.url,
+				order: idx,
+				note: photo.note
+			});
+		});
 
 		submitBtn.textContent = 'Saving Listing...';
 		const payload = buildPayload(uploadedUrls);
