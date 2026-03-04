@@ -162,10 +162,14 @@ CREATE TRIGGER on_auth_user_created
 
 -- RLS for profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Public profiles readable"
-  ON public.profiles FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Users update own profile"
-  ON public.profiles FOR UPDATE USING (auth.uid() = id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='profiles' AND policyname='Public profiles readable') THEN
+    CREATE POLICY "Public profiles readable" ON public.profiles FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='profiles' AND policyname='Users update own profile') THEN
+    CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+  END IF;
+END $$;
 
 -- ============================================================
 -- STEP 5: Create saved_listings table
@@ -185,10 +189,14 @@ FROM public.user_favorites
 ON CONFLICT (user_id, listing_id) DO NOTHING;
 
 ALTER TABLE public.saved_listings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Users read own saves"
-  ON public.saved_listings FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users manage saves"
-  ON public.saved_listings FOR ALL USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='saved_listings' AND policyname='Users read own saves') THEN
+    CREATE POLICY "Users read own saves" ON public.saved_listings FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='saved_listings' AND policyname='Users manage saves') THEN
+    CREATE POLICY "Users manage saves" ON public.saved_listings FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- ============================================================
 -- STEP 6: Create inquiries table
@@ -209,14 +217,20 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
 );
 
 ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Renters see own inquiries"
-  ON public.inquiries FOR SELECT USING (auth.uid() = renter_id);
-CREATE POLICY IF NOT EXISTS "Listers see received inquiries"
-  ON public.inquiries FOR SELECT USING (auth.uid() = lister_id);
-CREATE POLICY IF NOT EXISTS "Renters create inquiries"
-  ON public.inquiries FOR INSERT WITH CHECK (auth.uid() = renter_id);
-CREATE POLICY IF NOT EXISTS "Listers update inquiry status"
-  ON public.inquiries FOR UPDATE USING (auth.uid() = lister_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='inquiries' AND policyname='Renters see own inquiries') THEN
+    CREATE POLICY "Renters see own inquiries" ON public.inquiries FOR SELECT USING (auth.uid() = renter_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='inquiries' AND policyname='Listers see received inquiries') THEN
+    CREATE POLICY "Listers see received inquiries" ON public.inquiries FOR SELECT USING (auth.uid() = lister_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='inquiries' AND policyname='Renters create inquiries') THEN
+    CREATE POLICY "Renters create inquiries" ON public.inquiries FOR INSERT WITH CHECK (auth.uid() = renter_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='inquiries' AND policyname='Listers update inquiry status') THEN
+    CREATE POLICY "Listers update inquiry status" ON public.inquiries FOR UPDATE USING (auth.uid() = lister_id);
+  END IF;
+END $$;
 
 -- ============================================================
 -- STEP 7: Performance indexes

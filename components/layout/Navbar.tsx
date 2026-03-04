@@ -74,7 +74,7 @@ export function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
               <Image
-                src="/logo.png"
+                src="/logo.jpeg"
                 alt="SubletBuff"
                 width={140}
                 height={36}
