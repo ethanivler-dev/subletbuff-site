@@ -97,16 +97,10 @@
     } catch (_) {}
   }
 
-  // ── Sign in handler ──
-  async function signInWithGoogle() {
-    if (!supabaseClient) { alert('Auth not available'); return; }
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + window.location.pathname
-      }
-    });
-    if (error) console.error('[auth] sign-in error:', error);
+  // ── Sign in handler — redirect to login page ──
+  function redirectToLogin() {
+    const returnPath = window.location.pathname + window.location.search;
+    window.location.href = '/login.html?return=' + encodeURIComponent(returnPath);
   }
 
   // ── Init on DOM ready ──
@@ -114,8 +108,8 @@
     // Bind sign-in buttons
     const signInBtn = document.getElementById('nav-auth-btn');
     const signInMobile = document.getElementById('nav-auth-btn-mobile');
-    if (signInBtn) signInBtn.addEventListener('click', signInWithGoogle);
-    if (signInMobile) signInMobile.addEventListener('click', signInWithGoogle);
+    if (signInBtn) signInBtn.addEventListener('click', redirectToLogin);
+    if (signInMobile) signInMobile.addEventListener('click', redirectToLogin);
 
     if (!supabaseClient) {
       updateNavAuth(null);
@@ -152,6 +146,6 @@
     signOut: function () {
       return supabaseClient ? supabaseClient.auth.signOut() : Promise.resolve();
     },
-    signInWithGoogle: signInWithGoogle
+    redirectToLogin: redirectToLogin
   };
 })();

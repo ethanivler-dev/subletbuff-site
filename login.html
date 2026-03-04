@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In | SubletBuff</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/site.css" />
+
+  <style>
+    .login-page {
+      min-height: calc(100vh - 64px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px 80px;
+      background: var(--gold-pale);
+    }
+
+    .login-card {
+      background: #fff;
+      border: 1px solid #e8dfc8;
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 4px 32px rgba(28,24,16,0.07);
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo img {
+      height: 44px;
+      width: auto;
+    }
+
+    .login-title {
+      font-family: "Playfair Display", serif;
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: center;
+      margin: 0 0 8px;
+    }
+
+    .login-subtitle {
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+      text-align: center;
+      margin: 0 0 32px;
+    }
+
+    .login-field {
+      margin-bottom: 16px;
+    }
+
+    .login-field label {
+      display: block;
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .login-field input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px 14px;
+      border: 1.5px solid #d4c8a8;
+      border-radius: 8px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 1rem;
+      color: var(--ink);
+      background: #fff;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    .login-field input:focus {
+      border-color: var(--gold);
+    }
+
+    .login-field input.input-code {
+      letter-spacing: 0.25em;
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #C9A84C, var(--gold));
+      color: #fff;
+      font-family: "DM Sans", sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+
+    .login-btn:hover:not(:disabled) {
+      box-shadow: 0 6px 20px rgba(184,146,42,0.4);
+      transform: translateY(-1px);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .login-btn-outline {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--ink);
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border: 1.5px solid #d4c8a8;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: border-color 0.15s;
+    }
+
+    .login-btn-outline:hover {
+      border-color: var(--gold);
+    }
+
+    .login-inline-error {
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.85rem;
+      color: #c0392b;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .login-success-msg {
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.9rem;
+      color: #2e7d32;
+      background: #e8f5e9;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .login-resend-row {
+      text-align: center;
+      margin-top: 14px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.85rem;
+      color: var(--ink-soft);
+    }
+
+    .login-resend-row a {
+      color: var(--gold);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .login-resend-row a:hover {
+      text-decoration: underline;
+    }
+
+    .login-divider {
+      border: none;
+      border-top: 1px solid #e8dfc8;
+      margin: 24px 0;
+    }
+
+    .already-signed-in-email {
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+      text-align: center;
+      margin: 0 0 20px;
+      word-break: break-all;
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 36px 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="ss-nav" style="position:relative;">
+    <a href="/" class="nav-logo">
+      <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg"
+           alt="SubletBuff"
+           style="height:40px;width:auto;" />
+    </a>
+
+    <div class="nav-links" id="nav-links-desktop">
+      <a href="/">Home</a>
+      <a href="/how-it-works.html">How It Works</a>
+      <a href="/listings.html">Listings</a>
+      <a href="/form.html" id="nav-post-link">Post a Listing</a>
+      <a href="/account.html" class="nav-account-link" id="nav-account-link" style="display:none">Account</a>
+      <a href="/admin.html" class="nav-admin-link" id="nav-admin-link" style="display:none">Admin</a>
+      <button type="button" class="nav-auth-btn" id="nav-auth-btn">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign In
+      </button>
+    </div>
+
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="nav-mobile-menu" id="nav-mobile-menu">
+      <a href="/">Home</a>
+      <a href="/how-it-works.html">How It Works</a>
+      <a href="/listings.html">Listings</a>
+      <a href="/form.html" id="nav-post-link-mobile">Post a Listing</a>
+      <a href="/account.html" class="nav-account-link" id="nav-account-link-mobile" style="display:none">Account</a>
+      <a href="/admin.html" class="nav-admin-link" id="nav-admin-link-mobile" style="display:none">Admin</a>
+      <button type="button" class="nav-auth-btn" id="nav-auth-btn-mobile">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign In
+      </button>
+    </div>
+  </nav>
+
+  <main class="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="https://cdn.prod.website-files.com/6947597ed86d42b608e31b5c/699906188f0daf6fc970f08e_Image%202-20-26%20at%206.09%E2%80%AFPM.jpeg"
+             alt="SubletBuff" />
+      </div>
+
+      <!-- Panel: already signed in -->
+      <div id="panel-already" style="display:none">
+        <h1 class="login-title">You're signed in</h1>
+        <p class="already-signed-in-email" id="already-email"></p>
+        <a href="/account.html" class="login-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;">Go to Account</a>
+        <button type="button" class="login-btn-outline" id="btn-signout">Sign out</button>
+      </div>
+
+      <!-- Panel: Step 1 — enter email -->
+      <div id="panel-email">
+        <h1 class="login-title">Sign in to SubletBuff</h1>
+        <p class="login-subtitle">CU Boulder students only &mdash; enter your @colorado.edu email.</p>
+
+        <div class="login-field">
+          <label for="input-email">CU Boulder email</label>
+          <input type="email" id="input-email" placeholder="you@colorado.edu" autocomplete="email" />
+        </div>
+        <p class="login-inline-error" id="error-email"></p>
+
+        <button type="button" class="login-btn" id="btn-send">Send Code</button>
+      </div>
+
+      <!-- Panel: Step 2 — enter code -->
+      <div id="panel-verify" style="display:none">
+        <h1 class="login-title">Check your inbox</h1>
+        <p class="login-subtitle" id="verify-subtitle">We sent a 6-digit code to <strong id="sent-to-email"></strong>.</p>
+
+        <p class="login-success-msg" id="success-msg">Code sent! Check your @colorado.edu inbox (and spam folder).</p>
+
+        <div class="login-field">
+          <label for="input-code">6-digit code</label>
+          <input type="text" id="input-code" class="input-code" placeholder="000000"
+                 inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+        </div>
+        <p class="login-inline-error" id="error-code"></p>
+
+        <button type="button" class="login-btn" id="btn-verify">Verify</button>
+
+        <div class="login-resend-row">
+          <span id="resend-countdown"></span>
+          <a id="btn-resend" style="display:none">Resend code</a>
+        </div>
+
+        <hr class="login-divider" />
+        <div class="login-resend-row">
+          <a id="btn-change-email">Use a different email</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/auth.js"></script>
+  <script src="/login-logic.js"></script>
+</body>
+</html>
