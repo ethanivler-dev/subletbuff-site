@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ListingCard, type ListingCardData } from '@/components/listings/ListingCard'
 import { ListingCardSkeleton } from '@/components/ui/Skeleton'
+import { sanitizeListingTitle } from '@/lib/utils'
 
 async function fetchFeaturedListings(): Promise<ListingCardData[]> {
   const supabase = await createClient()
@@ -31,12 +32,15 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
       photos.sort((a, b) => a.display_order - b.display_order)[0]?.url ??
       (Array.isArray(row.photo_urls) ? (row.photo_urls as string[])[0] : undefined)
 
+    const roomType = (row.room_type as string) ?? 'private_room'
+    const neighborhood = (row.neighborhood as string) ?? 'Boulder'
+
     return {
       id: row.id as string,
-      title: (row.title as string) || (row.neighborhood as string) || 'Boulder Sublet',
+      title: sanitizeListingTitle(row.title as string, roomType, neighborhood),
       rent_monthly: (row.rent_monthly as number) ?? 0,
-      room_type: (row.room_type as string) ?? 'private_room',
-      neighborhood: (row.neighborhood as string) ?? 'Boulder',
+      room_type: roomType,
+      neighborhood,
       available_from: row.available_from as string,
       available_to: row.available_to as string,
       furnished: row.furnished as boolean | string,

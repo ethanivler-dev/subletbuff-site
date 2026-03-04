@@ -63,7 +63,7 @@ export function HeroSearch() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search neighborhoods, addresses, or landmarks"
+            placeholder="Search neighborhoods or landmarks"
             className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
           />
         </div>

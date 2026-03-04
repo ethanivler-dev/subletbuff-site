@@ -27,6 +27,24 @@ export function formatRoomType(type: string): string {
   return map[type] ?? type
 }
 
+/**
+ * If a title looks like a raw street address (e.g. "1234 Pearl St"),
+ * replace it with a friendly label built from room_type + neighborhood.
+ * This prevents exact addresses from leaking onto public listing cards.
+ */
+export function sanitizeListingTitle(
+  title: string | null | undefined,
+  roomType: string,
+  neighborhood: string,
+): string {
+  const t = (title ?? '').trim()
+  // Heuristic: starts with one or more digits followed by a space → likely a street address
+  if (!t || /^\d+\s/.test(t)) {
+    return `${formatRoomType(roomType)} in ${neighborhood || 'Boulder'}`
+  }
+  return t
+}
+
 /** Clamp string to max length with ellipsis */
 export function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max - 1) + '…' : str
