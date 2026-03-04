@@ -98,6 +98,11 @@
           <label for="hf-distance">Distance <span id="hf-distance-val">5 mi</span></label>
           <input type="range" id="hf-distance" name="distance" min="0.5" max="5" step="0.5" value="5" />
         </div>
+        <div class="filter-strip-field filter-strip-field--search">
+          <label for="hf-search">Search</label>
+          <input type="search" id="hf-search" name="q" class="input"
+                 placeholder="Neighborhood or keyword" autocomplete="off" />
+        </div>
         <button type="submit" class="filter-strip-btn">Search</button>
       </form>
     </section>
@@ -219,6 +224,33 @@
       var s = document.getElementById('hf-distance');
       var v = document.getElementById('hf-distance-val');
       if (s && v) s.addEventListener('input', function() { v.textContent = s.value + ' mi'; });
+    })();
+  </script>
+
+  <!-- ── Onboarding modal (shown once per browser) ── -->
+  <div id="onboarding-modal" class="onboarding-overlay" role="dialog" aria-modal="true"
+       aria-labelledby="onboarding-title" style="display:none">
+    <div class="onboarding-card">
+      <h2 id="onboarding-title" class="onboarding-title">Welcome to SubletBuff</h2>
+      <ul class="onboarding-list">
+        <li>🎓 CU Boulder students only — every listing is verified</li>
+        <li>✅ Manually reviewed before going live</li>
+        <li>🆓 Free to post — no hidden fees</li>
+      </ul>
+      <button type="button" class="btn btn--primary" id="onboarding-ok">Browse Listings</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var KEY = 'sb_onboarding_seen';
+      if (!localStorage.getItem(KEY)) {
+        var m = document.getElementById('onboarding-modal');
+        if (m) m.style.display = '';
+        document.getElementById('onboarding-ok').addEventListener('click', function () {
+          localStorage.setItem(KEY, '1');
+          m.style.display = 'none';
+        });
+      }
     })();
   </script>
 </body>
