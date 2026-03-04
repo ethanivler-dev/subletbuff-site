@@ -1014,6 +1014,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el.reportWrap) el.reportWrap.classList.remove('listing-hidden');
       initHeartBtn(listing.id);
       loadFavoriteCount(listing.id);
+      initMap(listing);
+      loadSimilarListings(listing);
     } catch (err) {
       console.error('[listing] init error', err);
       if (err && err._kind === 'unauthorized') {
@@ -1025,6 +1027,128 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       showContent(false);
     }
+  }
+
+  // ── Leaflet map ──
+  function initMap(listing) {
+    const mapEl = document.getElementById('listing-map');
+    if (!mapEl || !window.L) return;
+    const lat = Number(listing.lat);
+    const lng = Number(listing.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    mapEl.style.display = '';
+    const map = L.map(mapEl).setView([lat, lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 18
+    }).addTo(map);
+    L.marker([lat, lng]).addTo(map);
+    L.circle([CAMPUS_COORDS.lat, CAMPUS_COORDS.lng], {
+      radius: 500,
+      color: '#B8922A',
+      weight: 1.5,
+      fillOpacity: 0.08
+    }).addTo(map);
+  }
+
+  // ── Similar listings ──
+  function buildSimilarCard(item) {
+    const card = document.createElement('a');
+    card.className = 'listing-card';
+    card.href = '/listing.html?id=' + encodeURIComponent(item.id);
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+
+    const imgWrap = document.createElement('div');
+    imgWrap.style.position = 'relative';
+
+    const img = document.createElement('img');
+    img.className = 'card-img';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = (item.neighborhood || 'Listing') + ' photo';
+    img.src = (item.photo_urls && item.photo_urls[0])
+      ? item.photo_urls[0]
+      : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=75';
+    imgWrap.appendChild(img);
+    card.appendChild(imgWrap);
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+
+    const priceEl = document.createElement('div');
+    priceEl.className = 'card-price';
+    const rent = Number(item.monthly_rent);
+    priceEl.innerHTML = Number.isFinite(rent)
+      ? `$${rent.toLocaleString()} <span class="card-price-unit">/ mo</span>`
+      : 'N/A';
+    body.appendChild(priceEl);
+
+    if (item.beds || item.baths) {
+      const meta = document.createElement('div');
+      meta.className = 'card-meta';
+      meta.textContent = [item.beds && (item.beds + ' bed'), item.baths && (item.baths + ' bath')].filter(Boolean).join(' · ');
+      body.appendChild(meta);
+    }
+
+    if (item.neighborhood) {
+      const hood = document.createElement('div');
+      hood.className = 'card-neighborhood';
+      hood.textContent = item.neighborhood;
+      body.appendChild(hood);
+    }
+
+    if (item.start_date || item.end_date) {
+      const fmt = (d) => { const dt = new Date(d + 'T00:00:00'); return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+      const dates = document.createElement('div');
+      dates.className = 'card-dates';
+      dates.textContent = (item.start_date ? fmt(item.start_date) : '?') + ' – ' + (item.end_date ? fmt(item.end_date) : '?');
+      body.appendChild(dates);
+    }
+
+    const lat = Number(item.lat);
+    const lng = Number(item.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      const miles = haversineMiles(CAMPUS_COORDS, { lat, lng });
+      const dist = document.createElement('div');
+      dist.className = 'card-distance';
+      dist.textContent = miles.toFixed(1) + ' mi from campus';
+      body.appendChild(dist);
+    }
+
+    card.appendChild(body);
+    return card;
+  }
+
+  async function loadSimilarListings(listing) {
+    if (!supabaseClient) return;
+    const sectionEl = document.getElementById('similar-section');
+    const gridEl    = document.getElementById('similar-grid');
+    if (!sectionEl || !gridEl) return;
+
+    let query = supabaseClient
+      .from('listings')
+      .select('id, neighborhood, monthly_rent, beds, baths, photo_urls, created_at, lat, lng, start_date, end_date')
+      .eq('status', 'approved')
+      .eq('paused', false)
+      .eq('filled', false)
+      .neq('id', listing.id)
+      .limit(3);
+
+    if (listing.neighborhood) {
+      query = query.eq('neighborhood', listing.neighborhood);
+    } else {
+      const rent = Number(listing.monthly_rent);
+      if (Number.isFinite(rent)) {
+        query = query.gte('monthly_rent', rent - 300).lte('monthly_rent', rent + 300);
+      }
+    }
+
+    const { data } = await query;
+    if (!data || data.length === 0) return;
+
+    sectionEl.style.display = '';
+    data.forEach(item => gridEl.appendChild(buildSimilarCard(item)));
   }
 
   function openReportModal() {

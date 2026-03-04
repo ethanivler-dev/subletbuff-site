@@ -11,6 +11,7 @@
 
   <link rel="stylesheet" href="/site.css" />
   <link rel="stylesheet" href="/listing.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
   <main class="listing-page">
@@ -40,6 +41,7 @@
               <img id="listing-main-image" class="listing-main-image" alt="Listing photo" />
               <div id="listing-no-photo" class="listing-no-photo listing-hidden">No photos provided.</div>
               <button type="button" class="listing-gallery-arrow right" id="gallery-next" aria-label="Next image">›</button>
+              <span id="listing-image-counter" class="gallery-counter" aria-hidden="true"></span>
               <button type="button" id="listing-open-lightbox" class="listing-open-lightbox" aria-label="Open full screen image">⛶</button>
             </div>
             <div id="listing-photo-caption" class="listing-photo-caption listing-hidden"></div>
@@ -78,6 +80,8 @@
               <div id="listing-flex-content" class="listing-card-body"></div>
             </div>
           </div>
+
+          <div id="listing-map" class="listing-map" style="display:none"></div>
 
           <div class="listing-card listing-safety-notice">
             <div class="listing-card-header">
@@ -119,6 +123,11 @@
       <div id="listing-report-wrap" class="listing-report-wrap listing-hidden">
         <button type="button" id="listing-report-btn" class="listing-report-link">Report this listing</button>
       </div>
+    </section>
+
+    <section id="similar-section" class="similar-section" style="display:none">
+      <h2 class="similar-title">Similar listings</h2>
+      <div id="similar-grid" class="home-featured-grid"></div>
     </section>
   </main>
 
@@ -172,6 +181,7 @@
   <div id="listing-toast" class="listing-toast listing-hidden" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="/auth.js" defer></script>
   <script src="/listing-logic.js?v=2026-02-28c" defer></script>
 </body>
