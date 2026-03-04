@@ -1,0 +1,63 @@
+export const NEIGHBORHOODS = [
+  'University Hill',
+  'The Hill',
+  'Downtown Boulder',
+  'North Boulder',
+  'South Boulder',
+  'East Boulder',
+  'West Boulder',
+  'Mapleton Hill',
+  'Chautauqua',
+  'Whittier',
+  'Martin Acres',
+  'Table Mesa',
+  'Gunbarrel',
+  'Baseline',
+  'Near CU Campus',
+]
+
+export const QUICK_FILTERS = [
+  { label: 'Short-Term Rentals', param: 'short_term' },
+  { label: 'Pet Friendly', param: 'pets' },
+  { label: 'Near Campus', param: 'near_campus' },
+  { label: 'All Inclusive', param: 'utilities_included' },
+]
+
+export const ROOM_TYPES = [
+  { value: 'private_room', label: 'Private Room' },
+  { value: 'shared_room', label: 'Shared Room' },
+  { value: 'full_apartment', label: 'Full Apartment' },
+  { value: 'studio', label: 'Studio' },
+]
+
+export const AMENITIES = [
+  'wifi',
+  'parking',
+  'laundry_in_unit',
+  'laundry_in_building',
+  'ac',
+  'pets_allowed',
+  'kitchen_access',
+  'private_bathroom',
+  'bike_storage',
+  'gym',
+  'pool',
+  'balcony',
+  'yard',
+] as const
+
+export const AMENITY_LABELS: Record<string, string> = {
+  wifi: 'WiFi',
+  parking: 'Parking',
+  laundry_in_unit: 'In-Unit Laundry',
+  laundry_in_building: 'Building Laundry',
+  ac: 'A/C',
+  pets_allowed: 'Pets Allowed',
+  kitchen_access: 'Kitchen',
+  private_bathroom: 'Private Bath',
+  bike_storage: 'Bike Storage',
+  gym: 'Gym',
+  pool: 'Pool',
+  balcony: 'Balcony',
+  yard: 'Yard',
+}
