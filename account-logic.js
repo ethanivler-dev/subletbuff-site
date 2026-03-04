@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // Fetch listings by user_id (new) or email (legacy fallback)
-      let query = sb.from('listings').select('id, address, neighborhood, monthly_rent, beds, baths, start_date, end_date, photo_urls, status, paused, filled, created_at, views, description, security_deposit, phone, preferred_contact, best_time');
+      let query = sb.from('listings').select('id, address, neighborhood, monthly_rent, beds, baths, start_date, end_date, photo_urls, status, paused, filled, created_at, description, security_deposit, phone, preferred_contact, best_time');
       if (userId) {
         query = query.or(`user_id.eq.${userId},email.eq.${email}`);
       } else {
