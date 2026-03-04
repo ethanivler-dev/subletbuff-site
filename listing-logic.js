@@ -630,6 +630,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!el.overviewRows) return;
     el.overviewRows.innerHTML = '';
 
+    // TODO: Do not display full unit/apartment number publicly. Show neighborhood + approximate location only.
+    // Reveal full address only after renter clicks "Request Address" or sends a message. See trust framework doc.
     const areaHint = listing.cross_streets || listing.general_area || listing.location_hint || listing.landmark || null;
     const areaValue = state.canViewPrivateAddress
       ? (listing.neighborhood || listing.address)

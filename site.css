@@ -1398,6 +1398,33 @@ nav.ss-nav .nav-links a.active {
   margin: 0;
 }
 
+/* ── WHAT VERIFIED MEANS SECTION ── */
+.home-verified {
+  background: #F9FAFB;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 24px;
+}
+.home-verified-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.home-verified-intro {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  max-width: 600px;
+  margin: 0 auto 36px;
+}
+.verified-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+@media (max-width: 640px) {
+  .verified-grid { grid-template-columns: 1fr; }
+}
+
 /* ── TRUST STRIP ── */
 .home-trust-strip {
   border-top: 1px solid var(--border);
