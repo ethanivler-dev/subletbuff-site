@@ -24,14 +24,14 @@ WHERE lat IS NOT NULL AND latitude IS NULL;
 -- Pricing
 ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS rent_monthly INTEGER;
 ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS deposit INTEGER;
-UPDATE public.listings SET rent_monthly = monthly_rent WHERE rent_monthly IS NULL;
-UPDATE public.listings SET deposit = security_deposit WHERE deposit IS NULL;
+UPDATE public.listings SET rent_monthly = monthly_rent::integer WHERE rent_monthly IS NULL;
+UPDATE public.listings SET deposit = security_deposit::integer WHERE deposit IS NULL;
 
 -- Rooms
 ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS bedrooms INTEGER DEFAULT 1;
 ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS bathrooms NUMERIC(2,1) DEFAULT 1;
-UPDATE public.listings SET bedrooms = beds  WHERE bedrooms IS NULL AND beds IS NOT NULL;
-UPDATE public.listings SET bathrooms = baths WHERE bathrooms IS NULL AND baths IS NOT NULL;
+UPDATE public.listings SET bedrooms = beds::integer  WHERE bedrooms IS NULL AND beds IS NOT NULL;
+UPDATE public.listings SET bathrooms = baths::numeric WHERE bathrooms IS NULL AND baths IS NOT NULL;
 
 -- Dates
 ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS available_from DATE;
