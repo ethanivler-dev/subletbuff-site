@@ -185,6 +185,19 @@ document.addEventListener('DOMContentLoaded', () => {
 		return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
 	}
 
+	function hasSupportedImageExtension(file) {
+		const name = String(file?.name || '').toLowerCase();
+		return /\.(jpg|jpeg|png|gif|webp|heic|heif|avif|bmp|tif|tiff|svg)$/.test(name);
+	}
+
+	function isSupportedImageFile(file, validImageTypes) {
+		const type = String(file?.type || '').toLowerCase();
+		if (validImageTypes.includes(type)) return true;
+		if (type.startsWith('image/')) return true;
+		// Chrome can report empty MIME for HEIC/HEIF; trust extension fallback.
+		return hasSupportedImageExtension(file);
+	}
+
 	// ── CLIENT-SIDE HEIC→JPEG ──
 	// HEIC client-side conversion: try native canvas (Safari) then heic2any.
 	// Returns a File on success, or null if client-side can't handle it
@@ -197,25 +210,23 @@ document.addEventListener('DOMContentLoaded', () => {
 		return new Promise((resolve, reject) => {
 			const s = document.createElement('script');
 			s.src = '/heic2any.min.js';
-		s.onerror = () => {
-			// Local load failed, try CDN fallback
-			const s2 = document.createElement('script');
-			s2.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-			s2.onload = () => {
-				_heic2any = window.heic2any;
-				if (!_heic2any) { reject(new Error('heic2any CDN also missing')); return; }
-				resolve(_heic2any);
+			s.onerror = () => {
+				// Local load failed, try CDN fallback.
+				const s2 = document.createElement('script');
+				s2.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+				s2.onload = () => {
+					_heic2any = window.heic2any;
+					if (!_heic2any) { reject(new Error('heic2any CDN also missing')); return; }
+					resolve(_heic2any);
+				};
+				s2.onerror = () => reject(new Error('heic2any failed to load from both local and CDN'));
+				document.head.appendChild(s2);
 			};
-			s2.onerror = () => reject(new Error('heic2any failed to load from both local and CDN'));
-			document.head.appendChild(s2);
-			return;
-		};
 			s.onload = () => {
 				_heic2any = window.heic2any;
 				if (!_heic2any) { reject(new Error('heic2any loaded but window.heic2any is undefined')); return; }
 				resolve(_heic2any);
 			};
-			s.onerror = () => reject(new Error('heic2any CDN load failed'));
 			document.head.appendChild(s);
 		});
 	}
@@ -842,13 +853,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 			photoDebug('[form][photo-debug] validating file:', f.name, f.type, f.size);
 
-			if (!validImageTypes.includes(f.type) && !f.type.startsWith('image/')) {
+			if (!isSupportedImageFile(f, validImageTypes)) {
 				alert(`The file "${f.name}" is not a valid image. Please upload only photos (JPG, PNG, GIF, WebP, HEIC, etc.).`);
 				return;
 			}
 
 			if (f.size > MAX_FILE_SIZE_BYTES) {
-				alert(`The file "${f.name}" is too large. Please select photos under 5MB.`);
+				alert(`The file "${f.name}" is too large. Please select photos under 20MB.`);
 				return;
 			}
 
@@ -1499,7 +1510,7 @@ genderPref: document.getElementById('gender-pref').value,
 		leaseType: document.querySelector('input[name="lease-type"]:checked')?.value || '',
 		deposit: document.getElementById('deposit').value,
 		prefContact: prefEmailBtn.classList.contains('active') ? 'email' : 'text',
-		priceReductionEnabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
+		priceReductionEnabled: document.querySelector('#price-reduction-enable[data-val=\"yes\"].active') != null,
 		reductionDays: document.getElementById('reduction-days').value,
 		reductionAmount: document.getElementById('reduction-amount').value,
 		reductionCount: document.getElementById('reduction-count').value,
@@ -1656,7 +1667,7 @@ function buildPayload(photoUrls = []) {
 		description: document.getElementById('description').value,
 		lease_type: document.querySelector('input[name="lease-type"]:checked')?.value || null,
 		security_deposit: depositVal ? parseInt(depositVal) : null,
-		price_reduction_enabled: document.querySelector('#price-reduction-enable.active')?.dataset.val === 'yes',
+		price_reduction_enabled: document.querySelector('#price-reduction-enable[data-val=\"yes\"].active') != null,
 		price_reduction_days: document.getElementById('reduction-days').value ? parseInt(document.getElementById('reduction-days').value) : null,
 		price_reduction_amount: document.getElementById('reduction-amount').value ? parseInt(document.getElementById('reduction-amount').value) : null,
 		price_reduction_count: document.getElementById('reduction-count').value ? parseInt(document.getElementById('reduction-count').value) : null,
@@ -2264,10 +2275,9 @@ document.getElementById('otp-modal-overlay').addEventListener('click', e => {
 
 	// ── Price reduction ──
 	if (listing.price_reduction_enabled) {
-		const prBtn = document.getElementById('price-reduction-enable');
+		const prBtn = Array.from(document.querySelectorAll('#price-reduction-enable')).find((b) => b.dataset.val === 'yes');
 		if (prBtn) {
 			prBtn.classList.add('active');
-			prBtn.dataset.val = 'yes';
 		}
 		const prSection = document.getElementById('price-reduction-section');
 		if (prSection) prSection.style.display = '';
@@ -2451,4 +2461,3 @@ window.addEventListener('resize', () => {
 });
 
 });
-
