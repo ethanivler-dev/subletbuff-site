@@ -65,6 +65,26 @@ export const AMENITIES = [
   'yard',
 ] as const
 
+export const MANAGEMENT_COMPANIES = [
+  'None / Self-managed',
+  'Four Star Realty',
+  'Rent Boulder',
+  'Boulder Property Management',
+  'Fox-Carskadon',
+  'Pedal to Properties',
+  'WK Real Estate',
+  'Other',
+]
+
+export const MANAGEMENT_COMPANY_URLS: Record<string, string> = {
+  'Four Star Realty': 'https://www.fourstarrealty.com/subleasing',
+  'Rent Boulder': 'https://www.rentboulder.com',
+  'Boulder Property Management': 'https://www.boulderpropertymanagement.com',
+  'Fox-Carskadon': 'https://foxcarskadon.com',
+  'Pedal to Properties': 'https://pedaltoproperties.com',
+  'WK Real Estate': 'https://wkre.com',
+}
+
 export const AMENITY_LABELS: Record<string, string> = {
   wifi: 'WiFi',
   parking: 'Parking',

@@ -1,9 +1,10 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatRent, formatPrice, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
+import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
 import { ListingGallery } from '@/components/listings/ListingGallery'
 import { AmenityGrid } from '@/components/listings/AmenityGrid'
@@ -53,6 +54,8 @@ interface ListingDetailRow {
   paused: boolean | null
   filled: boolean | null
   save_count: number | null
+  original_rent_monthly: number | null
+  management_company: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; caption?: string }> | null
   photo_urls: string[] | null
 }
@@ -81,6 +84,7 @@ async function getListing(id: string) {
       furnished, amenities, house_rules, roommate_info,
       is_featured, is_intern_friendly, immediate_movein,
       created_at, lister_id, user_id, status, paused, filled, save_count,
+      original_rent_monthly, management_company,
       listing_photos(url, display_order, is_primary, caption),
       photo_urls
     `)
@@ -245,9 +249,17 @@ export default async function ListingDetailPage({
 
               <h1 className="font-serif text-3xl lg:text-4xl text-gray-900 mb-2">{title}</h1>
 
-              <p className="text-2xl font-bold text-primary-600 mb-3">
-                {formatRent(rent)}
-              </p>
+              {listing.original_rent_monthly && listing.original_rent_monthly > rent ? (
+                <div className="flex items-center gap-3 flex-wrap mb-3">
+                  <span className="line-through text-gray-400 text-lg">{formatRent(listing.original_rent_monthly)}</span>
+                  <span className="text-2xl font-bold text-primary-600">{formatRent(rent)}</span>
+                  <span className="text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-badge px-1.5 py-0.5">Price reduced</span>
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-primary-600 mb-3">
+                  {formatRent(rent)}
+                </p>
+              )}
 
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
                 <span className="flex items-center gap-1.5">
@@ -337,6 +349,17 @@ export default async function ListingDetailPage({
                 </div>
               </section>
             )}
+
+            {/* Report listing */}
+            <div className="flex justify-end pt-4 border-t border-gray-100 mt-4">
+              <a
+                href={`mailto:subletbuff@gmail.com?subject=${encodeURIComponent(`Report Listing: ${title} (ID: ${listing.id})`)}`}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <Flag className="w-3.5 h-3.5" />
+                Report this listing
+              </a>
+            </div>
           </div>
 
           {/* Right column — sidebar */}
@@ -348,6 +371,29 @@ export default async function ListingDetailPage({
               verificationLevel={lister?.verification_level ?? undefined}
               memberSince={lister?.created_at ?? undefined}
             />
+
+            {/* Management company card */}
+            {listing.management_company && (
+              <div className="rounded-card border border-gray-200 bg-white p-4">
+                <div className="flex items-start gap-2 text-sm text-gray-700">
+                  <Building2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                  <div>
+                    <span className="text-gray-500 text-xs">Property managed by</span>
+                    <p className="font-medium">{listing.management_company}</p>
+                    {MANAGEMENT_COMPANY_URLS[listing.management_company] && (
+                      <a
+                        href={MANAGEMENT_COMPANY_URLS[listing.management_company]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary-600 hover:underline mt-0.5 block"
+                      >
+                        Sublease policy →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Inquiry form */}
             <InquiryForm

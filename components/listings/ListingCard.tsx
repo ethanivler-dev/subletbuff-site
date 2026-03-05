@@ -25,6 +25,7 @@ export interface ListingCardData {
   save_count?: number
   public_latitude?: number
   public_longitude?: number
+  original_rent_monthly?: number
 }
 
 interface ListingCardProps {
@@ -95,7 +96,15 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
         {/* Details */}
         <div className="flex-1 p-4 flex flex-col gap-1.5 min-w-0">
           <div>
-            <p className="text-xl font-bold text-gray-900">{formatRent(rent_monthly)}</p>
+            {listing.original_rent_monthly && listing.original_rent_monthly > rent_monthly ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="line-through text-gray-400 text-sm">{formatRent(listing.original_rent_monthly)}</span>
+                <span className="text-xl font-bold text-gray-900">{formatRent(rent_monthly)}</span>
+                <span className="text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-badge px-1.5 py-0.5">Price reduced</span>
+              </div>
+            ) : (
+              <p className="text-xl font-bold text-gray-900">{formatRent(rent_monthly)}</p>
+            )}
             <h3 className="text-sm font-semibold text-gray-800 leading-snug mt-0.5 line-clamp-1">
               {title}
             </h3>
@@ -165,7 +174,15 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
       {/* Details */}
       <div className="p-4 flex flex-col gap-1.5 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-lg font-bold text-gray-900">{formatRent(rent_monthly)}</p>
+          {listing.original_rent_monthly && listing.original_rent_monthly > rent_monthly ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="line-through text-gray-400 text-sm">{formatRent(listing.original_rent_monthly)}</span>
+              <span className="text-lg font-bold text-gray-900">{formatRent(rent_monthly)}</span>
+              <span className="text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-badge px-1.5 py-0.5">Price reduced</span>
+            </div>
+          ) : (
+            <p className="text-lg font-bold text-gray-900">{formatRent(rent_monthly)}</p>
+          )}
         </div>
 
         <h3 className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">{title}</h3>

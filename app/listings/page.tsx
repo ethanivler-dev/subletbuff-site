@@ -36,7 +36,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
   let query = supabase
     .from('listings')
     .select(`
-      id, title, neighborhood, rent_monthly, available_from, available_to,
+      id, title, neighborhood, rent_monthly, original_rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein,
       save_count, photo_urls, public_latitude, public_longitude,
       listing_photos(url, display_order, is_primary)
@@ -137,6 +137,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
       is_saved: savedIds.has(row.id as string),
       public_latitude: row.public_latitude as number | undefined,
       public_longitude: row.public_longitude as number | undefined,
+      original_rent_monthly: row.original_rent_monthly as number | undefined,
     }
   })
 

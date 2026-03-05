@@ -27,6 +27,12 @@ const INITIAL_BASIC: BasicInfoData = {
   available_from: '',
   available_to: '',
   min_stay: '1m',
+  auto_reduce_enabled: false,
+  auto_reduce_amount: '',
+  auto_reduce_interval_days: '14',
+  auto_reduce_max_times: '3',
+  management_company: 'None / Self-managed',
+  management_company_custom: '',
 }
 
 const INITIAL_DETAILS: DetailsData = {
@@ -313,6 +319,21 @@ export default function PostListingPage() {
           roommate_info: details.roommate_info || null,
           is_intern_friendly: details.is_intern_friendly,
           immediate_movein: details.immediate_movein,
+
+          // === Auto price reduction ===
+          auto_reduce_enabled: basicInfo.auto_reduce_enabled,
+          auto_reduce_amount: basicInfo.auto_reduce_enabled && basicInfo.auto_reduce_amount
+            ? parseInt(basicInfo.auto_reduce_amount) : null,
+          auto_reduce_interval_days: basicInfo.auto_reduce_enabled && basicInfo.auto_reduce_interval_days
+            ? parseInt(basicInfo.auto_reduce_interval_days) : null,
+          auto_reduce_max_times: basicInfo.auto_reduce_enabled && basicInfo.auto_reduce_max_times
+            ? parseInt(basicInfo.auto_reduce_max_times) : null,
+
+          // === Management company ===
+          management_company: basicInfo.management_company === 'Other'
+            ? (basicInfo.management_company_custom || null)
+            : (basicInfo.management_company && basicInfo.management_company !== 'None / Self-managed')
+              ? basicInfo.management_company : null,
 
           // === Photos + status ===
           photo_urls: uploadedPhotos.map((p) => p.url),

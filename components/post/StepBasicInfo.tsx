@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
-import { ROOM_TYPES, NEIGHBORHOODS, NEIGHBORHOOD_ALIASES } from '@/lib/constants'
+import { ROOM_TYPES, NEIGHBORHOODS, NEIGHBORHOOD_ALIASES, MANAGEMENT_COMPANIES } from '@/lib/constants'
 import { MapPin } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -67,6 +67,12 @@ export interface BasicInfoData {
   available_from: string
   available_to: string
   min_stay: string // '1m' | '2m' | '3m' | '4m' | 'flexible'
+  auto_reduce_enabled: boolean
+  auto_reduce_amount: string
+  auto_reduce_interval_days: string
+  auto_reduce_max_times: string
+  management_company: string
+  management_company_custom: string
 }
 
 interface StepBasicInfoProps {
@@ -84,7 +90,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
   onChangeRef.current = onChange
   const [mapsLoaded, setMapsLoaded] = useState(false)
 
-  function update(field: keyof BasicInfoData, value: string) {
+  function update(field: keyof BasicInfoData, value: string | boolean) {
     onChange({ ...data, [field]: value })
   }
 
@@ -311,6 +317,99 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           <option value="4m">4 months</option>
           <option value="flexible">Flexible</option>
         </select>
+      </div>
+
+      {/* Auto price reduction */}
+      <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={data.auto_reduce_enabled}
+            onClick={() => update('auto_reduce_enabled', !data.auto_reduce_enabled)}
+            className={[
+              'relative inline-flex h-6 w-11 rounded-full transition-colors',
+              data.auto_reduce_enabled ? 'bg-primary-600' : 'bg-gray-300',
+            ].join(' ')}
+          >
+            <span className={[
+              'inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform mt-0.5',
+              data.auto_reduce_enabled ? 'translate-x-[22px]' : 'translate-x-0.5',
+            ].join(' ')} />
+          </button>
+          <span className="text-sm text-gray-700">Auto Price Reduction</span>
+        </label>
+        <p className="text-xs text-gray-400 -mt-2">
+          Automatically lower your asking price after a set number of days if the listing hasn&apos;t filled
+        </p>
+
+        {data.auto_reduce_enabled && (
+          <div className="ml-14 flex flex-wrap gap-4 items-end">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Reduce by ($)</label>
+              <input
+                type="number"
+                min={10}
+                step={10}
+                placeholder="50"
+                value={data.auto_reduce_amount}
+                onChange={(e) => update('auto_reduce_amount', e.target.value)}
+                className="w-24 px-3 py-1.5 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Every</label>
+              <select
+                value={data.auto_reduce_interval_days}
+                onChange={(e) => update('auto_reduce_interval_days', e.target.value)}
+                className="px-3 py-1.5 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="7">7 days</option>
+                <option value="14">14 days</option>
+                <option value="21">21 days</option>
+                <option value="30">30 days</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Max reductions</label>
+              <select
+                value={data.auto_reduce_max_times}
+                onChange={(e) => update('auto_reduce_max_times', e.target.value)}
+                className="px-3 py-1.5 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={String(n)}>{n}×</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Property management company */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-800">
+          Property Management Company{' '}
+          <span className="font-normal text-gray-400">(optional)</span>
+        </label>
+        <select
+          value={data.management_company}
+          onChange={(e) => update('management_company', e.target.value)}
+          className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
+        >
+          {MANAGEMENT_COMPANIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        {data.management_company === 'Other' && (
+          <input
+            type="text"
+            placeholder="Enter company name"
+            value={data.management_company_custom}
+            onChange={(e) => update('management_company_custom', e.target.value)}
+            className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder:text-gray-400"
+          />
+        )}
       </div>
     </div>
   )
