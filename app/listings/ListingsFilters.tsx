@@ -50,11 +50,6 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
     router.push(`${pathname}?${sp.toString()}`)
   }
 
-  function clearAll() {
-    setPriceRange([PRICE_MIN, PRICE_MAX])
-    router.push(pathname)
-  }
-
   function updatePrice(newMin: number, newMax: number) {
     setPriceRange([newMin, newMax])
     if (priceDebounce.current) clearTimeout(priceDebounce.current)
@@ -70,14 +65,6 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
       router.push(`${pathname}?${sp.toString()}`)
     }, 300)
   }
-
-  const hasFilters = !!(
-    params.price_min || params.price_max ||
-    params.room_type || params.filter ||
-    params.min_stay || params.neighborhood ||
-    params.date_from || params.date_to ||
-    params.furnished || params.intern_friendly || params.parking
-  )
 
   const priceLabel =
     priceRange[0] === PRICE_MIN && priceRange[1] === PRICE_MAX
@@ -193,14 +180,6 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
           <option value="soonest">Soonest Available</option>
         </select>
 
-        {hasFilters && (
-          <button
-            onClick={clearAll}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Clear all
-          </button>
-        )}
       </div>
 
       {/* More Filters collapsible */}

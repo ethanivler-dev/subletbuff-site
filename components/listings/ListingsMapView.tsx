@@ -92,7 +92,6 @@ export function ListingsMapView({ listings, total, params }: Props) {
   const [showMap, setShowMap] = useState(true)
   const [mapBounds, setMapBounds] = useState<google.maps.LatLngBounds | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
-  const boundsDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_KEY ?? '',
@@ -106,8 +105,9 @@ export function ListingsMapView({ listings, total, params }: Props) {
       isInBoulderArea(l.public_latitude, l.public_longitude),
   )
 
-  // Client-side filter: only show cards/markers within the visible map bounds
-  const visibleListings = mapBounds
+  // Client-side filter: only apply when the map panel is actually visible
+  const mapIsVisible = showMap || showMobileMap
+  const visibleListings = (mapBounds && mapIsVisible)
     ? listings.filter(
         (l) =>
           !l.public_latitude ||
@@ -200,14 +200,11 @@ export function ListingsMapView({ listings, total, params }: Props) {
             zoom={13}
             options={{ ...mapOptions, gestureHandling: greedy ? 'greedy' : 'cooperative' }}
             onLoad={handleMapLoad}
-            onBoundsChanged={() => {
-              if (boundsDebounce.current) clearTimeout(boundsDebounce.current)
-              boundsDebounce.current = setTimeout(() => {
-                if (mapRef.current) setMapBounds(mapRef.current.getBounds() ?? null)
-              }, 150)
+            onIdle={() => {
+              if (mapRef.current) setMapBounds(mapRef.current.getBounds() ?? null)
             }}
           >
-            <MapMarkers />
+            {MapMarkers()}
           </GoogleMap>
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
@@ -299,7 +296,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
           }}
           className="sticky top-16 h-[calc(100vh-4rem)]"
         >
-          <MapPanel />
+          {MapPanel({})}
         </div>
       </div>
 
@@ -328,7 +325,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
             <X className="w-4 h-4" />
             Close
           </button>
-          <MapPanel greedy />
+          {MapPanel({ greedy: true })}
         </div>
       )}
     </>
