@@ -53,15 +53,21 @@ function PriceMarker({
   price,
   isActive,
   onClick,
+  onHoverStart,
+  onHoverEnd,
 }: {
   price: number
   isActive: boolean
   onClick: () => void
+  onHoverStart: () => void
+  onHoverEnd: () => void
 }) {
   return (
     <div style={{ zIndex: isActive ? 10 : 1, position: 'relative' }}>
       <button
         onClick={onClick}
+        onMouseEnter={onHoverStart}
+        onMouseLeave={onHoverEnd}
         className={[
           'rounded-full font-bold whitespace-nowrap shadow-md border transition-all duration-150',
           isActive
@@ -120,6 +126,15 @@ export function ListingsMapView({ listings, total, params }: Props) {
     [router],
   )
 
+  // Hovering a pin prefetches the detail page for fast navigation
+  const handlePinHoverStart = useCallback(
+    (id: string) => {
+      setHoveredId(id)
+      router.prefetch(`/listings/${id}`)
+    },
+    [router],
+  )
+
   const mapOptions = {
     disableDefaultUI: true,
     zoomControl: true,
@@ -140,6 +155,8 @@ export function ListingsMapView({ listings, total, params }: Props) {
               price={listing.rent_monthly}
               isActive={hoveredId === listing.id}
               onClick={() => handlePinClick(listing.id)}
+              onHoverStart={() => handlePinHoverStart(listing.id)}
+              onHoverEnd={() => setHoveredId(null)}
             />
           </OverlayView>
         ))}
@@ -190,7 +207,10 @@ export function ListingsMapView({ listings, total, params }: Props) {
             }}
             onMouseEnter={() => setHoveredId(listing.id)}
             onMouseLeave={() => setHoveredId(null)}
-            className="rounded-card transition-shadow duration-150"
+            className={[
+              'rounded-card transition-all duration-150',
+              hoveredId === listing.id ? 'ring-2 ring-primary-400 ring-offset-1' : '',
+            ].join(' ')}
           >
             <ListingCard listing={listing} variant="horizontal" />
           </div>
