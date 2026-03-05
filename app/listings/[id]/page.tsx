@@ -63,7 +63,6 @@ interface ListingDetailRow {
 interface ProfileRow {
   id: string
   full_name: string | null
-  avatar_url: string | null
   verification_level: string | null
   created_at: string | null
 }
@@ -106,7 +105,7 @@ async function getListing(id: string) {
   if (ownerId) {
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, verification_level, created_at')
+      .select('id, full_name, verification_level, created_at')
       .eq('id', ownerId)
       .single()
     profile = profileData as ProfileRow | null
@@ -386,7 +385,6 @@ export default async function ListingDetailPage({
             {/* Lister profile card */}
             <ListerProfile
               name={displayListerName}
-              avatarUrl={lister?.avatar_url ?? undefined}
               verificationLevel={lister?.verification_level ?? undefined}
               memberSince={lister?.created_at ?? undefined}
             />

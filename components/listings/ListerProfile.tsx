@@ -1,15 +1,13 @@
-import Image from 'next/image'
 import { CheckCircle, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 
 interface ListerProfileProps {
   name: string
-  avatarUrl?: string
   verificationLevel?: string
   memberSince?: string
 }
 
-export function ListerProfile({ name, avatarUrl, verificationLevel, memberSince }: ListerProfileProps) {
+export function ListerProfile({ name, verificationLevel, memberSince }: ListerProfileProps) {
   const displayName = name || 'SubletBuff Member'
   const initials = displayName
     .split(' ')
@@ -22,14 +20,8 @@ export function ListerProfile({ name, avatarUrl, verificationLevel, memberSince 
     <div className="rounded-card border border-gray-200 bg-white p-5">
       <div className="flex items-center gap-4">
         {/* Avatar */}
-        <div className="relative w-14 h-14 rounded-full overflow-hidden bg-primary-100 flex-shrink-0">
-          {avatarUrl ? (
-            <Image src={avatarUrl} alt={displayName} fill className="object-cover" sizes="56px" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-primary-600 font-semibold text-lg">
-              {initials}
-            </div>
-          )}
+        <div className="w-14 h-14 rounded-full bg-primary-100 flex-shrink-0 flex items-center justify-center text-primary-600 font-semibold text-lg">
+          {initials}
         </div>
 
         <div className="min-w-0">

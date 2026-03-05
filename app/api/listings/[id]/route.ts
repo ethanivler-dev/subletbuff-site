@@ -74,7 +74,7 @@ export async function GET(
   if (ownerId) {
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, verification_level, created_at')
+      .select('id, full_name, verification_level, created_at')
       .eq('id', ownerId)
       .single()
     profile = profileData

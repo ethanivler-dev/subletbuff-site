@@ -223,19 +223,9 @@ export default function AccountPage() {
         {/* Profile header */}
         <div className="mb-6">
           <div className="flex items-center gap-4 mb-5">
-            {user.user_metadata?.avatar_url ? (
-              <Image
-                src={user.user_metadata.avatar_url}
-                alt={displayName}
-                width={56}
-                height={56}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xl">
-                {initials}
-              </div>
-            )}
+            <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xl">
+              {initials}
+            </div>
             <div>
               <h1 className="font-serif text-2xl text-gray-900">{displayName}</h1>
               <p className="text-sm text-gray-500">{user.email}</p>

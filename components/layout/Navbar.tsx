@@ -58,8 +58,6 @@ export function Navbar() {
     setDropdownOpen(false)
   }
 
-  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined
-  const displayName = user?.user_metadata?.full_name as string | undefined
 
   return (
     <>
@@ -125,19 +123,9 @@ export function Navbar() {
                       'hover:opacity-70 transition-opacity',
                     ].join(' ')}
                   >
-                    {avatarUrl ? (
-                      <Image
-                        src={avatarUrl}
-                        alt={displayName ?? 'User'}
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary-600" />
-                      </div>
-                    )}
+                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary-600" />
+                    </div>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </button>
 
