@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { type ListingCardData } from '@/components/listings/ListingCard'
 import { ListingsMapView } from '@/components/listings/ListingsMapView'
@@ -151,17 +152,34 @@ export default async function ListingsPage({
   const params = await searchParams
   const { listings, total } = await fetchListings(params)
 
+  const hasFilters = !!(
+    params.q || params.price_min || params.price_max ||
+    params.room_type || params.filter || params.min_stay ||
+    params.neighborhood || params.date_from || params.date_to ||
+    params.furnished || params.intern_friendly || params.parking
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Page header */}
       <div className="bg-white border-b border-gray-100 pt-20 pb-4">
-        <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            {params.q ? `"${params.q}"` : 'Boulder Sublets'}
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {total} listing{total !== 1 ? 's' : ''} available
-          </p>
+        <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              {params.q ? `"${params.q}"` : 'Boulder Sublets'}
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {total} listing{total !== 1 ? 's' : ''} available
+            </p>
+          </div>
+          {hasFilters && (
+            <Link
+              href="/listings"
+              className="flex-shrink-0 text-sm text-gray-500 hover:text-gray-800 underline underline-offset-2 transition-colors"
+            >
+              Clear all filters
+            </Link>
+          )}
         </div>
       </div>
 
