@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { MapPin, Calendar, Bed, Bath, Home, Shield } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
@@ -178,8 +179,18 @@ export default async function ListingDetailPage({
 
   return (
     <div className="min-h-screen bg-white pt-16">
-      {/* Photo Gallery */}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <Link
+          href="/listings"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Listings
+        </Link>
+      </div>
+
+      {/* Photo Gallery */}
+      <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
         <ListingGallery photos={photos} title={title} />
       </div>
 
