@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {
   MapPin, CreditCard, FileText, Info,
-  CheckCircle, AlertTriangle, Phone, ArrowRight,
+  CheckCircle, AlertTriangle, ArrowRight,
 } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -85,7 +85,7 @@ const TIPS = [
 ]
 
 const RESOURCES = [
-  { label: 'CU Boulder Off-Campus Housing', href: 'https://offcampus.colorado.edu' },
+  { label: 'CU Boulder Off-Campus Housing', href: 'https://offcampushousing.colorado.edu/' },
   { label: 'Boulder Police Non-Emergency', href: 'tel:3034413333' },
   { label: 'Colorado AG Consumer Protection', href: 'https://coag.gov/resources/consumer-protection/' },
 ]
@@ -239,16 +239,9 @@ export default function SafetyPage() {
                 <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors" />
               </a>
             ))}
-            <a
-              href="tel:911"
-              className="flex items-center justify-between p-4 rounded-card border border-red-100 bg-red-50 hover:border-red-200 transition-all group"
-            >
-              <span className="flex items-center gap-2 text-sm font-medium text-red-700">
-                <Phone className="w-4 h-4" />
-                Emergency — 911
-              </span>
-              <span className="text-xs text-red-500">If you are in immediate danger</span>
-            </a>
+            <p className="text-sm text-gray-500 px-1 pt-1">
+              If you ever feel unsafe, trust your instincts and contact local authorities.
+            </p>
           </div>
         </div>
       </section>

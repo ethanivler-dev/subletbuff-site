@@ -37,9 +37,6 @@ export default function HowItWorksPage() {
       {/* Hero */}
       <section className="pt-28 pb-10 bg-gradient-to-b from-primary-50 to-white">
         <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm font-semibold text-primary-600 uppercase tracking-widest mb-3">
-            Simple by design
-          </p>
           <h1 className="font-serif text-4xl sm:text-5xl text-gray-900 mb-4">
             How SubletBuff Works
           </h1>
