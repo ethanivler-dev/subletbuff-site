@@ -23,6 +23,8 @@ export interface ListingCardData {
   verification_level?: string
   is_saved?: boolean
   save_count?: number
+  public_latitude?: number
+  public_longitude?: number
 }
 
 interface ListingCardProps {

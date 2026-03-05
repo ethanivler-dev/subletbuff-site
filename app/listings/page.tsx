@@ -1,8 +1,6 @@
-import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { ListingCard, type ListingCardData } from '@/components/listings/ListingCard'
-import { ListingCardSkeleton } from '@/components/ui/Skeleton'
-import { ListingsFilters } from './ListingsFilters'
+import { type ListingCardData } from '@/components/listings/ListingCard'
+import { ListingsMapView } from '@/components/listings/ListingsMapView'
 import { sanitizeListingTitle } from '@/lib/utils'
 import type { Metadata } from 'next'
 
@@ -35,7 +33,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein,
-      save_count, photo_urls,
+      save_count, photo_urls, public_latitude, public_longitude,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
     .eq('status', 'approved')
@@ -111,6 +109,8 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
       primary_photo_url: primaryPhoto,
       save_count: (row.save_count as number) ?? 0,
       is_saved: savedIds.has(row.id as string),
+      public_latitude: row.public_latitude as number | undefined,
+      public_longitude: row.public_longitude as number | undefined,
     }
   })
 
@@ -133,28 +133,13 @@ export default async function ListingsPage({
           <h1 className="text-2xl font-semibold text-gray-900">
             {params.q ? `"${params.q}"` : 'Boulder Sublets'}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">{total} listing{total !== 1 ? 's' : ''} available</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {total} listing{total !== 1 ? 's' : ''} available
+          </p>
         </div>
       </div>
 
-      <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Filters */}
-        <ListingsFilters params={params} total={total} />
-
-        {/* Results */}
-        {listings.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            <p className="text-lg font-medium mb-2">No listings found</p>
-            <p className="text-sm">Try adjusting your filters or search term.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4 mt-6">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} variant="horizontal" />
-            ))}
-          </div>
-        )}
-      </div>
+      <ListingsMapView listings={listings} total={total} params={params} />
     </div>
   )
 }
