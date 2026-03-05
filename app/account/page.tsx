@@ -1,0 +1,480 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import Image from 'next/image'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
+import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/lib/utils'
+import {
+  Heart, MessageSquare, Settings, BarChart2,
+  ChevronRight, MapPin, Calendar,
+} from 'lucide-react'
+import type { User as AuthUser } from '@supabase/supabase-js'
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+interface SavedItem {
+  saved_at: string
+  listing: {
+    id: string
+    title: string | null
+    room_type: string
+    neighborhood: string
+    rent_monthly: number | null
+    monthly_rent: number | null
+    available_from: string | null
+    available_to: string | null
+    start_date: string | null
+    end_date: string | null
+    listing_photos: Array<{ url: string; is_primary: boolean; display_order: number }> | null
+  } | null
+}
+
+interface InquiryRow {
+  id: string
+  message: string
+  created_at: string
+  status: string | null
+  listing_id: string
+  listing: {
+    id: string
+    title: string | null
+    room_type: string
+    neighborhood: string
+  } | null
+}
+
+type Tab = 'saved' | 'inquiries' | 'settings'
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function inquiryStatusInfo(inquiry: InquiryRow): { label: string; color: string } {
+  const s = inquiry.status?.toLowerCase()
+  if (s === 'replied') return { label: 'Replied', color: 'text-green-700 bg-green-100' }
+  const daysSince = (Date.now() - new Date(inquiry.created_at).getTime()) / 86_400_000
+  if (daysSince > 3 && (!s || s === 'pending')) {
+    return { label: 'No Response', color: 'text-gray-600 bg-gray-100' }
+  }
+  return { label: 'Pending', color: 'text-amber-700 bg-amber-100' }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
+export default function AccountPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<Tab>('saved')
+
+  // Counts for header stats
+  const [savedCount, setSavedCount] = useState(0)
+  const [inquiriesCount, setInquiriesCount] = useState(0)
+  const [hasListings, setHasListings] = useState(false)
+
+  // Tab data
+  const [savedListings, setSavedListings] = useState<SavedItem[]>([])
+  const [inquiries, setInquiries] = useState<InquiryRow[]>([])
+  const [tabLoading, setTabLoading] = useState(false)
+
+  /* ---- Auth + initial counts ---- */
+  useEffect(() => {
+    async function init() {
+      const supabase = createClient()
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        router.replace('/auth/login?next=/account')
+        return
+      }
+      setUser(authUser)
+
+      const [savedRes, inqRes, listingsRes] = await Promise.all([
+        supabase
+          .from('saved_listings')
+          .select('listing_id', { count: 'exact', head: true })
+          .eq('user_id', authUser.id),
+        supabase
+          .from('inquiries')
+          .select('id', { count: 'exact', head: true })
+          .eq('renter_id', authUser.id),
+        supabase
+          .from('listings')
+          .select('id', { count: 'exact', head: true })
+          .or(`user_id.eq.${authUser.id},lister_id.eq.${authUser.id}`),
+      ])
+
+      setSavedCount(savedRes.count ?? 0)
+      setInquiriesCount(inqRes.count ?? 0)
+      setHasListings((listingsRes.count ?? 0) > 0)
+      setLoading(false)
+    }
+    init()
+  }, [router])
+
+  /* ---- Fetch tab data ---- */
+  const fetchTab = useCallback(async (tab: Tab, userId: string) => {
+    if (tab === 'settings') return
+    setTabLoading(true)
+    const supabase = createClient()
+
+    if (tab === 'saved') {
+      const { data } = await supabase
+        .from('saved_listings')
+        .select(`
+          created_at,
+          listings (
+            id, title, room_type, neighborhood,
+            rent_monthly, monthly_rent,
+            available_from, available_to, start_date, end_date,
+            listing_photos (url, is_primary, display_order)
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (data) {
+        setSavedListings(
+          data.map((row: any) => ({
+            saved_at: row.created_at,
+            listing: Array.isArray(row.listings) ? (row.listings[0] ?? null) : row.listings,
+          }))
+        )
+      }
+    } else if (tab === 'inquiries') {
+      const { data } = await supabase
+        .from('inquiries')
+        .select(`
+          id, message, status, created_at, listing_id,
+          listings (id, title, room_type, neighborhood)
+        `)
+        .eq('renter_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (data) {
+        setInquiries(
+          data.map((row: any) => ({
+            ...row,
+            listing: Array.isArray(row.listings) ? (row.listings[0] ?? null) : row.listings,
+          }))
+        )
+      }
+    }
+
+    setTabLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (user) fetchTab(activeTab, user.id)
+  }, [user, activeTab, fetchTab])
+
+  /* ---- Loading ---- */
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-3 text-gray-500">
+          <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm">Loading account…</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) return null
+
+  const displayName =
+    user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'User'
+  const initials = displayName
+    .split(' ')
+    .map((n: string) => n[0] ?? '')
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  /* ---- Render ---- */
+  return (
+    <div className="min-h-screen bg-gray-50 pt-20 pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+
+        {/* Profile header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-4 mb-5">
+            {user.user_metadata?.avatar_url ? (
+              <Image
+                src={user.user_metadata.avatar_url}
+                alt={displayName}
+                width={56}
+                height={56}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xl">
+                {initials}
+              </div>
+            )}
+            <div>
+              <h1 className="font-serif text-2xl text-gray-900">{displayName}</h1>
+              <p className="text-sm text-gray-500">{user.email}</p>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded-card shadow-card p-4 text-center">
+              <p className="text-2xl font-bold text-gray-900">{savedCount}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Saved</p>
+            </div>
+            <div className="bg-white rounded-card shadow-card p-4 text-center">
+              <p className="text-2xl font-bold text-gray-900">{inquiriesCount}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Inquiries Sent</p>
+            </div>
+            <div className="bg-white rounded-card shadow-card p-4 text-center">
+              <p className="text-lg font-bold text-gray-900">Free</p>
+              <p className="text-xs text-gray-500 mt-0.5">Account Level</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Lister dashboard link */}
+        {hasListings && (
+          <Link
+            href="/account/listings"
+            className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-card px-4 py-3 mb-6 hover:bg-primary-100 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <BarChart2 className="w-5 h-5 text-primary-600" />
+              <div>
+                <p className="text-sm font-semibold text-primary-800">Lister Dashboard</p>
+                <p className="text-xs text-primary-600">View stats and inquiries for your listings</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-primary-400 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        )}
+
+        {/* Tabs + content */}
+        <div className="bg-white rounded-card shadow-card overflow-hidden">
+          {/* Tab bar */}
+          <div className="flex border-b border-gray-100">
+            {(
+              [
+                { key: 'saved' as Tab, label: 'Saved Listings', Icon: Heart },
+                { key: 'inquiries' as Tab, label: 'Inquiry History', Icon: MessageSquare },
+                { key: 'settings' as Tab, label: 'Settings', Icon: Settings },
+              ] as const
+            ).map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={[
+                  'flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition-colors',
+                  activeTab === key
+                    ? 'text-primary-700 border-b-2 border-primary-600 -mb-px'
+                    : 'text-gray-500 hover:text-gray-700',
+                ].join(' ')}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="p-4 sm:p-6">
+            {/* Spinner */}
+            {tabLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+
+            {/* ---- Saved Listings ---- */}
+            {!tabLoading && activeTab === 'saved' && (
+              <>
+                {savedListings.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Heart className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 mb-3">No saved listings yet</p>
+                    <Link href="/listings">
+                      <Button variant="secondary" size="sm">Browse Listings</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {savedListings.map((item) => {
+                      if (!item.listing) return null
+                      const l = item.listing
+                      const photos = l.listing_photos
+                        ? [...l.listing_photos].sort((a, b) => {
+                            if (a.is_primary && !b.is_primary) return -1
+                            if (!a.is_primary && b.is_primary) return 1
+                            return a.display_order - b.display_order
+                          })
+                        : []
+                      const coverUrl = photos[0]?.url
+                      const rent = l.rent_monthly ?? l.monthly_rent
+                      const from = l.available_from ?? l.start_date
+                      const to = l.available_to ?? l.end_date
+                      const title = sanitizeListingTitle(l.title, l.room_type, l.neighborhood)
+
+                      return (
+                        <Link
+                          key={l.id}
+                          href={`/listings/${l.id}`}
+                          className="flex gap-3 p-3 rounded-card border border-gray-100 hover:border-gray-200 hover:shadow-card transition-all"
+                        >
+                          <div className="relative w-20 h-16 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                            {coverUrl ? (
+                              <Image
+                                src={coverUrl}
+                                alt={title}
+                                fill
+                                className="object-cover"
+                                sizes="80px"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 line-clamp-1">{title}</p>
+                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                              <MapPin className="w-3 h-3 flex-shrink-0" />
+                              <span>{l.neighborhood} · {formatRoomType(l.room_type)}</span>
+                            </div>
+                            {from && to && (
+                              <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                                <Calendar className="w-3 h-3 flex-shrink-0" />
+                                <span>{formatDate(from)} – {formatDate(to)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            {rent && (
+                              <p className="text-sm font-bold text-gray-900">{formatRent(rent)}</p>
+                            )}
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              saved {formatDate(item.saved_at.split('T')[0])}
+                            </p>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ---- Inquiry History ---- */}
+            {!tabLoading && activeTab === 'inquiries' && (
+              <>
+                {inquiries.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 mb-3">No inquiries sent yet</p>
+                    <Link href="/listings">
+                      <Button variant="secondary" size="sm">Browse Listings</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {inquiries.map((inquiry) => {
+                      const statusInfo = inquiryStatusInfo(inquiry)
+                      const listingTitle = inquiry.listing
+                        ? sanitizeListingTitle(
+                            inquiry.listing.title,
+                            inquiry.listing.room_type,
+                            inquiry.listing.neighborhood
+                          )
+                        : 'Listing'
+                      return (
+                        <div key={inquiry.id} className="p-4 rounded-card border border-gray-100">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                              <Link
+                                href={`/listings/${inquiry.listing_id}`}
+                                className="text-sm font-semibold text-gray-900 hover:text-primary-600 transition-colors"
+                              >
+                                {listingTitle}
+                              </Link>
+                              {inquiry.listing && (
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {inquiry.listing.neighborhood} · {formatRoomType(inquiry.listing.room_type)}
+                                </p>
+                              )}
+                            </div>
+                            <span
+                              className={`flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-badge ${statusInfo.color}`}
+                            >
+                              {statusInfo.label}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 line-clamp-2">{inquiry.message}</p>
+                          <p className="text-xs text-gray-400 mt-2">
+                            Sent {formatDate(inquiry.created_at.split('T')[0])}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ---- Settings ---- */}
+            {activeTab === 'settings' && (
+              <div className="max-w-sm">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">Account Information</h3>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Display Name</p>
+                    <p className="text-sm text-gray-900 px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
+                      {displayName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Email</p>
+                    <p className="text-sm text-gray-900 px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
+                      {user.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Account Level</p>
+                    <p className="text-sm text-gray-900 px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
+                      Free
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Member Since</p>
+                    <p className="text-sm text-gray-900 px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
+                      {user.created_at ? formatDate(user.created_at.split('T')[0]) : '—'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50"
+                    onClick={async () => {
+                      const supabase = createClient()
+                      await supabase.auth.signOut()
+                      router.push('/')
+                    }}
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
