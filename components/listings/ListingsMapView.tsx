@@ -32,6 +32,7 @@ interface SearchParams {
   room_type?: string
   filter?: string
   sort?: string
+  min_stay?: string
 }
 
 interface Props {

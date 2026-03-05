@@ -10,7 +10,7 @@ import { StepVerification } from '@/components/post/StepVerification'
 import { StepReview } from '@/components/post/StepReview'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, Trash2 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 const STEPS = ['Basic Info', 'Photos', 'Details', 'Verify', 'Review']
@@ -47,6 +47,38 @@ function addMonths(dateStr: string, months: number): string {
   return d.toISOString().split('T')[0]
 }
 
+/** Compute and set date errors from given data. Returns the errors object. */
+function computeDateErrors(
+  info: BasicInfoData,
+  existing: Partial<Record<keyof BasicInfoData, string>>,
+): Partial<Record<keyof BasicInfoData, string>> {
+  const errs = { ...existing }
+  delete errs.available_from
+  delete errs.available_to
+
+  const today = new Date().toISOString().split('T')[0]
+
+  if (!info.available_from) {
+    errs.available_from = 'Required'
+  } else if (info.available_from < today) {
+    errs.available_from = 'Move-in date cannot be in the past'
+  }
+
+  if (!info.available_to) {
+    errs.available_to = 'Required'
+  } else if (info.available_from && info.available_to <= info.available_from) {
+    errs.available_to = 'End date must be after start date'
+  } else if (info.available_from && info.min_stay !== 'flexible') {
+    const months = parseInt(info.min_stay.replace('m', ''))
+    const minEnd = addMonths(info.available_from, months)
+    if (info.available_to < minEnd) {
+      errs.available_to = `Dates must cover at least ${months} month${months > 1 ? 's' : ''} (your minimum stay)`
+    }
+  }
+
+  return errs
+}
+
 export default function PostListingPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
@@ -67,10 +99,10 @@ export default function PostListingPage() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
 
-  // Restore draft from sessionStorage on mount (data first, then step)
+  // Restore draft from localStorage on mount (data first, then step)
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem(DRAFT_KEY)
+      const saved = localStorage.getItem(DRAFT_KEY)
       if (saved) {
         const draft = JSON.parse(saved)
         if (draft.basicInfo) setBasicInfo({ ...INITIAL_BASIC, ...draft.basicInfo })
@@ -82,11 +114,11 @@ export default function PostListingPage() {
     setInitialized(true)
   }, [])
 
-  // Save draft whenever form state changes (skip until restored)
+  // Save draft to localStorage whenever form state changes
   useEffect(() => {
     if (!initialized) return
     try {
-      sessionStorage.setItem(
+      localStorage.setItem(
         DRAFT_KEY,
         JSON.stringify({
           step,
@@ -101,7 +133,11 @@ export default function PostListingPage() {
   }, [initialized, step, basicInfo, details, photos])
 
   function clearDraft() {
-    try { sessionStorage.removeItem(DRAFT_KEY) } catch {}
+    const confirmed = window.confirm(
+      'Are you sure? This will clear all form data including uploaded photos. This cannot be undone.',
+    )
+    if (!confirmed) return
+    try { localStorage.removeItem(DRAFT_KEY) } catch {}
     setBasicInfo(INITIAL_BASIC)
     setDetails(INITIAL_DETAILS)
     setPhotos([])
@@ -109,6 +145,39 @@ export default function PostListingPage() {
     setBasicErrors({})
     setDetailsErrors({})
     setPhotosError('')
+  }
+
+  /**
+   * Handle BasicInfo changes. When available_from or min_stay change, clear
+   * available_to if it's now before the minimum. Also re-validate date errors live.
+   */
+  function handleBasicInfoChange(newData: BasicInfoData) {
+    let updated = newData
+
+    // If available_from or min_stay changed, enforce the Available To minimum
+    const fromChanged = newData.available_from !== basicInfo.available_from
+    const stayChanged = newData.min_stay !== basicInfo.min_stay
+
+    if ((fromChanged || stayChanged) && newData.available_from && newData.available_to) {
+      const months = newData.min_stay === 'flexible' ? 0 : parseInt(newData.min_stay.replace('m', ''))
+      if (months > 0) {
+        const minEnd = addMonths(newData.available_from, months)
+        if (newData.available_to < minEnd) {
+          updated = { ...newData, available_to: '' }
+        }
+      }
+    }
+
+    setBasicInfo(updated)
+
+    // Re-validate date fields live whenever they or min_stay change
+    if (fromChanged || stayChanged || newData.available_to !== basicInfo.available_to) {
+      const hasDateErrors =
+        basicErrors.available_from !== undefined || basicErrors.available_to !== undefined
+      if (hasDateErrors || fromChanged || stayChanged) {
+        setBasicErrors((prev) => computeDateErrors(updated, prev))
+      }
+    }
   }
 
   function validateBasic(): boolean {
@@ -119,24 +188,8 @@ export default function PostListingPage() {
     if (!basicInfo.room_type) errs.room_type = 'Select a room type'
     if (!basicInfo.rent_monthly || parseInt(basicInfo.rent_monthly) <= 0) errs.rent_monthly = 'Enter a valid rent amount'
 
-    const today = new Date().toISOString().split('T')[0]
-    if (!basicInfo.available_from) {
-      errs.available_from = 'Required'
-    } else if (basicInfo.available_from < today) {
-      errs.available_from = 'Move-in date cannot be in the past'
-    }
-
-    if (!basicInfo.available_to) {
-      errs.available_to = 'Required'
-    } else if (basicInfo.available_from && basicInfo.available_to <= basicInfo.available_from) {
-      errs.available_to = 'End date must be after start date'
-    } else if (basicInfo.available_from && basicInfo.min_stay !== 'flexible') {
-      const months = parseInt(basicInfo.min_stay.replace('m', ''))
-      const minEnd = addMonths(basicInfo.available_from, months)
-      if (basicInfo.available_to < minEnd) {
-        errs.available_to = `Dates must cover at least ${months} month${months > 1 ? 's' : ''} (your minimum stay)`
-      }
-    }
+    const dateErrs = computeDateErrors(basicInfo, {})
+    Object.assign(errs, dateErrs)
 
     setBasicErrors(errs)
     return Object.keys(errs).length === 0
@@ -277,7 +330,7 @@ export default function PostListingPage() {
         await supabase.from('listing_photos').insert(photoRows)
       }
 
-      try { sessionStorage.removeItem(DRAFT_KEY) } catch {}
+      try { localStorage.removeItem(DRAFT_KEY) } catch {}
       setSubmitted(true)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Unknown error'
@@ -312,7 +365,7 @@ export default function PostListingPage() {
     )
   }
 
-  // Show spinner until sessionStorage draft is restored
+  // Show spinner until localStorage draft is restored
   if (!initialized) {
     return (
       <div className="min-h-screen bg-white pt-16 flex items-center justify-center">
@@ -323,15 +376,17 @@ export default function PostListingPage() {
 
   return (
     <div className="min-h-screen bg-white pt-16">
-      {/* Step indicator */}
+      {/* Step indicator + Clear Draft */}
       <div className="border-b border-gray-100 py-6 px-4">
-        <StepIndicator currentStep={step} steps={STEPS} />
-        <div className="text-center mt-3">
+        <div className="relative">
+          <StepIndicator currentStep={step} steps={STEPS} />
           <button
             onClick={clearDraft}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors px-2 py-1"
+            title="Clear draft & start over"
           >
-            Clear draft &amp; start over
+            <Trash2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Clear Draft</span>
           </button>
         </div>
       </div>
@@ -339,7 +394,7 @@ export default function PostListingPage() {
       {/* Step content */}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {step === 1 && (
-          <StepBasicInfo data={basicInfo} onChange={setBasicInfo} errors={basicErrors} />
+          <StepBasicInfo data={basicInfo} onChange={handleBasicInfoChange} errors={basicErrors} />
         )}
         {step === 2 && (
           <StepPhotos photos={photos} onChange={setPhotos} error={photosError} />

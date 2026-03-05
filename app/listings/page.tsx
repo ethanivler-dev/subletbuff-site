@@ -20,6 +20,7 @@ interface SearchParams {
   room_type?: string
   filter?: string
   sort?: string
+  min_stay?: string // '1m' | '2m' | '3m' | '4m'
 }
 
 async function fetchListings(params: SearchParams): Promise<{ listings: ListingCardData[]; total: number }> {
@@ -51,6 +52,15 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
 
   // Room type
   if (params.room_type) query = query.eq('room_type', params.room_type)
+
+  // Min stay: show listings whose min_stay_weeks <= selected threshold (0 = flexible, always included)
+  if (params.min_stay) {
+    const months = parseInt(params.min_stay.replace('m', ''))
+    if (!isNaN(months)) {
+      const maxWeeks = months * 4
+      query = query.or(`min_stay_weeks.eq.0,min_stay_weeks.lte.${maxWeeks}`)
+    }
+  }
 
   // Quick filters
   if (params.filter === 'pets') query = query.eq('pets', 'Yes').or('pets.ilike.%yes%')

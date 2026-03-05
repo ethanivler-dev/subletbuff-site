@@ -11,6 +11,7 @@ interface ListingsFiltersProps {
     room_type?: string
     filter?: string
     sort?: string
+    min_stay?: string
   }
   total: number
 }
@@ -30,7 +31,7 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
     router.push(pathname)
   }
 
-  const hasFilters = !!(params.price_min || params.price_max || params.room_type || params.filter)
+  const hasFilters = !!(params.price_min || params.price_max || params.room_type || params.filter || params.min_stay)
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
@@ -44,6 +45,19 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
         {ROOM_TYPES.map((t) => (
           <option key={t.value} value={t.value}>{t.label}</option>
         ))}
+      </select>
+
+      {/* Min stay */}
+      <select
+        value={params.min_stay ?? ''}
+        onChange={(e) => update('min_stay', e.target.value || null)}
+        className="text-sm border border-gray-200 rounded-button px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+      >
+        <option value="">Any Stay</option>
+        <option value="1m">1 month max</option>
+        <option value="2m">2 months max</option>
+        <option value="3m">3 months max</option>
+        <option value="4m">4 months max</option>
       </select>
 
       {/* Price max */}

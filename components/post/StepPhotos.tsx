@@ -31,10 +31,23 @@ function isHeic(file: File): boolean {
 }
 
 async function convertHeicToJpeg(file: File): Promise<File> {
-  const heic2any = (await import('heic2any')).default
-  const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
-  const blob = Array.isArray(result) ? result[0] : result
-  return new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' })
+  try {
+    const mod = await import('heic2any')
+    // heic2any may export the function directly (CJS default) or as .default
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fn: (opts: object) => Promise<Blob | Blob[]> = typeof (mod as any).default === 'function'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (mod as any).default
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      : (mod as any)
+    const result = await fn({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+    const blob = Array.isArray(result) ? result[0] : result as Blob
+    const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg') || 'photo.jpg'
+    return new File([blob], newName, { type: 'image/jpeg' })
+  } catch (err) {
+    console.error('HEIC conversion failed:', err)
+    throw err
+  }
 }
 
 export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
