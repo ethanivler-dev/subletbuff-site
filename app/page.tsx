@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import Image from 'next/image'
 import { ShieldCheck, Eye, MapPin } from 'lucide-react'
 import { HeroSearch } from '@/components/home/HeroSearch'
 import { FeaturedGrid } from '@/components/home/FeaturedGrid'
@@ -10,14 +11,18 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section
-        className="relative min-h-[85vh] lg:min-h-[80vh] flex items-center justify-center pt-16"
-        style={{
-          background: 'linear-gradient(135deg, #1E3A5F 0%, #2563EB 40%, #1D4ED8 60%, #1E3A5F 100%)',
-        }}
-      >
-        {/* Subtle texture overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 pointer-events-none" />
+      <section className="relative min-h-[85vh] lg:min-h-[80vh] flex items-center justify-center pt-16">
+        {/* Background image */}
+        <Image
+          src="/hero-flatirons.jpg"
+          alt="Boulder Flatirons"
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/50 pointer-events-none" />
 
         <div className="relative z-10 w-full px-4 sm:px-6 py-16">
           <HeroSearch />
