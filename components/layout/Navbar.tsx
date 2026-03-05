@@ -80,6 +80,7 @@ export function Navbar() {
                 height={36}
                 className="h-9 w-auto transition-all duration-300"
                 priority
+                unoptimized
               />
             </Link>
 

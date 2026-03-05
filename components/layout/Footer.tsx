@@ -14,6 +14,7 @@ export function Footer() {
               width={140}
               height={36}
               className="h-9 w-auto brightness-0 invert"
+              unoptimized
             />
             <p className="text-gray-400 text-sm leading-relaxed">
               Boulder&apos;s short-term housing marketplace. Verified sublets for interns,
