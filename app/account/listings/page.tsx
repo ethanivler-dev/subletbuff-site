@@ -11,6 +11,10 @@ import {
   Eye, Heart, MessageSquare, TrendingUp,
   Plus, Star, ArrowLeft, ExternalLink,
 } from 'lucide-react'
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend,
+} from 'recharts'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
 /* ------------------------------------------------------------------ */
@@ -66,6 +70,7 @@ export default function ListerDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [listings, setListings] = useState<UserListing[]>([])
   const [recentInquiries, setRecentInquiries] = useState<RecentInquiry[]>([])
+  const [chartData, setChartData] = useState<Array<{ date: string; views: number; inquiries: number }>>([])
 
   const totalViews = listings.reduce((s, l) => s + l.views, 0)
   const totalInquiries = listings.reduce((s, l) => s + l.inquiries, 0)
@@ -162,6 +167,43 @@ export default function ListerDashboardPage() {
       })
     )
 
+    // Build chart data: views & inquiries per day over last 30 days
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const isoThirty = thirtyDaysAgo.toISOString()
+
+    const [chartViews, chartInqs] = await Promise.all([
+      supabase
+        .from('listing_views')
+        .select('created_at')
+        .in('listing_id', listingIds)
+        .gte('created_at', isoThirty),
+      supabase
+        .from('inquiries')
+        .select('created_at')
+        .eq('lister_id', userId)
+        .gte('created_at', isoThirty),
+    ])
+
+    const dayMap: Record<string, { views: number; inquiries: number }> = {}
+    for (let d = 0; d < 30; d++) {
+      const date = new Date()
+      date.setDate(date.getDate() - 29 + d)
+      const key = date.toISOString().slice(0, 10)
+      dayMap[key] = { views: 0, inquiries: 0 }
+    }
+    for (const v of chartViews.data ?? []) {
+      const key = v.created_at.slice(0, 10)
+      if (dayMap[key]) dayMap[key].views++
+    }
+    for (const i of chartInqs.data ?? []) {
+      const key = i.created_at.slice(0, 10)
+      if (dayMap[key]) dayMap[key].inquiries++
+    }
+    setChartData(
+      Object.entries(dayMap).map(([date, counts]) => ({ date, ...counts }))
+    )
+
     setLoading(false)
   }, [])
 
@@ -246,6 +288,40 @@ export default function ListerDashboardPage() {
             <p className="text-xs text-gray-400 mt-0.5">inquiries / views</p>
           </div>
         </div>
+
+        {/* Performance chart */}
+        {chartData.length > 0 && (
+          <div className="bg-white rounded-card shadow-card p-5 mb-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">Performance — Last 30 Days</h2>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                    tickFormatter={(v: string) => {
+                      const d = new Date(v + 'T00:00:00')
+                      return `${d.getMonth() + 1}/${d.getDate()}`
+                    }}
+                    interval={4}
+                  />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} allowDecimals={false} />
+                  <Tooltip
+                    labelFormatter={(v) => {
+                      const d = new Date(String(v) + 'T00:00:00')
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    }}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Line type="monotone" dataKey="views" stroke="#3B82F6" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="inquiries" stroke="#F59E0B" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* Listings table */}
         <div className="bg-white rounded-card shadow-card overflow-hidden mb-6">
