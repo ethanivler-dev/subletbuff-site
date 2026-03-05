@@ -66,6 +66,13 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
     }, 300)
   }
 
+  const hasFilters = !!(
+    params.price_min || params.price_max ||
+    params.room_type || params.filter || params.min_stay ||
+    params.neighborhood || params.date_from || params.date_to ||
+    params.furnished || params.intern_friendly || params.parking || params.q
+  )
+
   const priceLabel =
     priceRange[0] === PRICE_MIN && priceRange[1] === PRICE_MAX
       ? '(any)'
@@ -73,6 +80,18 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Clear all — shown above filters when active */}
+      {hasFilters && (
+        <button
+          onClick={() => {
+            setPriceRange([PRICE_MIN, PRICE_MAX])
+            router.push(pathname)
+          }}
+          className="self-start text-sm text-primary-600 hover:text-primary-800 font-medium transition-colors"
+        >
+          ✕ Clear all filters
+        </button>
+      )}
       {/* Row 1: Primary filters */}
       <div className="flex flex-wrap gap-2 items-end">
         {/* Neighborhood */}
