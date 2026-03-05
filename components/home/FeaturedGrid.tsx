@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ListingCard, type ListingCardData } from '@/components/listings/ListingCard'
 import { ListingCardSkeleton } from '@/components/ui/Skeleton'
+import { StaggeredGrid } from '@/components/home/StaggeredGrid'
 import { sanitizeListingTitle } from '@/lib/utils'
 
 async function fetchFeaturedListings(): Promise<ListingCardData[]> {
@@ -104,9 +105,11 @@ export async function FeaturedGrid() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {listings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} variant="vertical" />
-          ))}
+          <StaggeredGrid>
+            {listings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} variant="vertical" />
+            ))}
+          </StaggeredGrid>
         </div>
       </div>
     </section>

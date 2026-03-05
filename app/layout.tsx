@@ -27,6 +27,19 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? 'https://subletbuff.com'
   ),
+  openGraph: {
+    type: 'website',
+    siteName: 'SubletBuff',
+    title: 'SubletBuff — Short-Term Housing in Boulder',
+    description:
+      "Boulder's verified short-term housing marketplace for interns, seasonal workers, and researchers.",
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SubletBuff — Short-Term Housing in Boulder',
+    description:
+      "Boulder's verified short-term housing marketplace for interns, seasonal workers, and researchers.",
+  },
 }
 
 export default function RootLayout({

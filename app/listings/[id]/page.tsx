@@ -141,9 +141,28 @@ export async function generateMetadata({
   const neighborhood = row.neighborhood ?? 'Boulder'
   const title = sanitizeListingTitle(row.title, roomType, neighborhood)
 
+  const photos = (row.listing_photos as Array<{ url: string; display_order: number; is_primary: boolean }> | null) ?? []
+  const ogImage =
+    photos.find((p) => p.is_primary)?.url ??
+    photos.sort((a, b) => a.display_order - b.display_order)[0]?.url ??
+    (Array.isArray(row.photo_urls) ? (row.photo_urls as string[])[0] : undefined)
+
+  const description = row.description?.slice(0, 160) ?? `Short-term sublet in ${neighborhood}`
+
   return {
     title: `${title} — ${formatRent(listing.rent ?? 0)}`,
-    description: row.description?.slice(0, 160) ?? `Short-term sublet in ${neighborhood}`,
+    description,
+    openGraph: {
+      title: `${title} — ${formatRent(listing.rent ?? 0)}/mo`,
+      description,
+      ...(ogImage ? { images: [{ url: ogImage, width: 800, height: 600 }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} — ${formatRent(listing.rent ?? 0)}/mo`,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
   }
 }
 
