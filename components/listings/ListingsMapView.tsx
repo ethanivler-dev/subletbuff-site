@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { GoogleMap, useJsApiLoader, OverlayView } from '@react-google-maps/api'
 import { Map as MapIcon, X, ChevronRight } from 'lucide-react'
 import { ListingCard, type ListingCardData } from './ListingCard'
@@ -86,7 +85,6 @@ function PriceMarker({
 }
 
 export function ListingsMapView({ listings, total, params }: Props) {
-  const router = useRouter()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMap, setShowMap] = useState(true)
@@ -144,21 +142,23 @@ export function ListingsMapView({ listings, total, params }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Clicking a price pin navigates to that listing's detail page
+  // Clicking a price pin scrolls to the corresponding card and highlights it
   const handlePinClick = useCallback(
     (id: string) => {
-      router.push(`/listings/${id}`)
+      setHoveredId(id)
+      const card = cardRefs.current[id]
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
     },
-    [router],
+    [],
   )
 
-  // Hovering a pin prefetches the detail page for fast navigation
   const handlePinHoverStart = useCallback(
     (id: string) => {
       setHoveredId(id)
-      router.prefetch(`/listings/${id}`)
     },
-    [router],
+    [],
   )
 
   const mapOptions = {
@@ -218,7 +218,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
     )
   }
 
-  const cardRefs: Record<string, HTMLDivElement | null> = {}
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const cardList =
     visibleListings.length === 0 ? (
@@ -232,7 +232,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
           <div
             key={listing.id}
             ref={(el) => {
-              cardRefs[listing.id] = el
+              cardRefs.current[listing.id] = el
             }}
             onMouseEnter={() => setHoveredId(listing.id)}
             onMouseLeave={() => setHoveredId(null)}
