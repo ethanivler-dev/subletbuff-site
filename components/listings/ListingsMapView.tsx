@@ -227,7 +227,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
         <p className="text-sm">Try adjusting your filters or search term.</p>
       </div>
     ) : (
-      <div className="flex flex-col gap-4 mt-6">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${showMap ? '' : 'lg:grid-cols-3'} gap-4 mt-6`}>
         {visibleListings.map((listing) => (
           <div
             key={listing.id}
@@ -241,7 +241,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
               hoveredId === listing.id ? 'ring-2 ring-primary-400 ring-offset-1' : '',
             ].join(' ')}
           >
-            <ListingCard listing={listing} variant="horizontal" />
+            <ListingCard listing={listing} variant="vertical" />
           </div>
         ))}
       </div>
