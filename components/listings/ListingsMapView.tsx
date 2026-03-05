@@ -63,12 +63,11 @@ function PriceMarker({
       <button
         onClick={onClick}
         className={[
-          'px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap shadow-md border transition-all duration-150',
+          'rounded-full font-bold whitespace-nowrap shadow-md border transition-all duration-150',
           isActive
-            ? 'bg-primary-600 text-white border-primary-600 shadow-lg'
-            : 'bg-white text-gray-900 border-gray-200 hover:border-primary-400 hover:shadow-lg',
+            ? 'bg-primary-600 text-white border-primary-600 shadow-lg text-sm px-3 py-1.5'
+            : 'bg-white text-gray-900 border-gray-200 hover:border-primary-400 hover:shadow-lg text-xs px-2.5 py-1',
         ].join(' ')}
-        style={{ transform: isActive ? 'scale(1.15)' : 'scale(1)' }}
       >
         {formatPrice(price)}
       </button>
