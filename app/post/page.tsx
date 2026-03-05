@@ -14,17 +14,19 @@ import { CheckCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 const STEPS = ['Basic Info', 'Photos', 'Details', 'Verify', 'Review']
+const DRAFT_KEY = 'subletbuff_draft_listing'
 
 const INITIAL_BASIC: BasicInfoData = {
   title: '',
   address: '',
+  unit_number: '',
   neighborhood: '',
   room_type: '',
   rent_monthly: '',
   deposit: '',
   available_from: '',
   available_to: '',
-  min_stay_weeks: '1',
+  min_stay: '1m',
 }
 
 const INITIAL_DETAILS: DetailsData = {
@@ -39,9 +41,16 @@ const INITIAL_DETAILS: DetailsData = {
   immediate_movein: false,
 }
 
+function addMonths(dateStr: string, months: number): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setMonth(d.getMonth() + months)
+  return d.toISOString().split('T')[0]
+}
+
 export default function PostListingPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [initialized, setInitialized] = useState(false)
   const [step, setStep] = useState(1)
   const [basicInfo, setBasicInfo] = useState<BasicInfoData>(INITIAL_BASIC)
   const [photos, setPhotos] = useState<PhotoItem[]>([])
@@ -52,10 +61,55 @@ export default function PostListingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
+  // Auth check
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
+
+  // Restore draft from sessionStorage on mount (data first, then step)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY)
+      if (saved) {
+        const draft = JSON.parse(saved)
+        if (draft.basicInfo) setBasicInfo({ ...INITIAL_BASIC, ...draft.basicInfo })
+        if (draft.details) setDetails({ ...INITIAL_DETAILS, ...draft.details })
+        if (Array.isArray(draft.photos)) setPhotos(draft.photos)
+        if (typeof draft.step === 'number') setStep(draft.step)
+      }
+    } catch {}
+    setInitialized(true)
+  }, [])
+
+  // Save draft whenever form state changes (skip until restored)
+  useEffect(() => {
+    if (!initialized) return
+    try {
+      sessionStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          step,
+          basicInfo,
+          details,
+          photos: photos
+            .filter((p) => !p.uploading)
+            .map(({ url, storagePath, caption }) => ({ url, storagePath, caption, uploading: false })),
+        }),
+      )
+    } catch {}
+  }, [initialized, step, basicInfo, details, photos])
+
+  function clearDraft() {
+    try { sessionStorage.removeItem(DRAFT_KEY) } catch {}
+    setBasicInfo(INITIAL_BASIC)
+    setDetails(INITIAL_DETAILS)
+    setPhotos([])
+    setStep(1)
+    setBasicErrors({})
+    setDetailsErrors({})
+    setPhotosError('')
+  }
 
   function validateBasic(): boolean {
     const errs: Partial<Record<keyof BasicInfoData, string>> = {}
@@ -64,8 +118,26 @@ export default function PostListingPage() {
     if (!basicInfo.neighborhood) errs.neighborhood = 'Select a neighborhood'
     if (!basicInfo.room_type) errs.room_type = 'Select a room type'
     if (!basicInfo.rent_monthly || parseInt(basicInfo.rent_monthly) <= 0) errs.rent_monthly = 'Enter a valid rent amount'
-    if (!basicInfo.available_from) errs.available_from = 'Required'
-    if (!basicInfo.available_to) errs.available_to = 'Required'
+
+    const today = new Date().toISOString().split('T')[0]
+    if (!basicInfo.available_from) {
+      errs.available_from = 'Required'
+    } else if (basicInfo.available_from < today) {
+      errs.available_from = 'Move-in date cannot be in the past'
+    }
+
+    if (!basicInfo.available_to) {
+      errs.available_to = 'Required'
+    } else if (basicInfo.available_from && basicInfo.available_to <= basicInfo.available_from) {
+      errs.available_to = 'End date must be after start date'
+    } else if (basicInfo.available_from && basicInfo.min_stay !== 'flexible') {
+      const months = parseInt(basicInfo.min_stay.replace('m', ''))
+      const minEnd = addMonths(basicInfo.available_from, months)
+      if (basicInfo.available_to < minEnd) {
+        errs.available_to = `Dates must cover at least ${months} month${months > 1 ? 's' : ''} (your minimum stay)`
+      }
+    }
+
     setBasicErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -111,8 +183,6 @@ export default function PostListingPage() {
     try {
       const supabase = createClient()
 
-      // Jitter coordinates (approximate — actual geocoding is server-side)
-      // For now, use Boulder center + jitter. Geocoding Edge Function can update later.
       const baseLat = 40.0150
       const baseLng = -105.2705
       const jitterLat = baseLat + (Math.random() - 0.5) * 0.004
@@ -120,10 +190,11 @@ export default function PostListingPage() {
 
       const uploadedPhotos = photos.filter((p) => !p.uploading)
 
-      // Dual-write: populate both old and new column names so NOT NULL
-      // constraints on the original schema are satisfied.
       const rentNum = parseInt(basicInfo.rent_monthly) || 0
       const depositNum = basicInfo.deposit ? parseInt(basicInfo.deposit) : null
+      const minStayMonths = basicInfo.min_stay === 'flexible'
+        ? null
+        : parseInt(basicInfo.min_stay.replace('m', ''))
 
       const { data: listing, error: insertError } = await supabase
         .from('listings')
@@ -137,34 +208,38 @@ export default function PostListingPage() {
 
           // === Location ===
           address: basicInfo.address,
+          unit_number: basicInfo.unit_number || null,
           neighborhood: basicInfo.neighborhood,
-          lat: baseLat,                          // old column
-          lng: baseLng,                          // old column
-          latitude: baseLat,                     // new column
-          longitude: baseLng,                    // new column
+          lat: baseLat,
+          lng: baseLng,
+          latitude: baseLat,
+          longitude: baseLng,
           public_latitude: jitterLat,
           public_longitude: jitterLng,
 
-          // === Pricing (old + new) ===
-          monthly_rent: rentNum,                 // old column
-          rent_monthly: rentNum,                 // new column
-          security_deposit: depositNum,          // old column
-          deposit: depositNum,                   // new column
+          // === Pricing ===
+          monthly_rent: rentNum,
+          rent_monthly: rentNum,
+          security_deposit: depositNum,
+          deposit: depositNum,
 
-          // === Dates (old + new) ===
-          start_date: basicInfo.available_from,  // old column
-          end_date: basicInfo.available_to,      // old column
+          // === Dates ===
+          start_date: basicInfo.available_from,
+          end_date: basicInfo.available_to,
           available_from: basicInfo.available_from,
           available_to: basicInfo.available_to,
 
-          // === Room info (old + new) ===
+          // === Room info ===
           room_type: basicInfo.room_type,
           title: basicInfo.title,
-          beds: '1',                             // old column
-          baths: '1',                            // old column
+          beds: '1',
+          baths: '1',
+
+          // === Stay requirements ===
+          min_stay_weeks: minStayMonths ? minStayMonths * 4 : 0,
+          min_stay_months: minStayMonths,
 
           // === Details ===
-          min_stay_weeks: parseInt(basicInfo.min_stay_weeks) || 1,
           description: details.description,
           furnished: details.furnished ? 'Yes' : 'No',
           amenities: details.amenities,
@@ -202,6 +277,7 @@ export default function PostListingPage() {
         await supabase.from('listing_photos').insert(photoRows)
       }
 
+      try { sessionStorage.removeItem(DRAFT_KEY) } catch {}
       setSubmitted(true)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Unknown error'
@@ -236,11 +312,28 @@ export default function PostListingPage() {
     )
   }
 
+  // Show spinner until sessionStorage draft is restored
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-white pt-16 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white pt-16">
       {/* Step indicator */}
       <div className="border-b border-gray-100 py-6 px-4">
         <StepIndicator currentStep={step} steps={STEPS} />
+        <div className="text-center mt-3">
+          <button
+            onClick={clearDraft}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Clear draft &amp; start over
+          </button>
+        </div>
       </div>
 
       {/* Step content */}

@@ -52,13 +52,14 @@ function extractNeighborhood(
 export interface BasicInfoData {
   title: string
   address: string
+  unit_number: string
   neighborhood: string
   room_type: string
   rent_monthly: string
   deposit: string
   available_from: string
   available_to: string
-  min_stay_weeks: string
+  min_stay: string // '1m' | '2m' | '3m' | '4m' | 'flexible'
 }
 
 interface StepBasicInfoProps {
@@ -126,6 +127,20 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
 
   const today = new Date().toISOString().split('T')[0]
 
+  function addMonths(dateStr: string, months: number): string {
+    const d = new Date(dateStr + 'T00:00:00')
+    d.setMonth(d.getMonth() + months)
+    return d.toISOString().split('T')[0]
+  }
+
+  function minAvailableTo(): string {
+    if (!data.available_from) return today
+    if (data.min_stay === 'flexible') return data.available_from
+    const m = parseInt(data.min_stay.replace('m', ''))
+    if (isNaN(m)) return data.available_from
+    return addMonths(data.available_from, m)
+  }
+
   const SEMESTER_PRESETS = [
     { label: 'Summer 2026 (May 19 – Aug 14)', from: '2026-05-19', to: '2026-08-14' },
     { label: 'Fall 2026 (Aug 26 – Dec 18)', from: '2026-08-26', to: '2026-12-18' },
@@ -171,6 +186,14 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           Never shown publicly. Only shared after an inquiry is accepted.
         </p>
       </div>
+
+      <Input
+        label="Unit / Apt # (optional)"
+        placeholder="e.g. Apt 3B"
+        value={data.unit_number}
+        onChange={(e) => update('unit_number', e.target.value)}
+        maxLength={20}
+      />
 
       {/* Neighborhood — auto-filled from place result */}
       <div className="flex flex-col gap-1">
@@ -234,7 +257,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           value={data.available_to}
           onChange={(e) => update('available_to', e.target.value)}
           error={errors.available_to}
-          min={data.available_from || today}
+          min={minAvailableTo()}
         />
       </div>
 
@@ -265,15 +288,15 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Minimum Stay</label>
         <select
-          value={data.min_stay_weeks}
-          onChange={(e) => update('min_stay_weeks', e.target.value)}
+          value={data.min_stay}
+          onChange={(e) => update('min_stay', e.target.value)}
           className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
         >
-          <option value="1">1 week</option>
-          <option value="2">2 weeks</option>
-          <option value="4">1 month</option>
-          <option value="8">2 months</option>
-          <option value="0">Flexible</option>
+          <option value="1m">1 month</option>
+          <option value="2m">2 months</option>
+          <option value="3m">3 months</option>
+          <option value="4m">4 months</option>
+          <option value="flexible">Flexible</option>
         </select>
       </div>
     </div>

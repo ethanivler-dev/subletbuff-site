@@ -20,10 +20,26 @@ interface StepPhotosProps {
 }
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp']
+const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+
+function isHeic(file: File): boolean {
+  return (
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    /\.(heic|heif)$/i.test(file.name)
+  )
+}
+
+async function convertHeicToJpeg(file: File): Promise<File> {
+  const heic2any = (await import('heic2any')).default
+  const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+  const blob = Array.isArray(result) ? result[0] : result
+  return new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' })
+}
 
 export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
   const [uploadError, setUploadError] = useState('')
+  const [converting, setConverting] = useState(false)
   const dragIndexRef = useRef<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
@@ -31,9 +47,21 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
     setUploadError('')
     const validFiles: File[] = []
 
-    for (const f of Array.from(files)) {
-      if (!ACCEPTED.includes(f.type)) {
-        setUploadError('Only JPEG, PNG, and WebP images are allowed.')
+    const fileArray = Array.from(files)
+    if (fileArray.some(isHeic)) setConverting(true)
+
+    for (const raw of fileArray) {
+      let f = raw
+      if (isHeic(f)) {
+        try {
+          f = await convertHeicToJpeg(f)
+        } catch {
+          setUploadError('Failed to convert HEIC image. Try exporting as JPEG first.')
+          setConverting(false)
+          return
+        }
+      } else if (!ACCEPTED.includes(f.type)) {
+        setUploadError('Only JPEG, PNG, WebP, and HEIC images are allowed.')
         continue
       }
       if (f.size > MAX_SIZE) {
@@ -42,6 +70,7 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
       }
       validFiles.push(f)
     }
+    setConverting(false)
 
     if (validFiles.length === 0) return
 
@@ -153,12 +182,21 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
         onDragOver={(e) => e.preventDefault()}
         className="flex flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-gray-300 hover:border-primary-400 bg-gray-50 hover:bg-primary-50/30 transition-colors cursor-pointer py-10 px-4"
       >
-        <Upload className="w-8 h-8 text-gray-400" />
-        <p className="text-sm text-gray-600 font-medium">Drag & drop photos or click to browse</p>
-        <p className="text-xs text-gray-400">JPEG, PNG, or WebP · Max 5 MB each</p>
+        {converting ? (
+          <>
+            <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-600 font-medium">Converting HEIC…</p>
+          </>
+        ) : (
+          <>
+            <Upload className="w-8 h-8 text-gray-400" />
+            <p className="text-sm text-gray-600 font-medium">Drag & drop photos or click to browse</p>
+            <p className="text-xs text-gray-400">JPEG, PNG, WebP, or HEIC · Max 5 MB each</p>
+          </>
+        )}
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           multiple
           className="hidden"
           onChange={(e) => e.target.files && handleFiles(e.target.files)}

@@ -50,6 +50,12 @@ export function StepReview({ basicInfo, details, photos, onEdit, onSubmit, submi
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
           <Dt>Title</Dt>
           <Dd>{basicInfo.title || '—'}</Dd>
+          {basicInfo.unit_number && (
+            <>
+              <Dt>Unit / Apt #</Dt>
+              <Dd>{basicInfo.unit_number}</Dd>
+            </>
+          )}
           <Dt>Neighborhood</Dt>
           <Dd>{basicInfo.neighborhood || '—'}</Dd>
           <Dt>Room Type</Dt>
