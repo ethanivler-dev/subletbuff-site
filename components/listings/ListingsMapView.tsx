@@ -149,19 +149,26 @@ export function ListingsMapView({ listings, total, params }: Props) {
   }
 
   function MapPanel({ greedy = false }: { greedy?: boolean }) {
-    return isLoaded ? (
-      <GoogleMap
-        mapContainerClassName="w-full h-full"
-        center={BOULDER_CENTER}
-        zoom={13}
-        options={{ ...mapOptions, gestureHandling: greedy ? 'greedy' : 'cooperative' }}
-        onLoad={handleMapLoad}
-      >
-        <MapMarkers />
-      </GoogleMap>
-    ) : (
-      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-        <p className="text-sm text-gray-400">Loading map…</p>
+    return (
+      <div className="relative w-full h-full">
+        {isLoaded ? (
+          <GoogleMap
+            mapContainerClassName="w-full h-full"
+            center={BOULDER_CENTER}
+            zoom={13}
+            options={{ ...mapOptions, gestureHandling: greedy ? 'greedy' : 'cooperative' }}
+            onLoad={handleMapLoad}
+          >
+            <MapMarkers />
+          </GoogleMap>
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <p className="text-sm text-gray-400">Loading map…</p>
+          </div>
+        )}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 bg-white/80 backdrop-blur-sm px-3 py-1 rounded text-xs text-gray-500 whitespace-nowrap pointer-events-none">
+          Pin locations are approximate and do not represent exact addresses
+        </div>
       </div>
     )
   }
