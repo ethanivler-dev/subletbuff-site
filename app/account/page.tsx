@@ -10,7 +10,9 @@ import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/
 import {
   Heart, MessageSquare, Settings, BarChart2,
   ChevronRight, MapPin, Calendar, Crown,
+  ShieldCheck, Upload, GraduationCap, CheckCircle,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/Badge'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
 /* ------------------------------------------------------------------ */
@@ -48,6 +50,13 @@ interface InquiryRow {
   } | null
 }
 
+interface Profile {
+  verification_level: string | null
+  edu_email: string | null
+  lease_doc_url: string | null
+  account_type: string | null
+}
+
 type Tab = 'saved' | 'inquiries' | 'settings'
 
 /* ------------------------------------------------------------------ */
@@ -79,6 +88,9 @@ export default function AccountPage() {
   const [inquiriesCount, setInquiriesCount] = useState(0)
   const [hasListings, setHasListings] = useState(false)
 
+  // Profile
+  const [profile, setProfile] = useState<Profile | null>(null)
+
   // Tab data
   const [savedListings, setSavedListings] = useState<SavedItem[]>([])
   const [inquiries, setInquiries] = useState<InquiryRow[]>([])
@@ -95,7 +107,7 @@ export default function AccountPage() {
       }
       setUser(authUser)
 
-      const [savedRes, inqRes, listingsRes] = await Promise.all([
+      const [savedRes, inqRes, listingsRes, profileRes] = await Promise.all([
         supabase
           .from('saved_listings')
           .select('listing_id', { count: 'exact', head: true })
@@ -108,11 +120,17 @@ export default function AccountPage() {
           .from('listings')
           .select('id', { count: 'exact', head: true })
           .or(`user_id.eq.${authUser.id},lister_id.eq.${authUser.id}`),
+        supabase
+          .from('profiles')
+          .select('verification_level, edu_email, lease_doc_url, account_type')
+          .eq('id', authUser.id)
+          .maybeSingle(),
       ])
 
       setSavedCount(savedRes.count ?? 0)
       setInquiriesCount(inqRes.count ?? 0)
       setHasListings((listingsRes.count ?? 0) > 0)
+      if (profileRes.data) setProfile(profileRes.data as Profile)
       setLoading(false)
     }
     init()
@@ -235,7 +253,7 @@ export default function AccountPage() {
               <p className="text-xs text-gray-500 mt-0.5">Inquiries Sent</p>
             </div>
             <div className="bg-white rounded-card shadow-card p-4 text-center">
-              <p className="text-lg font-bold text-gray-900">Free</p>
+              <p className="text-lg font-bold text-gray-900">{profile?.account_type === 'renter_premium' ? 'Premium' : 'Free'}</p>
               <p className="text-xs text-gray-500 mt-0.5">Account Level</p>
             </div>
           </div>
@@ -446,7 +464,71 @@ export default function AccountPage() {
 
             {/* ---- Settings ---- */}
             {activeTab === 'settings' && (
-              <div className="max-w-sm">
+              <div className="max-w-lg">
+                {/* Verification Status */}
+                <div className="mb-8">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-primary-600" />
+                    Verification Status
+                  </h3>
+
+                  {/* Current level */}
+                  <div className="bg-gray-50 rounded-card border border-gray-100 p-4 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Current Level</span>
+                      {profile?.verification_level && profile.verification_level !== 'basic' ? (
+                        <Badge variant={
+                          profile.verification_level === 'edu_verified' ? 'edu_verified' :
+                          profile.verification_level === 'lease_verified' ? 'lease_verified' :
+                          profile.verification_level === 'id_verified' ? 'id_verified' :
+                          'verified'
+                        } />
+                      ) : (
+                        <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-badge">Member</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Higher verification levels build trust and help you get faster responses from listers.
+                    </p>
+                  </div>
+
+                  {/* Verification tiers */}
+                  <div className="flex flex-col gap-3">
+                    {/* Email Verified */}
+                    <VerificationTier
+                      icon={<CheckCircle className="w-4 h-4" />}
+                      title="Email Verified"
+                      description="Confirm your email address"
+                      completed={!!user.email_confirmed_at}
+                      color="text-blue-600 bg-blue-50"
+                    />
+
+                    {/* Lease Verified */}
+                    <VerificationTier
+                      icon={<Upload className="w-4 h-4" />}
+                      title="Lease Verified"
+                      description="Upload your lease document for admin review"
+                      completed={!!profile?.lease_doc_url}
+                      pending={!!profile?.lease_doc_url && profile.verification_level !== 'lease_verified'}
+                      color="text-green-600 bg-green-50"
+                      actionLabel="Upload Lease"
+                      comingSoon
+                    />
+
+                    {/* CU Student */}
+                    <VerificationTier
+                      icon={<GraduationCap className="w-4 h-4" />}
+                      title="CU Student"
+                      description="Connect a .edu email address"
+                      completed={profile?.verification_level === 'edu_verified'}
+                      color="text-accent-600 bg-accent-400/10"
+                      actionLabel="Connect .edu Email"
+                      comingSoon
+                    />
+                  </div>
+                </div>
+
+                {/* Account Information */}
                 <h3 className="text-sm font-semibold text-gray-900 mb-4">Account Information</h3>
                 <div className="flex flex-col gap-3">
                   <div>
@@ -464,7 +546,7 @@ export default function AccountPage() {
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Account Level</p>
                     <p className="text-sm text-gray-900 px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
-                      Free
+                      {profile?.account_type === 'renter_premium' ? 'Renter Premium' : profile?.account_type === 'lister_pro' ? 'Lister Pro' : 'Free'}
                     </p>
                   </div>
                   <div>
@@ -493,6 +575,50 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function VerificationTier({
+  icon,
+  title,
+  description,
+  completed,
+  pending,
+  color,
+  actionLabel,
+  comingSoon,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  completed: boolean
+  pending?: boolean
+  color: string
+  actionLabel?: string
+  comingSoon?: boolean
+}) {
+  return (
+    <div className={[
+      'flex items-center gap-3 px-4 py-3 rounded-card border',
+      completed ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50',
+    ].join(' ')}>
+      <div className={['w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', color].join(' ')}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500">{description}</p>
+      </div>
+      {completed ? (
+        <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-badge flex-shrink-0">
+          {pending ? 'Pending Review' : 'Complete'}
+        </span>
+      ) : actionLabel ? (
+        <Button variant="secondary" size="sm" disabled={comingSoon} className="flex-shrink-0">
+          {comingSoon ? 'Coming Soon' : actionLabel}
+        </Button>
+      ) : null}
     </div>
   )
 }
