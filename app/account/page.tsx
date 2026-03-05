@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/lib/utils'
 import {
   Heart, MessageSquare, Settings, BarChart2,
-  ChevronRight, MapPin, Calendar,
+  ChevronRight, MapPin, Calendar, Crown,
 } from 'lucide-react'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
@@ -237,6 +237,24 @@ export default function AccountPage() {
             <div className="bg-white rounded-card shadow-card p-4 text-center">
               <p className="text-lg font-bold text-gray-900">Free</p>
               <p className="text-xs text-gray-500 mt-0.5">Account Level</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Upgrade to Premium CTA */}
+        <div className="bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 rounded-card p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+              <Crown className="w-5 h-5 text-primary-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-gray-900">Upgrade to Renter Premium</h3>
+              <p className="text-xs text-gray-500 mt-0.5 mb-3">
+                Get priority inquiry responses, see listings before they go public, and unlock advanced search filters.
+              </p>
+              <Button variant="primary" size="sm" disabled>
+                Coming Soon
+              </Button>
             </div>
           </div>
         </div>
