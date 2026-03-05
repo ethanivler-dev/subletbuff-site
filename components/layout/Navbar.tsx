@@ -78,7 +78,7 @@ export function Navbar() {
                 alt="SubletBuff"
                 width={140}
                 height={36}
-                className="h-9 w-auto transition-all duration-300"
+                className={`h-9 w-auto transition-all duration-300 ${isSolid ? '' : 'brightness-0 invert'}`}
                 priority
                 unoptimized
               />
