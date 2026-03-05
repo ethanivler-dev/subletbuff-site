@@ -120,19 +120,50 @@ export default function PostListingPage() {
 
       const uploadedPhotos = photos.filter((p) => !p.uploading)
 
+      // Dual-write: populate both old and new column names so NOT NULL
+      // constraints on the original schema are satisfied.
+      const rentNum = parseInt(basicInfo.rent_monthly) || 0
+      const depositNum = basicInfo.deposit ? parseInt(basicInfo.deposit) : null
+
       const { data: listing, error: insertError } = await supabase
         .from('listings')
         .insert({
+          // === Identity ===
           user_id: user.id,
           lister_id: user.id,
-          title: basicInfo.title,
+          email: user.email ?? '',
+          first_name: user.user_metadata?.full_name?.split(' ')[0] ?? '',
+          last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') ?? '',
+
+          // === Location ===
           address: basicInfo.address,
           neighborhood: basicInfo.neighborhood,
-          room_type: basicInfo.room_type,
-          rent_monthly: parseInt(basicInfo.rent_monthly),
-          deposit: basicInfo.deposit ? parseInt(basicInfo.deposit) : null,
+          lat: baseLat,                          // old column
+          lng: baseLng,                          // old column
+          latitude: baseLat,                     // new column
+          longitude: baseLng,                    // new column
+          public_latitude: jitterLat,
+          public_longitude: jitterLng,
+
+          // === Pricing (old + new) ===
+          monthly_rent: rentNum,                 // old column
+          rent_monthly: rentNum,                 // new column
+          security_deposit: depositNum,          // old column
+          deposit: depositNum,                   // new column
+
+          // === Dates (old + new) ===
+          start_date: basicInfo.available_from,  // old column
+          end_date: basicInfo.available_to,      // old column
           available_from: basicInfo.available_from,
           available_to: basicInfo.available_to,
+
+          // === Room info (old + new) ===
+          room_type: basicInfo.room_type,
+          title: basicInfo.title,
+          beds: '1',                             // old column
+          baths: '1',                            // old column
+
+          // === Details ===
           min_stay_weeks: parseInt(basicInfo.min_stay_weeks) || 1,
           description: details.description,
           furnished: details.furnished ? 'Yes' : 'No',
@@ -143,17 +174,20 @@ export default function PostListingPage() {
           roommate_info: details.roommate_info || null,
           is_intern_friendly: details.is_intern_friendly,
           immediate_movein: details.immediate_movein,
+
+          // === Photos + status ===
           photo_urls: uploadedPhotos.map((p) => p.url),
-          latitude: baseLat,
-          longitude: baseLng,
-          public_latitude: jitterLat,
-          public_longitude: jitterLng,
           status: 'pending',
+          paused: false,
+          filled: false,
         })
         .select('id')
         .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('Supabase insert error:', insertError.message, insertError.details, insertError.hint, insertError.code)
+        throw insertError
+      }
 
       // Insert into listing_photos table
       if (listing && uploadedPhotos.length > 0) {
@@ -168,9 +202,10 @@ export default function PostListingPage() {
       }
 
       setSubmitted(true)
-    } catch (err) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Unknown error'
       console.error('Submit error:', err)
-      alert('Something went wrong. Please try again.')
+      alert(`Something went wrong: ${msg}`)
     } finally {
       setSubmitting(false)
     }
