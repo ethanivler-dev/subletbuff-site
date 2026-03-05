@@ -56,7 +56,7 @@ export function StepReview({ basicInfo, details, photos, onEdit, onSubmit, submi
           <Dd>{basicInfo.room_type ? formatRoomType(basicInfo.room_type) : '—'}</Dd>
           <Dt>Rent</Dt>
           <Dd>${basicInfo.rent_monthly || '—'}/mo</Dd>
-          <Dt>Deposit</Dt>
+          <Dt>Security Deposit</Dt>
           <Dd>{basicInfo.deposit ? `$${basicInfo.deposit}` : 'None'}</Dd>
           <Dt>Dates</Dt>
           <Dd>{basicInfo.available_from} → {basicInfo.available_to}</Dd>

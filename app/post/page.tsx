@@ -197,6 +197,7 @@ export default function PostListingPage() {
           storage_path: p.storagePath ?? '',
           display_order: i,
           is_primary: i === 0,
+          caption: p.caption || null,
         }))
         await supabase.from('listing_photos').insert(photoRows)
       }

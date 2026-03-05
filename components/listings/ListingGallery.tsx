@@ -8,6 +8,7 @@ interface Photo {
   url: string
   display_order: number
   is_primary: boolean
+  caption?: string
 }
 
 interface ListingGalleryProps {
@@ -143,6 +144,18 @@ export function ListingGallery({ photos, title }: ListingGalleryProps) {
               sizes="100vw"
             />
           </div>
+
+          {/* Caption */}
+          {sorted[activeIndex].caption && (
+            <div
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 max-w-lg text-center z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-white/90 text-sm bg-black/60 backdrop-blur-sm rounded-lg px-4 py-2">
+                {sorted[activeIndex].caption}
+              </p>
+            </div>
+          )}
 
           {/* Prev / Next */}
           {sorted.length > 1 && (

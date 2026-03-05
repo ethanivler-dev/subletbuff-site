@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import Image from 'next/image'
 import { Upload, X, GripVertical, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -10,6 +10,7 @@ export interface PhotoItem {
   url: string
   uploading?: boolean
   storagePath?: string
+  caption?: string
 }
 
 interface StepPhotosProps {
@@ -23,6 +24,8 @@ const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp']
 
 export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
   const [uploadError, setUploadError] = useState('')
+  const dragIndexRef = useRef<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     setUploadError('')
@@ -87,23 +90,66 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
     onChange(photos.filter((_, i) => i !== index))
   }
 
-  function handleDrop(e: React.DragEvent) {
+  function updateCaption(index: number, caption: string) {
+    const updated = photos.map((p, i) => i === index ? { ...p, caption } : p)
+    onChange(updated)
+  }
+
+  function handleFileDrop(e: React.DragEvent) {
     e.preventDefault()
     if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files)
   }
 
-  const allDone = photos.every((p) => !p.uploading)
+  /* --- Drag-to-reorder handlers --- */
+  function handleDragStart(e: React.DragEvent, index: number) {
+    dragIndexRef.current = index
+    e.dataTransfer.effectAllowed = 'move'
+    // Make the drag image slightly transparent
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5'
+    }
+  }
+
+  function handleDragEnd(e: React.DragEvent) {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1'
+    }
+    dragIndexRef.current = null
+    setDragOverIndex(null)
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
+      setDragOverIndex(index)
+    }
+  }
+
+  function handleReorderDrop(e: React.DragEvent, dropIndex: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverIndex(null)
+    const fromIndex = dragIndexRef.current
+    if (fromIndex === null || fromIndex === dropIndex) return
+
+    const reordered = [...photos]
+    const [moved] = reordered.splice(fromIndex, 1)
+    reordered.splice(dropIndex, 0, moved)
+    onChange(reordered)
+    dragIndexRef.current = null
+  }
 
   return (
     <div className="max-w-xl mx-auto flex flex-col gap-5">
       <h2 className="text-xl font-semibold text-gray-900">Photos</h2>
       <p className="text-sm text-gray-500 -mt-3">
-        Upload at least 3 photos. First photo is the thumbnail. Listings with 6+ photos get 3× more inquiries.
+        Upload at least 3 photos. Drag to reorder — first photo is the cover. Listings with 6+ photos get 3× more inquiries.
       </p>
 
       {/* Drop zone */}
       <label
-        onDrop={handleDrop}
+        onDrop={handleFileDrop}
         onDragOver={(e) => e.preventDefault()}
         className="flex flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-gray-300 hover:border-primary-400 bg-gray-50 hover:bg-primary-50/30 transition-colors cursor-pointer py-10 px-4"
       >
@@ -126,37 +172,67 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
         </div>
       )}
 
-      {/* Photo grid */}
+      {/* Photo grid — drag to reorder */}
       {photos.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {photos.map((photo, i) => (
-            <div key={photo.url + i} className="relative aspect-square rounded-button overflow-hidden bg-gray-100 group">
-              <Image
-                src={photo.url}
-                alt={`Upload ${i + 1}`}
-                fill
-                className="object-cover"
-                sizes="120px"
-              />
-              {photo.uploading && (
-                <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-                </div>
+            <div
+              key={photo.url + i}
+              draggable={!photo.uploading}
+              onDragStart={(e) => handleDragStart(e, i)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => handleDragOver(e, i)}
+              onDrop={(e) => handleReorderDrop(e, i)}
+              className={[
+                'flex flex-col gap-1.5 transition-all',
+                dragOverIndex === i ? 'ring-2 ring-primary-400 ring-offset-2 rounded-button' : '',
+              ].join(' ')}
+            >
+              <div className="relative aspect-square rounded-button overflow-hidden bg-gray-100 group cursor-grab active:cursor-grabbing">
+                <Image
+                  src={photo.url}
+                  alt={`Upload ${i + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="180px"
+                />
+                {photo.uploading && (
+                  <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {/* Drag handle */}
+                {!photo.uploading && (
+                  <div className="absolute top-1 left-1 bg-black/50 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <GripVertical className="w-3.5 h-3.5" />
+                  </div>
+                )}
+                {/* Primary badge */}
+                {i === 0 && !photo.uploading && (
+                  <span className="absolute bottom-1 left-1 text-[10px] bg-primary-600 text-white px-1.5 py-0.5 rounded font-medium">
+                    Cover
+                  </span>
+                )}
+                {/* Remove */}
+                <button
+                  onClick={() => removePhoto(i)}
+                  className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove photo"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {/* Caption input */}
+              {!photo.uploading && (
+                <input
+                  type="text"
+                  placeholder="Add a note…"
+                  value={photo.caption ?? ''}
+                  onChange={(e) => updateCaption(i, e.target.value)}
+                  maxLength={120}
+                  className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-button bg-white text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
               )}
-              {/* Primary badge */}
-              {i === 0 && !photo.uploading && (
-                <span className="absolute bottom-1 left-1 text-[10px] bg-primary-600 text-white px-1.5 py-0.5 rounded font-medium">
-                  Cover
-                </span>
-              )}
-              {/* Remove */}
-              <button
-                onClick={() => removePhoto(i)}
-                className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label="Remove photo"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
             </div>
           ))}
         </div>

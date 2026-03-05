@@ -20,6 +20,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState(errorParam === 'auth_failed' ? 'Sign-in failed. Please try again.' : '')
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -31,6 +33,19 @@ function LoginForm() {
     if (err) { setError(err.message); return }
     router.push(next)
     router.refresh()
+  }
+
+  async function handleResetPassword() {
+    if (!email) { setError('Enter your email first, then click Forgot password.'); return }
+    setResetLoading(true)
+    setError('')
+    const supabase = createClient()
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/`,
+    })
+    setResetLoading(false)
+    if (err) { setError(err.message); return }
+    setResetSent(true)
   }
 
   async function handleGoogle() {
@@ -109,7 +124,17 @@ function LoginForm() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-800">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-800">Password</label>
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={resetLoading}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  {resetLoading ? 'Sending…' : 'Forgot password?'}
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -129,6 +154,12 @@ function LoginForm() {
                 </button>
               </div>
             </div>
+
+            {resetSent && (
+              <p className="text-sm text-success bg-success/10 px-3 py-2 rounded-button">
+                Password reset link sent! Check your email.
+              </p>
+            )}
 
             <Button type="submit" variant="primary" size="md" className="w-full" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign In'}

@@ -51,7 +51,7 @@ interface ListingDetailRow {
   status: string | null
   paused: boolean | null
   filled: boolean | null
-  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
+  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; caption?: string }> | null
   photo_urls: string[] | null
 }
 
@@ -79,7 +79,7 @@ async function getListing(id: string) {
       furnished, amenities, house_rules, roommate_info,
       is_featured, is_intern_friendly, immediate_movein,
       created_at, lister_id, user_id, status, paused, filled,
-      listing_photos(url, display_order, is_primary),
+      listing_photos(url, display_order, is_primary, caption),
       photo_urls
     `)
     .eq('id', id)
