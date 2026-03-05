@@ -123,16 +123,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
             {isFurnished && <Badge variant="furnished" />}
           </div>
 
-          {/* Mini static map — approximate location only */}
-          {public_latitude && public_longitude && process.env.NEXT_PUBLIC_MAPS_KEY && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`https://maps.googleapis.com/maps/api/staticmap?center=${public_latitude},${public_longitude}&zoom=14&size=600x200&key=${process.env.NEXT_PUBLIC_MAPS_KEY}&markers=color:red%7C${public_latitude},${public_longitude}`}
-              alt="Approximate location"
-              className="w-full h-[120px] md:h-[140px] object-cover rounded-lg mt-2"
-              loading="lazy"
-            />
-          )}
         </div>
       </Link>
     )

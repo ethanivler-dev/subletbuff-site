@@ -10,6 +10,7 @@ import { AmenityGrid } from '@/components/listings/AmenityGrid'
 import { ListerProfile } from '@/components/listings/ListerProfile'
 import { InquiryForm } from '@/components/listings/InquiryForm'
 import { SimilarListings } from '@/components/listings/SimilarListings'
+import { ListingDetailMap, type MapListing } from '@/components/listings/ListingDetailMap'
 import type { Metadata } from 'next'
 
 // Revalidate every 60s
@@ -154,18 +155,29 @@ export default async function ListingDetailPage({
 
   const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo } = result
 
-  // Check if the current user has saved this listing
-  let isSaved = false
-  if (user) {
-    const supabase = await createClient()
-    const { data: savedRow } = await supabase
-      .from('saved_listings')
-      .select('listing_id')
-      .eq('user_id', user.id)
-      .eq('listing_id', id)
-      .maybeSingle()
-    isSaved = !!savedRow
-  }
+  // Parallel: check saved status + fetch all map listings
+  const supabase = await createClient()
+  const [savedRow, mapListingsResult] = await Promise.all([
+    user
+      ? supabase
+          .from('saved_listings')
+          .select('listing_id')
+          .eq('user_id', user.id)
+          .eq('listing_id', id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('listings')
+      .select('id, title, neighborhood, rent_monthly, public_latitude, public_longitude')
+      .eq('status', 'approved')
+      .eq('paused', false)
+      .eq('filled', false)
+      .not('public_latitude', 'is', null)
+      .neq('id', id)
+      .limit(100),
+  ])
+  const isSaved = !!(savedRow as { data: unknown }).data
+  const mapListings = ((mapListingsResult.data ?? []) as MapListing[])
 
   const roomType = listing.room_type ?? 'private_room'
   const neighborhood = listing.neighborhood ?? 'Boulder'
@@ -284,18 +296,26 @@ export default async function ListingDetailPage({
             {/* Location (approximate) */}
             <section>
               <h2 className="text-lg font-semibold text-gray-900 mb-3">Location</h2>
-              <div className="rounded-card bg-gray-50 border border-gray-200 p-6">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                  <div>
+              {listing.public_latitude && listing.public_longitude ? (
+                <ListingDetailMap
+                  currentId={listing.id}
+                  currentLat={listing.public_latitude}
+                  currentLng={listing.public_longitude}
+                  currentRent={rent}
+                  otherListings={mapListings}
+                />
+              ) : (
+                <div className="rounded-card bg-gray-50 border border-gray-200 p-6">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm font-medium text-gray-800">{neighborhood} area, Boulder, CO</p>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <Shield className="w-3.5 h-3.5" />
-                      Approximate location — exact address shared after your inquiry is accepted
-                    </p>
                   </div>
                 </div>
-              </div>
+              )}
+              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                <Shield className="w-3.5 h-3.5" />
+                Approximate location — exact address shared after your inquiry is accepted
+              </p>
             </section>
 
             {/* House Rules */}

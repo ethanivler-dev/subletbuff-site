@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { GoogleMap, useJsApiLoader, OverlayView } from '@react-google-maps/api'
 import { Map as MapIcon, X, ChevronRight } from 'lucide-react'
 import { ListingCard, type ListingCardData } from './ListingCard'
@@ -8,6 +9,19 @@ import { ListingsFilters } from '@/app/listings/ListingsFilters'
 
 // Boulder, CO
 const BOULDER_CENTER = { lat: 40.0150, lng: -105.2705 }
+
+// Reject any markers that fall outside the greater Boulder area
+const BOULDER_LAT_MIN = 39.9
+const BOULDER_LAT_MAX = 40.1
+const BOULDER_LNG_MIN = -105.35
+const BOULDER_LNG_MAX = -105.15
+
+function isInBoulderArea(lat: number, lng: number) {
+  return (
+    lat >= BOULDER_LAT_MIN && lat <= BOULDER_LAT_MAX &&
+    lng >= BOULDER_LNG_MIN && lng <= BOULDER_LNG_MAX
+  )
+}
 
 interface SearchParams {
   q?: string
@@ -62,49 +76,49 @@ function PriceMarker({
 }
 
 export function ListingsMapView({ listings, total, params }: Props) {
+  const router = useRouter()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMap, setShowMap] = useState(true)
-  const cardRefs: Record<string, HTMLDivElement | null> = {}
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_KEY ?? '',
   })
 
+  // Only show markers for listings with valid Boulder-area coordinates
   const listingsWithCoords = listings.filter(
-    (l) => l.public_latitude != null && l.public_longitude != null,
+    (l) =>
+      l.public_latitude != null &&
+      l.public_longitude != null &&
+      isInBoulderArea(l.public_latitude, l.public_longitude),
   )
 
-  // Fit map to actual markers; fall back to Boulder at z13
-  const handleMapLoad = useCallback(
-    (map: google.maps.Map) => {
-      if (listingsWithCoords.length === 0) {
-        map.setCenter(BOULDER_CENTER)
-        map.setZoom(13)
-        return
-      }
-      const bounds = new google.maps.LatLngBounds()
-      listingsWithCoords.forEach((l) => {
-        bounds.extend({ lat: l.public_latitude!, lng: l.public_longitude! })
-      })
-      map.fitBounds(bounds, 60)
-      // Enforce minimum zoom so we don't zoom out past city level
-      google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
-        const z = map.getZoom()
-        if (z !== undefined && z < 12) map.setZoom(12)
-      })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  )
-
-  const handlePinClick = useCallback((id: string) => {
-    setSelectedId(id)
-    const el = cardRefs[id]
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  // Fit map to actual markers, enforcing a minimum zoom of 12
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+    if (listingsWithCoords.length === 0) {
+      map.setCenter(BOULDER_CENTER)
+      map.setZoom(13)
+      return
+    }
+    const bounds = new google.maps.LatLngBounds()
+    listingsWithCoords.forEach((l) => {
+      bounds.extend({ lat: l.public_latitude!, lng: l.public_longitude! })
+    })
+    map.fitBounds(bounds, 60)
+    google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+      const z = map.getZoom()
+      if (z !== undefined && z < 12) map.setZoom(12)
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Clicking a price pin navigates to that listing's detail page
+  const handlePinClick = useCallback(
+    (id: string) => {
+      router.push(`/listings/${id}`)
+    },
+    [router],
+  )
 
   const mapOptions = {
     disableDefaultUI: true,
@@ -124,7 +138,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
           >
             <PriceMarker
               price={listing.rent_monthly}
-              isActive={hoveredId === listing.id || selectedId === listing.id}
+              isActive={hoveredId === listing.id}
               onClick={() => handlePinClick(listing.id)}
             />
           </OverlayView>
@@ -151,6 +165,8 @@ export function ListingsMapView({ listings, total, params }: Props) {
     )
   }
 
+  const cardRefs: Record<string, HTMLDivElement | null> = {}
+
   const cardList =
     listings.length === 0 ? (
       <div className="text-center py-20 text-gray-500">
@@ -167,10 +183,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
             }}
             onMouseEnter={() => setHoveredId(listing.id)}
             onMouseLeave={() => setHoveredId(null)}
-            className={[
-              'rounded-card transition-shadow duration-150',
-              selectedId === listing.id ? 'ring-2 ring-primary-500' : '',
-            ].join(' ')}
+            className="rounded-card transition-shadow duration-150"
           >
             <ListingCard listing={listing} variant="horizontal" />
           </div>
