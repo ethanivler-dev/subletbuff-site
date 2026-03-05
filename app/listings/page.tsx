@@ -79,6 +79,9 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
   if (params.filter === 'near_campus') {
     query = query.or('neighborhood.ilike.%university hill%,neighborhood.ilike.%the hill%,neighborhood.ilike.%near cu%')
   }
+  if (params.filter === 'short_term') {
+    query = query.or('min_stay_weeks.eq.0,min_stay_weeks.lte.8')
+  }
 
   // New boolean filters
   if (params.furnished === 'true') query = query.or('furnished.eq.true,furnished.ilike.Yes%')

@@ -181,7 +181,7 @@ export function Navbar() {
         </div>
       </header>
 
-      <MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} user={user} onSignOut={handleSignOut} />
     </>
   )
 }

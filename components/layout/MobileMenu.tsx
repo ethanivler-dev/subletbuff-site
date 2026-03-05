@@ -2,14 +2,17 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { X } from 'lucide-react'
+import { X, User, LogOut } from 'lucide-react'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
+  user: SupabaseUser | null
+  onSignOut: () => void
 }
 
-export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps) {
   // Close on Escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -81,13 +84,40 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           >
             Post a Listing
           </Link>
-          <Link
-            href="/auth/login"
-            onClick={onClose}
-            className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium rounded-button bg-white text-primary-600 border border-primary-600 hover:bg-primary-50 transition-colors"
-          >
-            Sign In
-          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/account"
+                onClick={onClose}
+                className="inline-flex items-center gap-2 w-full px-6 py-3 text-base font-medium rounded-button bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                My Account
+              </Link>
+              <Link
+                href="/account/listings"
+                onClick={onClose}
+                className="inline-flex items-center gap-2 w-full px-6 py-3 text-base font-medium rounded-button bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                My Listings
+              </Link>
+              <button
+                onClick={() => { onSignOut(); onClose() }}
+                className="inline-flex items-center gap-2 justify-center w-full px-6 py-3 text-base font-medium rounded-button bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/auth/login"
+              onClick={onClose}
+              className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium rounded-button bg-white text-primary-600 border border-primary-600 hover:bg-primary-50 transition-colors"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
       </div>
     </>
