@@ -44,10 +44,24 @@ export function sanitizeListingTitle(
   neighborhood: string,
 ): string {
   const t = (title ?? '').trim()
-  // Heuristic: starts with one or more digits followed by a space → likely a street address
-  if (!t || /^\d+\s/.test(t)) {
-    return `${formatRoomType(roomType)} in ${neighborhood || 'Boulder'}`
+  const label = formatRoomType(roomType)
+  const hood = neighborhood || 'Boulder'
+
+  if (!t) return `${label} in ${hood}`
+
+  // Heuristic: starts with digits followed by a space → likely a street address
+  const addressMatch = t.match(/^\d+\s+(.+)/)
+  if (addressMatch) {
+    // Extract street name, strip unit/apt suffixes for a friendlier title
+    const street = addressMatch[1]
+      .replace(/[,#].*/,'')                       // drop everything after comma or #
+      .replace(/\b(apt|unit|suite|ste|fl)\b.*/i, '') // drop unit identifiers
+      .replace(/\b(boulder|co|colorado)\b.*/i, '')   // drop city/state
+      .trim()
+    if (street) return `${label} on ${street}`
+    return `${label} in ${hood}`
   }
+
   return t
 }
 

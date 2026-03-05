@@ -168,14 +168,19 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       <h2 className="text-xl font-semibold text-gray-900">Basic Info</h2>
       <p className="text-sm text-gray-500 -mt-3">Tell us about your sublet.</p>
 
-      <Input
-        label="Listing Title"
-        placeholder='e.g. "Sunny room near campus"'
-        value={data.title}
-        onChange={(e) => update('title', e.target.value)}
-        error={errors.title}
-        maxLength={80}
-      />
+      <div>
+        <Input
+          label="Listing Title"
+          placeholder='e.g. "Sunny 1BR on The Hill with parking"'
+          value={data.title}
+          onChange={(e) => update('title', e.target.value)}
+          error={errors.title}
+          maxLength={80}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          Make it descriptive — mention a feature, vibe, or landmark. Avoid putting just your address.
+        </p>
+      </div>
 
       {/* Address — Google Places Autocomplete */}
       <div className="flex flex-col gap-1">

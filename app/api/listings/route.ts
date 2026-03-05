@@ -243,17 +243,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  // Insert listing_photos rows if provided
+  // Move photos to listing-scoped path and insert listing_photos rows
   if (listing && Array.isArray(body.photos) && body.photos.length > 0) {
-    const photoRows = body.photos.map((p: { url: string; storagePath?: string; caption?: string }, i: number) => ({
+    const movedPhotos: { url: string; storagePath: string; caption: string | null }[] = []
+
+    for (const p of body.photos as { url: string; storagePath?: string; caption?: string }[]) {
+      const oldPath = p.storagePath
+      if (oldPath) {
+        const filename = oldPath.split('/').pop() ?? oldPath
+        const newPath = `listings/${listing.id}/${filename}`
+
+        const { error: moveErr } = await supabase.storage
+          .from('listing-photos')
+          .move(oldPath, newPath)
+
+        if (!moveErr) {
+          const { data: urlData } = supabase.storage
+            .from('listing-photos')
+            .getPublicUrl(newPath)
+          movedPhotos.push({ url: urlData.publicUrl, storagePath: newPath, caption: p.caption || null })
+        } else {
+          movedPhotos.push({ url: p.url, storagePath: oldPath, caption: p.caption || null })
+        }
+      } else {
+        movedPhotos.push({ url: p.url, storagePath: '', caption: p.caption || null })
+      }
+    }
+
+    const photoRows = movedPhotos.map((ph, i) => ({
       listing_id: listing.id,
-      url: p.url,
-      storage_path: p.storagePath ?? '',
+      url: ph.url,
+      storage_path: ph.storagePath,
       display_order: i,
       is_primary: i === 0,
-      caption: p.caption || null,
+      caption: ph.caption,
     }))
     await supabase.from('listing_photos').insert(photoRows)
+
+    // Update photo_urls on the listing with final URLs
+    await supabase
+      .from('listings')
+      .update({ photo_urls: movedPhotos.map((ph) => ph.url) })
+      .eq('id', listing.id)
   }
 
   return NextResponse.json({ id: listing.id }, { status: 201 })

@@ -160,18 +160,26 @@ export function Navbar() {
                   )}
                 </div>
               ) : (
-                <Link
-                  href="/auth/login"
-                  className={[textColor, 'text-sm font-medium hover:opacity-70 transition-opacity'].join(' ')}
-                >
-                  Sign In
-                </Link>
+                <>
+                  <Link
+                    href="/auth/login"
+                    className={[textColor, 'text-sm font-medium hover:opacity-70 transition-opacity'].join(' ')}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="px-4 py-2 text-sm font-medium rounded-button bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </>
               )}
             </div>
 
             {/* Hamburger (mobile) */}
             <button
-              className={['md:hidden p-2 rounded', textColor].join(' ')}
+              className={['md:hidden p-2.5 -mr-2.5 rounded', textColor].join(' ')}
               onClick={() => setMenuOpen(true)}
               aria-label="Open menu"
             >

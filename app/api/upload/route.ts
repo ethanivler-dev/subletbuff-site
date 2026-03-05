@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   const ext = file.name.split('.').pop() ?? 'jpg'
-  const path = `${crypto.randomUUID()}.${ext}`
+  const path = `listings/${user.id}/${Date.now()}-${crypto.randomUUID()}.${ext}`
 
   const arrayBuffer = await file.arrayBuffer()
   const { error: uploadError } = await supabase.storage

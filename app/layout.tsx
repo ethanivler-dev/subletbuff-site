@@ -17,28 +17,29 @@ const sans = Plus_Jakarta_Sans({
   display: 'swap',
 })
 
+const siteTitle = 'SubletBuff | Boulder Sublets & Short-Term Housing Near CU'
+const siteDescription =
+  'Find verified short-term sublets in Boulder, CO. Perfect for CU interns, researchers, and seasonal workers. Browse furnished rooms, apartments, and shared spaces.'
+
 export const metadata: Metadata = {
   title: {
-    default: 'SubletBuff — Short-Term Housing in Boulder',
+    default: siteTitle,
     template: '%s | SubletBuff',
   },
-  description:
-    "Boulder's verified short-term housing marketplace for interns, seasonal workers, and researchers.",
+  description: siteDescription,
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? 'https://subletbuff.com'
   ),
   openGraph: {
     type: 'website',
     siteName: 'SubletBuff',
-    title: 'SubletBuff — Short-Term Housing in Boulder',
-    description:
-      "Boulder's verified short-term housing marketplace for interns, seasonal workers, and researchers.",
+    title: siteTitle,
+    description: siteDescription,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SubletBuff — Short-Term Housing in Boulder',
-    description:
-      "Boulder's verified short-term housing marketplace for interns, seasonal workers, and researchers.",
+    title: siteTitle,
+    description: siteDescription,
   },
 }
 

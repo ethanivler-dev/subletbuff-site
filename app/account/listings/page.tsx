@@ -10,6 +10,7 @@ import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/
 import {
   Eye, Heart, MessageSquare, TrendingUp,
   Plus, Star, ArrowLeft, ExternalLink,
+  Pause, Play, CheckCircle, Trash2, MoreVertical,
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
@@ -29,6 +30,8 @@ interface UserListing {
   rent_monthly: number | null
   monthly_rent: number | null
   status: string
+  paused: boolean
+  filled: boolean
   created_at: string
   listing_photos: Array<{ url: string; is_primary: boolean; display_order: number }> | null
   views: number
@@ -50,13 +53,14 @@ interface RecentInquiry {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-function statusInfo(status: string): { label: string; color: string } {
-  switch (status) {
+function statusInfo(listing: UserListing): { label: string; color: string } {
+  if (listing.filled) return { label: 'Filled', color: 'text-blue-700 bg-blue-100' }
+  if (listing.paused) return { label: 'Paused', color: 'text-gray-600 bg-gray-100' }
+  switch (listing.status) {
     case 'approved': return { label: 'Active', color: 'text-green-700 bg-green-100' }
     case 'pending':  return { label: 'Pending', color: 'text-amber-700 bg-amber-100' }
     case 'rejected': return { label: 'Rejected', color: 'text-red-700 bg-red-100' }
-    case 'paused':   return { label: 'Paused', color: 'text-gray-600 bg-gray-100' }
-    default:         return { label: status, color: 'text-gray-600 bg-gray-100' }
+    default:         return { label: listing.status, color: 'text-gray-600 bg-gray-100' }
   }
 }
 
@@ -85,7 +89,7 @@ export default function ListerDashboardPage() {
       .from('listings')
       .select(`
         id, title, room_type, neighborhood,
-        rent_monthly, monthly_rent, status, created_at,
+        rent_monthly, monthly_rent, status, paused, filled, created_at,
         listing_photos (url, is_primary, display_order)
       `)
       .or(`user_id.eq.${userId},lister_id.eq.${userId}`)
@@ -206,6 +210,48 @@ export default function ListerDashboardPage() {
 
     setLoading(false)
   }, [])
+
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+
+  async function patchListing(id: string, body: Record<string, unknown>) {
+    setActionLoading(id)
+    try {
+      const res = await fetch(`/api/listings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        alert(`Update failed: ${err.error}`)
+        return
+      }
+      setListings((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, ...body } as UserListing : l))
+      )
+    } finally {
+      setActionLoading(null)
+      setOpenMenu(null)
+    }
+  }
+
+  async function deleteListing(id: string) {
+    if (!window.confirm('Are you sure you want to permanently delete this listing? This cannot be undone.')) return
+    setActionLoading(id)
+    try {
+      const res = await fetch(`/api/listings/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json()
+        alert(`Delete failed: ${err.error}`)
+        return
+      }
+      setListings((prev) => prev.filter((l) => l.id !== id))
+    } finally {
+      setActionLoading(null)
+      setOpenMenu(null)
+    }
+  }
 
   /* ---- Auth check ---- */
   useEffect(() => {
@@ -384,7 +430,9 @@ export default function ListerDashboardPage() {
                       listing.neighborhood
                     )
                     const rent = listing.rent_monthly ?? listing.monthly_rent
-                    const si = statusInfo(listing.status)
+                    const si = statusInfo(listing)
+                    const isActive = listing.status === 'approved' && !listing.paused && !listing.filled
+                    const isDisabled = actionLoading === listing.id
 
                     return (
                       <tr key={listing.id} className="hover:bg-gray-50/50 transition-colors">
@@ -430,13 +478,64 @@ export default function ListerDashboardPage() {
                           </span>
                         </td>
                         <td className="px-4 py-4 text-right">
-                          <Link
-                            href={`/listings/${listing.id}`}
-                            className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
-                          >
-                            View
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
+                          <div className="relative inline-block">
+                            <button
+                              onClick={() => setOpenMenu(openMenu === listing.id ? null : listing.id)}
+                              disabled={isDisabled}
+                              className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50"
+                              aria-label="Actions"
+                            >
+                              {isDisabled ? (
+                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <MoreVertical className="w-4 h-4" />
+                              )}
+                            </button>
+                            {openMenu === listing.id && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />
+                                <div className="absolute right-0 mt-1 w-44 bg-white rounded-card shadow-card-hover border border-gray-100 py-1 z-50">
+                                  <Link
+                                    href={`/listings/${listing.id}`}
+                                    onClick={() => setOpenMenu(null)}
+                                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    View Listing
+                                  </Link>
+                                  {listing.status === 'approved' && !listing.filled && (
+                                    <button
+                                      onClick={() => patchListing(listing.id, { paused: !listing.paused })}
+                                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                      {listing.paused ? (
+                                        <><Play className="w-3.5 h-3.5" /> Unpause</>
+                                      ) : (
+                                        <><Pause className="w-3.5 h-3.5" /> Pause Listing</>
+                                      )}
+                                    </button>
+                                  )}
+                                  {listing.status === 'approved' && !listing.paused && (
+                                    <button
+                                      onClick={() => patchListing(listing.id, { filled: !listing.filled })}
+                                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                      {listing.filled ? 'Reopen Listing' : 'Mark as Filled'}
+                                    </button>
+                                  )}
+                                  <div className="border-t border-gray-100 my-1" />
+                                  <button
+                                    onClick={() => deleteListing(listing.id)}
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Delete Listing
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )

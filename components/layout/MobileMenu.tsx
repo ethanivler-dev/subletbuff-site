@@ -45,7 +45,7 @@ export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps
           <span className="font-semibold text-gray-900">Menu</span>
           <button
             onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 text-gray-600"
+            className="p-2.5 -mr-2.5 rounded hover:bg-gray-100 text-gray-600"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
@@ -110,13 +110,22 @@ export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps
               </button>
             </>
           ) : (
-            <Link
-              href="/auth/login"
-              onClick={onClose}
-              className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium rounded-button bg-white text-primary-600 border border-primary-600 hover:bg-primary-50 transition-colors"
-            >
-              Sign In
-            </Link>
+            <>
+              <Link
+                href="/auth/login"
+                onClick={onClose}
+                className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium rounded-button bg-white text-primary-600 border border-primary-600 hover:bg-primary-50 transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/auth/signup"
+                onClick={onClose}
+                className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-medium rounded-button bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+              >
+                Sign Up
+              </Link>
+            </>
           )}
         </div>
       </div>

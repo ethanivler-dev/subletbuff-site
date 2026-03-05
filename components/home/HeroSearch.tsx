@@ -54,7 +54,7 @@ export function HeroSearch() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15 }}
         onSubmit={handleSearch}
-        className="w-full bg-white rounded-full shadow-lg flex items-center overflow-visible"
+        className="w-full bg-white rounded-2xl sm:rounded-full shadow-lg flex flex-col sm:flex-row sm:items-center overflow-visible"
       >
         {/* Text input */}
         <div className="flex items-center gap-2 flex-1 px-4 py-3">
@@ -69,7 +69,8 @@ export function HeroSearch() {
         </div>
 
         {/* Divider */}
-        <div className="w-px h-6 bg-gray-200 flex-shrink-0" />
+        <div className="hidden sm:block w-px h-6 bg-gray-200 flex-shrink-0" />
+        <div className="sm:hidden mx-4 h-px bg-gray-200" />
 
         {/* Date picker trigger */}
         <div className="relative">
@@ -84,14 +85,14 @@ export function HeroSearch() {
 
           {/* Date dropdown */}
           {dateOpen && (
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-card shadow-card-hover border border-gray-100 p-4 flex gap-4 z-50 whitespace-nowrap">
+            <div className="absolute top-full mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 right-0 sm:right-auto bg-white rounded-card shadow-card-hover border border-gray-100 p-4 flex flex-col sm:flex-row gap-3 sm:gap-4 z-50">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-500 font-medium">Move-in</label>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-button px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full text-sm border border-gray-200 rounded-button px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -101,13 +102,13 @@ export function HeroSearch() {
                   value={dateTo}
                   min={dateFrom}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-button px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full text-sm border border-gray-200 rounded-button px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setDateOpen(false)}
-                className="self-end text-xs text-primary-600 font-medium hover:underline"
+                className="self-end text-xs text-primary-600 font-medium hover:underline px-3 py-2 -mr-3 -mb-2"
               >
                 Done
               </button>
@@ -139,7 +140,7 @@ export function HeroSearch() {
               type="button"
               onClick={() => handleFilterClick(param)}
               className={[
-                'px-4 py-1.5 text-sm font-medium rounded-full border transition-colors',
+                'px-4 py-2.5 text-sm font-medium rounded-full border transition-colors',
                 isActive
                   ? 'bg-accent-500 border-accent-500 text-gray-900'
                   : 'bg-white/10 border-white/60 text-white hover:bg-white/20',

@@ -98,12 +98,14 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
 
     // Upload each to Supabase Storage
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const ownerId = user?.id ?? 'anonymous'
     const results: PhotoItem[] = [...photos]
 
     for (const placeholder of placeholders) {
       const file = placeholder.file!
       const ext = file.name.split('.').pop() ?? 'jpg'
-      const path = `${crypto.randomUUID()}.${ext}`
+      const path = `listings/${ownerId}/${Date.now()}-${crypto.randomUUID()}.${ext}`
 
       const { error: upErr } = await supabase.storage
         .from('listing-photos')

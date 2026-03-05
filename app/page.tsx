@@ -11,7 +11,7 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative min-h-[85vh] lg:min-h-[80vh] flex items-center justify-center pt-16">
+      <section className="relative min-h-[60vh] sm:min-h-[75vh] lg:min-h-[80vh] flex items-center justify-center pt-16">
         {/* Background image */}
         <Image
           src="/hero-flatirons.jpg"

@@ -95,7 +95,7 @@ export function SaveButton({
       <button
         onClick={toggle}
         className={[
-          'flex items-center gap-1 p-1 flex-shrink-0 transition-colors',
+          'flex items-center gap-1 p-2.5 -m-1.5 flex-shrink-0 transition-colors',
           saved ? 'text-red-500' : 'text-gray-400 hover:text-red-500',
         ].join(' ')}
         aria-label={saved ? 'Remove from saved' : 'Save listing'}
@@ -113,7 +113,7 @@ export function SaveButton({
     <button
       onClick={toggle}
       className={[
-        'absolute top-2 right-2 flex items-center gap-1 px-2 py-1',
+        'absolute top-1 right-1 flex items-center gap-1 px-2.5 py-2',
         'rounded-full bg-white/80 backdrop-blur-sm shadow transition-colors',
         saved ? 'text-red-500' : 'text-gray-500 hover:text-red-500',
       ].join(' ')}

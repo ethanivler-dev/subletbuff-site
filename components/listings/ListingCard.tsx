@@ -63,7 +63,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
     return (
       <Link
         href={`/listings/${id}`}
-        className="group flex gap-0 rounded-card border border-gray-100 bg-white shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden"
+        className="group flex gap-0 rounded-card border border-gray-100 bg-white shadow-card hover:shadow-card-hover hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:outline-none transition-all duration-200 overflow-hidden"
       >
         {/* Photo */}
         <div className="relative w-44 flex-shrink-0 bg-gray-100">
@@ -139,7 +139,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
   return (
     <Link
       href={`/listings/${id}`}
-      className="group rounded-card border border-gray-100 bg-white shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col"
+      className="group rounded-card border border-gray-100 bg-white shadow-card hover:shadow-card-hover hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:outline-none transition-all duration-200 overflow-hidden flex flex-col"
     >
       {/* Photo */}
       <div className="relative aspect-[4/3] bg-gray-100">

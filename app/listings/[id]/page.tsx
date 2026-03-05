@@ -94,11 +94,16 @@ async function getListing(id: string) {
 
   const row = data as unknown as ListingDetailRow
 
-  // Only show approved + visible listings publicly
-  if (row.status !== 'approved' || row.paused || row.filled) return null
-
   // Resolve owner ID: prefer lister_id, fall back to user_id
   const ownerId = row.lister_id ?? row.user_id
+
+  // Allow owners to preview their own non-approved listings
+  const isPublic = row.status === 'approved' && !row.paused && !row.filled
+  if (!isPublic) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const isOwner = user && ownerId && user.id === ownerId
+    if (!isOwner) return null
+  }
 
   // Fetch profile separately (no FK from listings.lister_id → profiles.id)
   let profile: ProfileRow | null = null
@@ -117,7 +122,8 @@ async function getListing(id: string) {
   const dateFrom = row.available_from ?? (row.start_date as string | null)
   const dateTo = row.available_to ?? (row.end_date as string | null)
 
-  return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo }
+  const isPreview = !isPublic
+  return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo, isPreview }
 }
 
 async function getCurrentUser() {
@@ -175,7 +181,7 @@ export default async function ListingDetailPage({
 
   if (!result) notFound()
 
-  const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo } = result
+  const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo, isPreview } = result
 
   // Parallel: check saved status + fetch all map listings
   const supabase = await createClient()
@@ -225,8 +231,73 @@ export default async function ListingDetailPage({
     ? `${listerName.split(' ')[0]} ${listerName.split(' ').at(-1)?.[0] ?? ''}.`
     : listerName
 
+  const previewLabel =
+    listing.status === 'pending' ? 'Pending Review' :
+    listing.status === 'rejected' ? 'Rejected' :
+    listing.paused ? 'Paused' :
+    listing.filled ? 'Filled' : null
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://subletbuff.com'
+  const primaryPhoto = photos.find((p: { is_primary: boolean }) => p.is_primary)?.url ?? photos[0]?.url
+  const rentDollars = rent > 10000 ? Math.round(rent / 100) : rent
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Residence',
+    name: title,
+    description: listing.description?.slice(0, 300) ?? `Short-term sublet in ${neighborhood}`,
+    url: `${baseUrl}/listings/${listing.id}`,
+    ...(primaryPhoto ? { image: primaryPhoto } : {}),
+    ...(listing.public_latitude && listing.public_longitude
+      ? {
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: listing.public_latitude,
+            longitude: listing.public_longitude,
+          },
+        }
+      : {}),
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Boulder',
+      addressRegion: 'CO',
+      addressCountry: 'US',
+    },
+    numberOfRooms: listing.bedrooms ?? undefined,
+    floorSize: listing.sqft
+      ? { '@type': 'QuantitativeValue', value: listing.sqft, unitCode: 'FTK' }
+      : undefined,
+    offers: {
+      '@type': 'Offer',
+      price: rentDollars,
+      priceCurrency: 'USD',
+      priceValidUntil: dateTo ?? undefined,
+      availability: 'https://schema.org/InStock',
+    },
+  }
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <div className="min-h-screen bg-white pt-16">
+      {isPreview && (
+        <div className="bg-amber-50 border-b border-amber-200">
+          <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+            <span className="text-sm font-medium text-amber-800">
+              Preview — This listing is {previewLabel?.toLowerCase() ?? 'not live'} and only visible to you.
+            </span>
+            <Link
+              href="/account/listings"
+              className="ml-auto text-sm font-medium text-amber-700 hover:text-amber-900 underline"
+            >
+              Manage Listings
+            </Link>
+          </div>
+        </div>
+      )}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <Link
           href="/listings"
@@ -467,5 +538,6 @@ export default async function ListingDetailPage({
         />
       </Suspense>
     </div>
+    </>
   )
 }

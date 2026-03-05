@@ -99,6 +99,7 @@ export default function PostListingPage() {
   const [photosError, setPhotosError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submittedId, setSubmittedId] = useState<string | null>(null)
 
   // Auth check
   useEffect(() => {
@@ -200,7 +201,11 @@ export default function PostListingPage() {
 
   function validateBasic(): boolean {
     const errs: Partial<Record<keyof BasicInfoData, string>> = {}
-    if (!basicInfo.title || basicInfo.title.length < 10) errs.title = 'Title must be at least 10 characters'
+    if (!basicInfo.title || basicInfo.title.length < 10) {
+      errs.title = 'Title must be at least 10 characters'
+    } else if (/^\d+\s/.test(basicInfo.title.trim())) {
+      errs.title = 'Looks like an address — try a descriptive title instead (e.g. "Sunny 1BR on The Hill")'
+    }
     if (!basicInfo.address) errs.address = 'Address is required'
     if (!basicInfo.neighborhood) errs.neighborhood = 'Neighborhood could not be detected. Try a slightly different address.'
     if (!basicInfo.room_type) errs.room_type = 'Select a room type'
@@ -352,20 +357,53 @@ export default function PostListingPage() {
         throw insertError
       }
 
-      // Insert into listing_photos table
+      // Move photos to listing-scoped path and insert into listing_photos table
       if (listing && uploadedPhotos.length > 0) {
-        const photoRows = uploadedPhotos.map((p, i) => ({
+        const movedPhotos: { url: string; storagePath: string; caption: string | null }[] = []
+
+        for (const p of uploadedPhotos) {
+          const oldPath = p.storagePath
+          if (oldPath) {
+            const filename = oldPath.split('/').pop() ?? oldPath
+            const newPath = `listings/${listing.id}/${filename}`
+
+            const { error: moveErr } = await supabase.storage
+              .from('listing-photos')
+              .move(oldPath, newPath)
+
+            if (!moveErr) {
+              const { data: urlData } = supabase.storage
+                .from('listing-photos')
+                .getPublicUrl(newPath)
+              movedPhotos.push({ url: urlData.publicUrl, storagePath: newPath, caption: p.caption || null })
+            } else {
+              // Fallback: keep original path if move fails
+              movedPhotos.push({ url: p.url, storagePath: oldPath, caption: p.caption || null })
+            }
+          } else {
+            movedPhotos.push({ url: p.url, storagePath: '', caption: p.caption || null })
+          }
+        }
+
+        const photoRows = movedPhotos.map((p, i) => ({
           listing_id: listing.id,
           url: p.url,
-          storage_path: p.storagePath ?? '',
+          storage_path: p.storagePath,
           display_order: i,
           is_primary: i === 0,
-          caption: p.caption || null,
+          caption: p.caption,
         }))
         await supabase.from('listing_photos').insert(photoRows)
+
+        // Update photo_urls on the listing with final URLs
+        await supabase
+          .from('listings')
+          .update({ photo_urls: movedPhotos.map((p) => p.url) })
+          .eq('id', listing.id)
       }
 
       try { localStorage.removeItem(DRAFT_KEY) } catch {}
+      if (listing) setSubmittedId(listing.id)
       setSubmitted(true)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Unknown error'
@@ -387,13 +425,20 @@ export default function PostListingPage() {
           <p className="text-sm text-gray-500 mb-6">
             Your listing has been submitted for review. We&apos;ll approve it within 24 hours, and it&apos;ll go live on the site.
           </p>
-          <div className="flex gap-3 justify-center">
-            <Button variant="primary" onClick={() => router.push('/listings')}>
-              Browse Listings
-            </Button>
-            <Button variant="secondary" onClick={() => router.push('/')}>
-              Go Home
-            </Button>
+          <div className="flex flex-col gap-3 items-center">
+            {submittedId && (
+              <Button variant="primary" onClick={() => router.push(`/listings/${submittedId}`)}>
+                Preview Your Listing
+              </Button>
+            )}
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={() => router.push('/listings')}>
+                Browse Listings
+              </Button>
+              <Button variant="secondary" onClick={() => router.push('/')}>
+                Go Home
+              </Button>
+            </div>
           </div>
         </div>
       </div>
