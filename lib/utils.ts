@@ -5,6 +5,12 @@ export function formatRent(amount: number): string {
   return `$${dollars.toLocaleString('en-US')}/mo`
 }
 
+/** Format cents OR dollars to "$X,XXX" (no suffix) */
+export function formatPrice(amount: number): string {
+  const dollars = amount > 10000 ? Math.round(amount / 100) : amount
+  return `$${dollars.toLocaleString('en-US')}`
+}
+
 /** Format a date string like "2026-06-01" → "Jun 1" */
 export function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
