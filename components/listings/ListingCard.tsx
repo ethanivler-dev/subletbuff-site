@@ -2,8 +2,9 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Heart, MapPin, Calendar, Bed } from 'lucide-react'
+import { MapPin, Calendar, Bed } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { SaveButton } from '@/components/listings/SaveButton'
 import { formatRent, formatDateRange, formatRoomType } from '@/lib/utils'
 
 export interface ListingCardData {
@@ -21,15 +22,15 @@ export interface ListingCardData {
   primary_photo_url?: string
   verification_level?: string
   is_saved?: boolean
+  save_count?: number
 }
 
 interface ListingCardProps {
   listing: ListingCardData
   variant?: 'vertical' | 'horizontal'
-  onSaveToggle?: (id: string) => void
 }
 
-export function ListingCard({ listing, variant = 'vertical', onSaveToggle }: ListingCardProps) {
+export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps) {
   const {
     id,
     title,
@@ -44,16 +45,14 @@ export function ListingCard({ listing, variant = 'vertical', onSaveToggle }: Lis
     immediate_movein,
     primary_photo_url,
     verification_level,
-    is_saved,
+    is_saved = false,
+    save_count = 0,
   } = listing
 
-  const isFurnished = furnished === true || furnished === 'Yes' || (typeof furnished === 'string' && furnished.startsWith('Yes'))
-
-  function handleSave(e: React.MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    onSaveToggle?.(id)
-  }
+  const isFurnished =
+    furnished === true ||
+    furnished === 'Yes' ||
+    (typeof furnished === 'string' && furnished.startsWith('Yes'))
 
   if (variant === 'horizontal') {
     return (
@@ -92,13 +91,12 @@ export function ListingCard({ listing, variant = 'vertical', onSaveToggle }: Lis
                 {title}
               </h3>
             </div>
-            <button
-              onClick={handleSave}
-              className="flex-shrink-0 p-1 text-gray-400 hover:text-error transition-colors"
-              aria-label={is_saved ? 'Remove from saved' : 'Save listing'}
-            >
-              <Heart className={`w-5 h-5 ${is_saved ? 'fill-error text-error' : ''}`} />
-            </button>
+            <SaveButton
+              listingId={id}
+              initialSaved={is_saved}
+              saveCount={save_count}
+              variant="card-horizontal"
+            />
           </div>
 
           <div className="flex items-center gap-1 text-gray-500 text-xs">
@@ -147,14 +145,12 @@ export function ListingCard({ listing, variant = 'vertical', onSaveToggle }: Lis
           </div>
         )}
 
-        {/* Save button */}
-        <button
-          onClick={handleSave}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-gray-500 hover:text-error transition-colors shadow"
-          aria-label={is_saved ? 'Remove from saved' : 'Save listing'}
-        >
-          <Heart className={`w-4 h-4 ${is_saved ? 'fill-error text-error' : ''}`} />
-        </button>
+        <SaveButton
+          listingId={id}
+          initialSaved={is_saved}
+          saveCount={save_count}
+          variant="card-vertical"
+        />
 
         {is_featured && (
           <span className="absolute top-2 left-2">

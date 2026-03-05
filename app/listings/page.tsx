@@ -27,12 +27,15 @@ interface SearchParams {
 async function fetchListings(params: SearchParams): Promise<{ listings: ListingCardData[]; total: number }> {
   const supabase = await createClient()
 
+  // Get current user to mark saved listings
+  const { data: { user } } = await supabase.auth.getUser()
+
   let query = supabase
     .from('listings')
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein,
-      photo_urls,
+      save_count, photo_urls,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
     .eq('status', 'approved')
@@ -71,6 +74,18 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
 
   if (error || !data) return { listings: [], total: 0 }
 
+  // Fetch user's saved listing IDs if logged in
+  let savedIds = new Set<string>()
+  if (user && data.length > 0) {
+    const ids = data.map((r: Record<string, unknown>) => r.id as string)
+    const { data: savedRows } = await supabase
+      .from('saved_listings')
+      .select('listing_id')
+      .eq('user_id', user.id)
+      .in('listing_id', ids)
+    if (savedRows) savedIds = new Set(savedRows.map((r: { listing_id: string }) => r.listing_id))
+  }
+
   const listings = data.map((row: Record<string, unknown>) => {
     const photos = (row.listing_photos as Array<{ url: string; display_order: number; is_primary: boolean }> | null) ?? []
     const primaryPhoto =
@@ -94,6 +109,8 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
       is_intern_friendly: (row.is_intern_friendly as boolean) ?? false,
       immediate_movein: (row.immediate_movein as boolean) ?? false,
       primary_photo_url: primaryPhoto,
+      save_count: (row.save_count as number) ?? 0,
+      is_saved: savedIds.has(row.id as string),
     }
   })
 

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, X, Camera } from 'lucide-react'
+import { SaveButton } from '@/components/listings/SaveButton'
 
 interface Photo {
   url: string
@@ -14,9 +15,18 @@ interface Photo {
 interface ListingGalleryProps {
   photos: Photo[]
   title: string
+  listingId?: string
+  initialSaved?: boolean
+  saveCount?: number
 }
 
-export function ListingGallery({ photos, title }: ListingGalleryProps) {
+export function ListingGallery({
+  photos,
+  title,
+  listingId,
+  initialSaved = false,
+  saveCount = 0,
+}: ListingGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -43,11 +53,21 @@ export function ListingGallery({ photos, title }: ListingGalleryProps) {
 
   if (sorted.length === 0) {
     return (
-      <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
+      <div className="relative w-full aspect-[2/1] bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
         <div className="text-center text-primary-400">
           <Camera className="w-12 h-12 mx-auto mb-2" />
           <p className="text-sm">No photos available</p>
         </div>
+        {listingId && (
+          <div className="absolute top-3 right-3 z-10">
+            <SaveButton
+              listingId={listingId}
+              initialSaved={initialSaved}
+              saveCount={saveCount}
+              variant="gallery"
+            />
+          </div>
+        )}
       </div>
     )
   }
@@ -59,7 +79,7 @@ export function ListingGallery({ photos, title }: ListingGalleryProps) {
 
   return (
     <>
-      <div className="w-full">
+      <div className="relative w-full">
         <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-1 md:gap-2 max-h-[500px] overflow-hidden rounded-card">
           {/* Main photo */}
           <button
@@ -99,6 +119,18 @@ export function ListingGallery({ photos, title }: ListingGalleryProps) {
             </button>
           ))}
         </div>
+
+        {/* Save button — floats over top-right corner of the gallery grid */}
+        {listingId && (
+          <div className="absolute top-3 right-3 z-10">
+            <SaveButton
+              listingId={listingId}
+              initialSaved={initialSaved}
+              saveCount={saveCount}
+              variant="gallery"
+            />
+          </div>
+        )}
 
         {/* Mobile "See all photos" button */}
         {sorted.length > 1 && (

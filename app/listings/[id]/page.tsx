@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
+import { formatRent, formatPrice, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { ListingGallery } from '@/components/listings/ListingGallery'
 import { AmenityGrid } from '@/components/listings/AmenityGrid'
@@ -51,6 +51,7 @@ interface ListingDetailRow {
   status: string | null
   paused: boolean | null
   filled: boolean | null
+  save_count: number | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; caption?: string }> | null
   photo_urls: string[] | null
 }
@@ -78,7 +79,7 @@ async function getListing(id: string) {
       min_stay_weeks, flexible_dates,
       furnished, amenities, house_rules, roommate_info,
       is_featured, is_intern_friendly, immediate_movein,
-      created_at, lister_id, user_id, status, paused, filled,
+      created_at, lister_id, user_id, status, paused, filled, save_count,
       listing_photos(url, display_order, is_primary, caption),
       photo_urls
     `)
@@ -153,6 +154,19 @@ export default async function ListingDetailPage({
 
   const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo } = result
 
+  // Check if the current user has saved this listing
+  let isSaved = false
+  if (user) {
+    const supabase = await createClient()
+    const { data: savedRow } = await supabase
+      .from('saved_listings')
+      .select('listing_id')
+      .eq('user_id', user.id)
+      .eq('listing_id', id)
+      .maybeSingle()
+    isSaved = !!savedRow
+  }
+
   const roomType = listing.room_type ?? 'private_room'
   const neighborhood = listing.neighborhood ?? 'Boulder'
   const title = sanitizeListingTitle(listing.title, roomType, neighborhood)
@@ -191,7 +205,13 @@ export default async function ListingDetailPage({
 
       {/* Photo Gallery */}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-        <ListingGallery photos={photos} title={title} />
+        <ListingGallery
+          photos={photos}
+          title={title}
+          listingId={listing.id}
+          initialSaved={isSaved}
+          saveCount={listing.save_count ?? 0}
+        />
       </div>
 
       {/* Content */}

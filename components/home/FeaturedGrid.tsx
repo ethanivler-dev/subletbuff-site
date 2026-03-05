@@ -8,12 +8,14 @@ import { sanitizeListingTitle } from '@/lib/utils'
 async function fetchFeaturedListings(): Promise<ListingCardData[]> {
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data, error } = await supabase
     .from('listings')
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein,
-      photo_urls,
+      save_count, photo_urls,
       listing_photos(url, display_order, is_primary)
     `)
     .eq('status', 'approved')
@@ -24,8 +26,19 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
 
   if (error || !data) return []
 
+  // Fetch user's saved IDs if logged in
+  let savedIds = new Set<string>()
+  if (user && data.length > 0) {
+    const ids = data.map((r: Record<string, unknown>) => r.id as string)
+    const { data: savedRows } = await supabase
+      .from('saved_listings')
+      .select('listing_id')
+      .eq('user_id', user.id)
+      .in('listing_id', ids)
+    if (savedRows) savedIds = new Set(savedRows.map((r: { listing_id: string }) => r.listing_id))
+  }
+
   return data.map((row: Record<string, unknown>) => {
-    // Prefer listing_photos table; fall back to photo_urls array
     const photos = (row.listing_photos as Array<{ url: string; display_order: number; is_primary: boolean }> | null) ?? []
     const primaryPhoto =
       photos.find((p) => p.is_primary)?.url ??
@@ -48,6 +61,8 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
       is_intern_friendly: (row.is_intern_friendly as boolean) ?? false,
       immediate_movein: (row.immediate_movein as boolean) ?? false,
       primary_photo_url: primaryPhoto,
+      save_count: (row.save_count as number) ?? 0,
+      is_saved: savedIds.has(row.id as string),
     }
   })
 }
