@@ -74,8 +74,8 @@ function PriceMarker({
         className={[
           'rounded-full font-bold whitespace-nowrap shadow-md border transition-all duration-150',
           isActive
-            ? 'bg-primary-600 text-white border-primary-600 shadow-lg text-sm px-3 py-1.5'
-            : 'bg-white text-gray-900 border-gray-200 hover:border-primary-400 hover:shadow-lg text-xs px-2.5 py-1',
+            ? 'bg-gray-900 text-white border-gray-900 shadow-lg text-sm px-3 py-1.5 scale-110'
+            : 'bg-red-500 text-white border-red-500 hover:bg-red-600 hover:shadow-lg text-xs px-2.5 py-1',
         ].join(' ')}
       >
         {formatPrice(price)}
@@ -250,14 +250,14 @@ export function ListingsMapView({ listings, total, params }: Props) {
   return (
     <>
       {/* ── Desktop split panel ──────────────────────────────────── */}
-      <div className="hidden md:flex overflow-hidden">
+      <div className="hidden md:flex h-[calc(100vh-4rem)] overflow-hidden">
         {/* Left: scrollable cards */}
         <div
           style={{
             width: showMap ? '55%' : '100%',
             transition: 'width 300ms ease-in-out',
           }}
-          className="py-6 px-6 lg:px-10 min-w-0 overflow-hidden"
+          className="py-6 px-6 lg:px-10 min-w-0 overflow-y-auto"
         >
           {/* Filters + Hide/Show Map toggle */}
           <div className="flex items-start gap-3">
@@ -291,12 +291,13 @@ export function ListingsMapView({ listings, total, params }: Props) {
             width: showMap ? '45%' : '0%',
             flexShrink: 0,
             overflow: 'hidden',
-            borderLeft: showMap ? '1px solid #f3f4f6' : 'none',
             transition: 'width 300ms ease-in-out',
           }}
-          className="sticky top-16 h-[calc(100vh-4rem)]"
+          className="h-full p-3"
         >
-          {MapPanel({})}
+          <div className="w-full h-full rounded-xl overflow-hidden">
+            {MapPanel({})}
+          </div>
         </div>
       </div>
 
