@@ -21,6 +21,10 @@ interface SearchParams {
   filter?: string
   sort?: string
   min_stay?: string // '1m' | '2m' | '3m' | '4m'
+  neighborhood?: string
+  furnished?: string     // 'true'
+  intern_friendly?: string // 'true'
+  parking?: string         // 'true'
 }
 
 async function fetchListings(params: SearchParams): Promise<{ listings: ListingCardData[]; total: number }> {
@@ -46,12 +50,19 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     query = query.or(`neighborhood.ilike.%${params.q}%,title.ilike.%${params.q}%`)
   }
 
+  // Neighborhood exact match
+  if (params.neighborhood) query = query.eq('neighborhood', params.neighborhood)
+
   // Price filters
   if (params.price_min) query = query.gte('rent_monthly', parseInt(params.price_min))
   if (params.price_max) query = query.lte('rent_monthly', parseInt(params.price_max))
 
   // Room type
   if (params.room_type) query = query.eq('room_type', params.room_type)
+
+  // Date overlap: listing.available_to >= date_from AND listing.available_from <= date_to
+  if (params.date_from) query = query.gte('available_to', params.date_from)
+  if (params.date_to) query = query.lte('available_from', params.date_to)
 
   // Min stay: show listings whose min_stay_weeks <= selected threshold (0 = flexible, always included)
   if (params.min_stay) {
@@ -68,6 +79,11 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
   if (params.filter === 'near_campus') {
     query = query.or('neighborhood.ilike.%university hill%,neighborhood.ilike.%the hill%,neighborhood.ilike.%near cu%')
   }
+
+  // New boolean filters
+  if (params.furnished === 'true') query = query.or('furnished.eq.true,furnished.ilike.Yes%')
+  if (params.intern_friendly === 'true') query = query.eq('is_intern_friendly', true)
+  if (params.parking === 'true') query = query.contains('amenities', ['parking'])
 
   // Sort
   const sort = params.sort ?? 'newest'

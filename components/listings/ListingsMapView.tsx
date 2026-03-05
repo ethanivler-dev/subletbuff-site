@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { GoogleMap, useJsApiLoader, OverlayView } from '@react-google-maps/api'
 import { Map as MapIcon, X, ChevronRight } from 'lucide-react'
@@ -33,6 +33,10 @@ interface SearchParams {
   filter?: string
   sort?: string
   min_stay?: string
+  neighborhood?: string
+  furnished?: string
+  intern_friendly?: string
+  parking?: string
 }
 
 interface Props {
@@ -86,13 +90,34 @@ export function ListingsMapView({ listings, total, params }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMap, setShowMap] = useState(true)
+  const [mapBounds, setMapBounds] = useState<google.maps.LatLngBounds | null>(null)
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const boundsDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_KEY ?? '',
   })
 
-  // Only show markers for listings with valid Boulder-area coordinates
-  const listingsWithCoords = listings.filter(
+  // All listings with valid Boulder coords — used for initial map fit
+  const allListingsWithCoords = listings.filter(
+    (l) =>
+      l.public_latitude != null &&
+      l.public_longitude != null &&
+      isInBoulderArea(l.public_latitude, l.public_longitude),
+  )
+
+  // Client-side filter: only show cards/markers within the visible map bounds
+  const visibleListings = mapBounds
+    ? listings.filter(
+        (l) =>
+          !l.public_latitude ||
+          !l.public_longitude ||
+          mapBounds.contains({ lat: l.public_latitude, lng: l.public_longitude }),
+      )
+    : listings
+
+  // Markers only for visible listings with valid coords
+  const listingsWithCoords = visibleListings.filter(
     (l) =>
       l.public_latitude != null &&
       l.public_longitude != null &&
@@ -101,13 +126,14 @@ export function ListingsMapView({ listings, total, params }: Props) {
 
   // Fit map to actual markers, enforcing a minimum zoom of 12
   const handleMapLoad = useCallback((map: google.maps.Map) => {
-    if (listingsWithCoords.length === 0) {
+    mapRef.current = map
+    if (allListingsWithCoords.length === 0) {
       map.setCenter(BOULDER_CENTER)
       map.setZoom(13)
       return
     }
     const bounds = new google.maps.LatLngBounds()
-    listingsWithCoords.forEach((l) => {
+    allListingsWithCoords.forEach((l) => {
       bounds.extend({ lat: l.public_latitude!, lng: l.public_longitude! })
     })
     map.fitBounds(bounds, 60)
@@ -174,6 +200,12 @@ export function ListingsMapView({ listings, total, params }: Props) {
             zoom={13}
             options={{ ...mapOptions, gestureHandling: greedy ? 'greedy' : 'cooperative' }}
             onLoad={handleMapLoad}
+            onBoundsChanged={() => {
+              if (boundsDebounce.current) clearTimeout(boundsDebounce.current)
+              boundsDebounce.current = setTimeout(() => {
+                if (mapRef.current) setMapBounds(mapRef.current.getBounds() ?? null)
+              }, 150)
+            }}
           >
             <MapMarkers />
           </GoogleMap>
@@ -192,14 +224,14 @@ export function ListingsMapView({ listings, total, params }: Props) {
   const cardRefs: Record<string, HTMLDivElement | null> = {}
 
   const cardList =
-    listings.length === 0 ? (
+    visibleListings.length === 0 ? (
       <div className="text-center py-20 text-gray-500">
         <p className="text-lg font-medium mb-2">No listings found</p>
         <p className="text-sm">Try adjusting your filters or search term.</p>
       </div>
     ) : (
       <div className="flex flex-col gap-4 mt-6">
-        {listings.map((listing) => (
+        {visibleListings.map((listing) => (
           <div
             key={listing.id}
             ref={(el) => {
