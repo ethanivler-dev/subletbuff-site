@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import { MapPin, Calendar, Bed, Bath, Home, DollarSign, Clock, Heart, Shield } from 'lucide-react'
+import { MapPin, Calendar, Bed, Bath, Home, Shield } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
@@ -9,7 +9,6 @@ import { AmenityGrid } from '@/components/listings/AmenityGrid'
 import { ListerProfile } from '@/components/listings/ListerProfile'
 import { InquiryForm } from '@/components/listings/InquiryForm'
 import { SimilarListings } from '@/components/listings/SimilarListings'
-import { Skeleton } from '@/components/ui/Skeleton'
 import type { Metadata } from 'next'
 
 // Revalidate every 60s
@@ -27,11 +26,15 @@ interface ListingDetailRow {
   bathrooms: number | null
   sqft: number | null
   rent_monthly: number | null
+  monthly_rent: number | null
   deposit: number | null
+  security_deposit: number | null
   utilities_included: boolean | null
   utilities_estimate: number | null
   available_from: string | null
   available_to: string | null
+  start_date: string | null
+  end_date: string | null
   min_stay_weeks: number | null
   flexible_dates: boolean | null
   furnished: boolean | string | null
@@ -41,21 +44,22 @@ interface ListingDetailRow {
   is_featured: boolean | null
   is_intern_friendly: boolean | null
   immediate_movein: boolean | null
-  view_count: number | null
   created_at: string | null
   lister_id: string | null
+  user_id: string | null
   status: string | null
   paused: boolean | null
   filled: boolean | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
   photo_urls: string[] | null
-  profiles: {
-    id: string
-    full_name: string | null
-    avatar_url: string | null
-    verification_level: string | null
-    created_at: string | null
-  } | null
+}
+
+interface ProfileRow {
+  id: string
+  full_name: string | null
+  avatar_url: string | null
+  verification_level: string | null
+  created_at: string | null
 }
 
 async function getListing(id: string) {
@@ -67,14 +71,15 @@ async function getListing(id: string) {
       id, title, description, neighborhood,
       public_latitude, public_longitude,
       room_type, bedrooms, bathrooms, sqft,
-      rent_monthly, deposit, utilities_included, utilities_estimate,
-      available_from, available_to, min_stay_weeks, flexible_dates,
+      rent_monthly, monthly_rent, deposit, security_deposit,
+      utilities_included, utilities_estimate,
+      available_from, available_to, start_date, end_date,
+      min_stay_weeks, flexible_dates,
       furnished, amenities, house_rules, roommate_info,
       is_featured, is_intern_friendly, immediate_movein,
-      view_count, created_at, lister_id, status, paused, filled,
+      created_at, lister_id, user_id, status, paused, filled,
       listing_photos(url, display_order, is_primary),
-      photo_urls,
-      profiles!lister_id(id, full_name, avatar_url, verification_level, created_at)
+      photo_urls
     `)
     .eq('id', id)
     .single()
@@ -86,7 +91,27 @@ async function getListing(id: string) {
   // Only show approved + visible listings publicly
   if (row.status !== 'approved' || row.paused || row.filled) return null
 
-  return row
+  // Resolve owner ID: prefer lister_id, fall back to user_id
+  const ownerId = row.lister_id ?? row.user_id
+
+  // Fetch profile separately (no FK from listings.lister_id → profiles.id)
+  let profile: ProfileRow | null = null
+  if (ownerId) {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url, verification_level, created_at')
+      .eq('id', ownerId)
+      .single()
+    profile = profileData as ProfileRow | null
+  }
+
+  // Normalise old → new column names
+  const rent = row.rent_monthly ?? (row.monthly_rent as number | null) ?? 0
+  const dep = row.deposit ?? (row.security_deposit as number | null) ?? 0
+  const dateFrom = row.available_from ?? (row.start_date as string | null)
+  const dateTo = row.available_to ?? (row.end_date as string | null)
+
+  return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo }
 }
 
 async function getCurrentUser() {
@@ -104,13 +129,14 @@ export async function generateMetadata({
   const listing = await getListing(id)
   if (!listing) return { title: 'Listing Not Found' }
 
-  const roomType = listing.room_type ?? 'private_room'
-  const neighborhood = listing.neighborhood ?? 'Boulder'
-  const title = sanitizeListingTitle(listing.title, roomType, neighborhood)
+  const { row } = listing
+  const roomType = row.room_type ?? 'private_room'
+  const neighborhood = row.neighborhood ?? 'Boulder'
+  const title = sanitizeListingTitle(row.title, roomType, neighborhood)
 
   return {
-    title: `${title} — ${formatRent(listing.rent_monthly ?? 0)}`,
-    description: listing.description?.slice(0, 160) ?? `Short-term sublet in ${neighborhood}`,
+    title: `${title} — ${formatRent(listing.rent ?? 0)}`,
+    description: row.description?.slice(0, 160) ?? `Short-term sublet in ${neighborhood}`,
   }
 }
 
@@ -120,9 +146,11 @@ export default async function ListingDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [listing, user] = await Promise.all([getListing(id), getCurrentUser()])
+  const [result, user] = await Promise.all([getListing(id), getCurrentUser()])
 
-  if (!listing) notFound()
+  if (!result) notFound()
+
+  const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo } = result
 
   const roomType = listing.room_type ?? 'private_room'
   const neighborhood = listing.neighborhood ?? 'Boulder'
@@ -143,7 +171,6 @@ export default async function ListingDetailPage({
 
   const amenities: string[] = Array.isArray(listing.amenities) ? listing.amenities : []
 
-  const lister = listing.profiles
   const listerName = lister?.full_name || 'SubletBuff Member'
   const displayListerName = listerName.includes(' ')
     ? `${listerName.split(' ')[0]} ${listerName.split(' ').at(-1)?.[0] ?? ''}.`
@@ -176,7 +203,7 @@ export default async function ListingDetailPage({
               <h1 className="font-serif text-3xl lg:text-4xl text-gray-900 mb-2">{title}</h1>
 
               <p className="text-2xl font-bold text-primary-600 mb-3">
-                {formatRent(listing.rent_monthly ?? 0)}
+                {formatRent(rent)}
               </p>
 
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
@@ -198,8 +225,8 @@ export default async function ListingDetailPage({
                 )}
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
-                  {listing.available_from && listing.available_to
-                    ? formatDateRange(listing.available_from, listing.available_to)
+                  {dateFrom && dateTo
+                    ? formatDateRange(dateFrom, dateTo)
                     : 'Dates flexible'}
                 </span>
               </div>
@@ -274,7 +301,7 @@ export default async function ListingDetailPage({
             {/* Inquiry form */}
             <InquiryForm
               listingId={listing.id}
-              listerId={listing.lister_id ?? ''}
+              listerId={ownerId ?? ''}
               listerName={displayListerName}
               user={user}
             />
@@ -285,12 +312,12 @@ export default async function ListingDetailPage({
               <div className="flex flex-col gap-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Monthly Rent</span>
-                  <span className="font-medium text-gray-900">{formatPrice(listing.rent_monthly ?? 0)}</span>
+                  <span className="font-medium text-gray-900">{formatPrice(rent)}</span>
                 </div>
-                {listing.deposit != null && listing.deposit > 0 && (
+                {deposit > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Security Deposit</span>
-                    <span className="font-medium text-gray-900">{formatPrice(listing.deposit)}</span>
+                    <span className="font-medium text-gray-900">{formatPrice(deposit)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -322,7 +349,7 @@ export default async function ListingDetailPage({
         <SimilarListings
           currentId={listing.id}
           neighborhood={neighborhood}
-          rentMonthly={listing.rent_monthly ?? 0}
+          rentMonthly={rent}
         />
       </Suspense>
     </div>
