@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { GoogleMap, useJsApiLoader, OverlayView } from '@react-google-maps/api'
-import { Map as MapIcon, X } from 'lucide-react'
+import { Map as MapIcon, X, ChevronRight } from 'lucide-react'
 import { ListingCard, type ListingCardData } from './ListingCard'
 import { ListingsFilters } from '@/app/listings/ListingsFilters'
 
 // Boulder, CO
-const BOULDER_CENTER = { lat: 40.015, lng: -105.2705 }
+const BOULDER_CENTER = { lat: 40.0150, lng: -105.2705 }
 
 interface SearchParams {
   q?: string
@@ -65,7 +65,8 @@ export function ListingsMapView({ listings, total, params }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showMobileMap, setShowMobileMap] = useState(false)
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [showMap, setShowMap] = useState(true)
+  const cardRefs: Record<string, HTMLDivElement | null> = {}
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_KEY ?? '',
@@ -75,26 +76,41 @@ export function ListingsMapView({ listings, total, params }: Props) {
     (l) => l.public_latitude != null && l.public_longitude != null,
   )
 
-  const mapCenter =
-    listingsWithCoords.length > 0
-      ? {
-          lat:
-            listingsWithCoords.reduce((s, l) => s + l.public_latitude!, 0) /
-            listingsWithCoords.length,
-          lng:
-            listingsWithCoords.reduce((s, l) => s + l.public_longitude!, 0) /
-            listingsWithCoords.length,
-        }
-      : BOULDER_CENTER
-
-  const handlePinClick = useCallback(
-    (id: string) => {
-      setSelectedId(id)
-      const el = cardRefs.current[id]
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  // Fit map to actual markers; fall back to Boulder at z13
+  const handleMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      if (listingsWithCoords.length === 0) {
+        map.setCenter(BOULDER_CENTER)
+        map.setZoom(13)
+        return
+      }
+      const bounds = new google.maps.LatLngBounds()
+      listingsWithCoords.forEach((l) => {
+        bounds.extend({ lat: l.public_latitude!, lng: l.public_longitude! })
+      })
+      map.fitBounds(bounds, 60)
+      // Enforce minimum zoom so we don't zoom out past city level
+      google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+        const z = map.getZoom()
+        if (z !== undefined && z < 12) map.setZoom(12)
+      })
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
+
+  const handlePinClick = useCallback((id: string) => {
+    setSelectedId(id)
+    const el = cardRefs[id]
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const mapOptions = {
+    disableDefaultUI: true,
+    zoomControl: true,
+    clickableIcons: false,
+  }
 
   function MapMarkers() {
     return (
@@ -117,11 +133,22 @@ export function ListingsMapView({ listings, total, params }: Props) {
     )
   }
 
-  const mapOptions = {
-    disableDefaultUI: true,
-    zoomControl: true,
-    clickableIcons: false,
-    gestureHandling: 'cooperative',
+  function MapPanel({ greedy = false }: { greedy?: boolean }) {
+    return isLoaded ? (
+      <GoogleMap
+        mapContainerClassName="w-full h-full"
+        center={BOULDER_CENTER}
+        zoom={13}
+        options={{ ...mapOptions, gestureHandling: greedy ? 'greedy' : 'cooperative' }}
+        onLoad={handleMapLoad}
+      >
+        <MapMarkers />
+      </GoogleMap>
+    ) : (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <p className="text-sm text-gray-400">Loading map…</p>
+      </div>
+    )
   }
 
   const cardList =
@@ -136,7 +163,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
           <div
             key={listing.id}
             ref={(el) => {
-              cardRefs.current[listing.id] = el
+              cardRefs[listing.id] = el
             }}
             onMouseEnter={() => setHoveredId(listing.id)}
             onMouseLeave={() => setHoveredId(null)}
@@ -154,29 +181,53 @@ export function ListingsMapView({ listings, total, params }: Props) {
   return (
     <>
       {/* ── Desktop split panel ──────────────────────────────────── */}
-      <div className="hidden md:flex">
+      <div className="hidden md:flex overflow-hidden">
         {/* Left: scrollable cards */}
-        <div className="w-[55%] px-6 lg:px-10 py-6 min-w-0">
-          <ListingsFilters params={params} total={total} />
+        <div
+          style={{
+            width: showMap ? '55%' : '100%',
+            transition: 'width 300ms ease-in-out',
+          }}
+          className="py-6 px-6 lg:px-10 min-w-0 overflow-hidden"
+        >
+          {/* Filters + Hide/Show Map toggle */}
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <ListingsFilters params={params} total={total} />
+            </div>
+            <button
+              onClick={() => setShowMap((v) => !v)}
+              className="flex-shrink-0 flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-button border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+            >
+              {showMap ? (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                  Hide Map
+                </>
+              ) : (
+                <>
+                  <MapIcon className="w-3.5 h-3.5" />
+                  Show Map
+                </>
+              )}
+            </button>
+          </div>
+
           {cardList}
         </div>
 
         {/* Right: sticky map */}
-        <div className="w-[45%] flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] border-l border-gray-100">
-          {isLoaded ? (
-            <GoogleMap
-              mapContainerClassName="w-full h-full"
-              center={mapCenter}
-              zoom={13}
-              options={mapOptions}
-            >
-              <MapMarkers />
-            </GoogleMap>
-          ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-              <p className="text-sm text-gray-400">Loading map…</p>
-            </div>
-          )}
+        <div
+          style={{
+            width: showMap ? '45%' : '0%',
+            flexShrink: 0,
+            overflow: 'hidden',
+            borderLeft: showMap ? '1px solid #f3f4f6' : 'none',
+            transition: 'width 300ms ease-in-out',
+          }}
+          className="sticky top-16 h-[calc(100vh-4rem)]"
+        >
+          <MapPanel />
         </div>
       </div>
 
@@ -205,20 +256,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
             <X className="w-4 h-4" />
             Close
           </button>
-          {isLoaded ? (
-            <GoogleMap
-              mapContainerClassName="w-full h-full"
-              center={mapCenter}
-              zoom={13}
-              options={{ ...mapOptions, gestureHandling: 'greedy' }}
-            >
-              <MapMarkers />
-            </GoogleMap>
-          ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-              <p className="text-sm text-gray-400">Loading map…</p>
-            </div>
-          )}
+          <MapPanel greedy />
         </div>
       )}
     </>
