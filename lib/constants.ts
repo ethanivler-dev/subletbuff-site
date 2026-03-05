@@ -16,6 +16,25 @@ export const NEIGHBORHOODS = [
   'Near CU Campus',
 ]
 
+export const NEIGHBORHOOD_ALIASES: Record<string, string> = {
+  'Lower Chautauqua': 'Chautauqua',
+  'Upper Chautauqua': 'Chautauqua',
+  'University Hill': 'University Hill',
+  'The Hill': 'The Hill',
+  'Newlands': 'North Boulder',
+  'Goss-Grove': 'Downtown Boulder',
+  'Whittier': 'Whittier',
+  'Mapleton Hill': 'Mapleton Hill',
+  'Flatirons': 'West Boulder',
+  'South Boulder Creek': 'South Boulder',
+  'Baseline': 'Baseline',
+  'Table Mesa': 'Table Mesa',
+  'Gunbarrel': 'Gunbarrel',
+  'Martin Acres': 'Martin Acres',
+  'CU Boulder': 'Near CU Campus',
+  'University of Colorado': 'Near CU Campus',
+}
+
 export const QUICK_FILTERS = [
   { label: 'Short-Term Rentals', param: 'short_term' },
   { label: 'Pet Friendly', param: 'pets' },

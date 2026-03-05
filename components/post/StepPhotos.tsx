@@ -275,13 +275,18 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
               </div>
               {/* Caption input */}
               {!photo.uploading && (
-                <input
-                  type="text"
+                <textarea
                   placeholder="Add a note…"
                   value={photo.caption ?? ''}
                   onChange={(e) => updateCaption(i, e.target.value)}
+                  onInput={(e) => {
+                    const el = e.currentTarget
+                    el.style.height = 'auto'
+                    el.style.height = el.scrollHeight + 'px'
+                  }}
                   maxLength={120}
-                  className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-button bg-white text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  rows={1}
+                  className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-button bg-white text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none overflow-hidden"
                 />
               )}
             </div>

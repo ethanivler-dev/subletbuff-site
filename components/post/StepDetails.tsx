@@ -18,9 +18,16 @@ interface StepDetailsProps {
   data: DetailsData
   onChange: (data: DetailsData) => void
   errors: Partial<Record<keyof DetailsData, string>>
+  availableFrom?: string
 }
 
-export function StepDetails({ data, onChange, errors }: StepDetailsProps) {
+export function StepDetails({ data, onChange, errors, availableFrom }: StepDetailsProps) {
+  const isMoveinSoon = !availableFrom || (() => {
+    const from = new Date(availableFrom + 'T00:00:00')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return (from.getTime() - today.getTime()) / 86400000 <= 14
+  })()
   function update<K extends keyof DetailsData>(field: K, value: DetailsData[K]) {
     onChange({ ...data, [field]: value })
   }
@@ -74,7 +81,13 @@ export function StepDetails({ data, onChange, errors }: StepDetailsProps) {
         )}
 
         <Toggle label="Intern-Friendly" checked={data.is_intern_friendly} onChange={(v) => update('is_intern_friendly', v)} />
-        <Toggle label="Immediate Move-In" checked={data.immediate_movein} onChange={(v) => update('immediate_movein', v)} />
+        <Toggle
+          label="Immediate Move-In"
+          checked={data.immediate_movein}
+          onChange={(v) => update('immediate_movein', v)}
+          disabled={!isMoveinSoon}
+          helperText={!isMoveinSoon ? 'Only available for listings starting within 2 weeks' : undefined}
+        />
       </div>
 
       {/* Amenities */}
@@ -139,31 +152,39 @@ function Toggle({
   label,
   checked,
   onChange,
+  disabled,
+  helperText,
 }: {
   label: string
   checked: boolean
   onChange: (v: boolean) => void
+  disabled?: boolean
+  helperText?: string
 }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={[
-          'relative inline-flex h-6 w-11 rounded-full transition-colors',
-          checked ? 'bg-primary-600' : 'bg-gray-300',
-        ].join(' ')}
-      >
-        <span
+    <div className="flex flex-col gap-1">
+      <label className={['flex items-center gap-3', disabled ? 'cursor-not-allowed' : 'cursor-pointer'].join(' ')}>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          onClick={() => !disabled && onChange(!checked)}
           className={[
-            'inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform mt-0.5',
-            checked ? 'translate-x-[22px]' : 'translate-x-0.5',
+            'relative inline-flex h-6 w-11 rounded-full transition-colors',
+            disabled ? 'opacity-50 cursor-not-allowed' : '',
+            checked ? 'bg-primary-600' : 'bg-gray-300',
           ].join(' ')}
-        />
-      </button>
-      <span className="text-sm text-gray-700">{label}</span>
-    </label>
+        >
+          <span
+            className={[
+              'inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform mt-0.5',
+              checked ? 'translate-x-[22px]' : 'translate-x-0.5',
+            ].join(' ')}
+          />
+        </button>
+        <span className={['text-sm', disabled ? 'text-gray-400' : 'text-gray-700'].join(' ')}>{label}</span>
+      </label>
+      {helperText && <p className="ml-14 text-xs text-gray-400">{helperText}</p>}
+    </div>
   )
 }

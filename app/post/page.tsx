@@ -170,6 +170,17 @@ export default function PostListingPage() {
 
     setBasicInfo(updated)
 
+    // Auto-clear immediate_movein if available_from moves beyond 14 days out
+    if (fromChanged && updated.available_from && details.immediate_movein) {
+      const from = new Date(updated.available_from + 'T00:00:00')
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const daysOut = (from.getTime() - today.getTime()) / 86400000
+      if (daysOut > 14) {
+        setDetails((d) => ({ ...d, immediate_movein: false }))
+      }
+    }
+
     // Re-validate date fields live whenever they or min_stay change
     if (fromChanged || stayChanged || newData.available_to !== basicInfo.available_to) {
       const hasDateErrors =
@@ -184,7 +195,7 @@ export default function PostListingPage() {
     const errs: Partial<Record<keyof BasicInfoData, string>> = {}
     if (!basicInfo.title || basicInfo.title.length < 10) errs.title = 'Title must be at least 10 characters'
     if (!basicInfo.address) errs.address = 'Address is required'
-    if (!basicInfo.neighborhood) errs.neighborhood = 'Select a neighborhood'
+    if (!basicInfo.neighborhood) errs.neighborhood = 'Neighborhood could not be detected. Try a slightly different address.'
     if (!basicInfo.room_type) errs.room_type = 'Select a room type'
     if (!basicInfo.rent_monthly || parseInt(basicInfo.rent_monthly) <= 0) errs.rent_monthly = 'Enter a valid rent amount'
 
@@ -400,7 +411,7 @@ export default function PostListingPage() {
           <StepPhotos photos={photos} onChange={setPhotos} error={photosError} />
         )}
         {step === 3 && (
-          <StepDetails data={details} onChange={setDetails} errors={detailsErrors} />
+          <StepDetails data={details} onChange={setDetails} errors={detailsErrors} availableFrom={basicInfo.available_from} />
         )}
         {step === 4 && (
           <StepVerification onSkip={nextStep} />

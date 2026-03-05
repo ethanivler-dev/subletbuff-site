@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
-import { ROOM_TYPES } from '@/lib/constants'
+import { ROOM_TYPES, NEIGHBORHOODS, NEIGHBORHOOD_ALIASES } from '@/lib/constants'
 import { MapPin } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -46,7 +46,14 @@ function extractNeighborhood(
     if (match) return match.long_name
   }
   const locality = components.find((c) => c.types.includes('locality'))
-  return locality?.long_name ?? 'Boulder'
+  return locality?.long_name ?? ''
+}
+
+/** Map a raw Google Places neighborhood name to a canonical NEIGHBORHOODS entry. */
+function resolveNeighborhood(raw: string): string {
+  if (NEIGHBORHOOD_ALIASES[raw]) return NEIGHBORHOOD_ALIASES[raw]
+  if (NEIGHBORHOODS.includes(raw)) return raw
+  return ''
 }
 
 export interface BasicInfoData {
@@ -109,7 +116,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       if (!place?.address_components) return
 
       const formatted = place.formatted_address ?? ''
-      const neighborhood = extractNeighborhood(place.address_components)
+      const neighborhood = resolveNeighborhood(extractNeighborhood(place.address_components))
 
       onChangeRef.current({
         ...dataRef.current,
@@ -195,14 +202,20 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         maxLength={20}
       />
 
-      {/* Neighborhood — auto-filled from place result */}
+      {/* Neighborhood — auto-filled from place result, read-only */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Neighborhood</label>
         <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
           <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span className={data.neighborhood ? 'text-gray-900' : 'text-gray-400'}>
-            {data.neighborhood || 'Auto-detected from address'}
-          </span>
+          {data.neighborhood ? (
+            <span className="text-gray-900">{data.neighborhood}</span>
+          ) : data.address ? (
+            <span className="text-amber-600 text-xs">
+              We couldn&apos;t detect the neighborhood for this address. Try a slightly different address.
+            </span>
+          ) : (
+            <span className="text-gray-400">Auto-detected from address</span>
+          )}
         </div>
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
       </div>

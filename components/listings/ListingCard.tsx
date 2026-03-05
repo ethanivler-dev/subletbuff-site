@@ -84,23 +84,21 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
               <Badge variant="featured" />
             </span>
           )}
+          <SaveButton
+            listingId={id}
+            initialSaved={is_saved}
+            saveCount={save_count}
+            variant="card-vertical"
+          />
         </div>
 
         {/* Details */}
         <div className="flex-1 p-4 flex flex-col gap-1.5 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-xl font-bold text-gray-900">{formatRent(rent_monthly)}</p>
-              <h3 className="text-sm font-semibold text-gray-800 leading-snug mt-0.5 line-clamp-1">
-                {title}
-              </h3>
-            </div>
-            <SaveButton
-              listingId={id}
-              initialSaved={is_saved}
-              saveCount={save_count}
-              variant="card-horizontal"
-            />
+          <div>
+            <p className="text-xl font-bold text-gray-900">{formatRent(rent_monthly)}</p>
+            <h3 className="text-sm font-semibold text-gray-800 leading-snug mt-0.5 line-clamp-1">
+              {title}
+            </h3>
           </div>
 
           <div className="flex items-center gap-1 text-gray-500 text-xs">
