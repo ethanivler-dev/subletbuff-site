@@ -387,7 +387,7 @@ export default async function ListingDetailPage({
                         rel="noopener noreferrer"
                         className="text-xs text-primary-600 hover:underline mt-0.5 block"
                       >
-                        Sublease policy →
+                        Sublease info →
                       </a>
                     )}
                   </div>

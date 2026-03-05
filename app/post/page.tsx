@@ -38,6 +38,7 @@ const INITIAL_BASIC: BasicInfoData = {
 const INITIAL_DETAILS: DetailsData = {
   description: '',
   furnished: false,
+  furnished_details: '',
   amenities: [],
   utilities_included: false,
   utilities_estimate: '',
@@ -311,7 +312,9 @@ export default function PostListingPage() {
 
           // === Details ===
           description: details.description,
-          furnished: details.furnished ? 'Yes' : 'No',
+          furnished: details.furnished
+            ? (details.furnished_details ? `Yes - ${details.furnished_details}` : 'Yes')
+            : 'No',
           amenities: details.amenities,
           utilities_included: details.utilities_included,
           utilities_estimate: details.utilities_estimate ? parseInt(details.utilities_estimate) : null,

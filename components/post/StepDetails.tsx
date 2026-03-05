@@ -5,6 +5,7 @@ import { AMENITIES, AMENITY_LABELS } from '@/lib/constants'
 export interface DetailsData {
   description: string
   furnished: boolean
+  furnished_details: string
   amenities: string[]
   utilities_included: boolean
   utilities_estimate: string
@@ -65,6 +66,17 @@ export function StepDetails({ data, onChange, errors, availableFrom }: StepDetai
       {/* Toggles */}
       <div className="flex flex-col gap-3">
         <Toggle label="Furnished" checked={data.furnished} onChange={(v) => update('furnished', v)} />
+        {data.furnished && (
+          <div className="ml-14">
+            <textarea
+              value={data.furnished_details}
+              onChange={(e) => update('furnished_details', e.target.value)}
+              placeholder="What's included? e.g. bed, desk, couch, kitchen appliances…"
+              rows={2}
+              className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder:text-gray-400 transition-colors resize-none hover:border-gray-400"
+            />
+          </div>
+        )}
         <Toggle label="Utilities Included" checked={data.utilities_included} onChange={(v) => update('utilities_included', v)} />
 
         {!data.utilities_included && (

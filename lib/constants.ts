@@ -77,12 +77,12 @@ export const MANAGEMENT_COMPANIES = [
 ]
 
 export const MANAGEMENT_COMPANY_URLS: Record<string, string> = {
-  'Four Star Realty': 'https://www.fourstarrealty.com/subleasing',
-  'Rent Boulder': 'https://www.rentboulder.com',
-  'Boulder Property Management': 'https://www.boulderpropertymanagement.com',
-  'Fox-Carskadon': 'https://foxcarskadon.com',
-  'Pedal to Properties': 'https://pedaltoproperties.com',
-  'WK Real Estate': 'https://wkre.com',
+  'Four Star Realty': 'https://fourstarrealty.com/faqs/',
+  'Rent Boulder': 'https://www.rentboulder.com/',
+  'Boulder Property Management': 'https://www.boulderpropertymanagement.com/',
+  'Fox-Carskadon': 'https://foxcarskadon.com/',
+  'Pedal to Properties': 'https://pedaltoproperties.com/',
+  'WK Real Estate': 'https://wkre.com/',
 }
 
 export const AMENITY_LABELS: Record<string, string> = {
