@@ -26,6 +26,17 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
     onChange({ ...data, [field]: value })
   }
 
+  const today = new Date().toISOString().split('T')[0]
+
+  const SEMESTER_PRESETS = [
+    { label: 'Summer 2026 (May 19 – Aug 14)', from: '2026-05-19', to: '2026-08-14' },
+    { label: 'Fall 2026 (Aug 26 – Dec 18)', from: '2026-08-26', to: '2026-12-18' },
+  ]
+
+  function applySemester(from: string, to: string) {
+    onChange({ ...data, available_from: from, available_to: to })
+  }
+
   return (
     <div className="max-w-xl mx-auto flex flex-col gap-5">
       <h2 className="text-xl font-semibold text-gray-900">Basic Info</h2>
@@ -108,6 +119,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           value={data.available_from}
           onChange={(e) => update('available_from', e.target.value)}
           error={errors.available_from}
+          min={today}
         />
         <Input
           label="Available To"
@@ -115,7 +127,32 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           value={data.available_to}
           onChange={(e) => update('available_to', e.target.value)}
           error={errors.available_to}
+          min={data.available_from || today}
         />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-800">Quick Dates</label>
+        <div className="flex flex-wrap gap-2">
+          {SEMESTER_PRESETS.map((s) => {
+            const isActive = data.available_from === s.from && data.available_to === s.to
+            return (
+              <button
+                key={s.from}
+                type="button"
+                onClick={() => applySemester(s.from, s.to)}
+                className={[
+                  'px-3 py-1.5 text-xs font-medium rounded-full border transition-colors',
+                  isActive
+                    ? 'bg-primary-600 border-primary-600 text-white'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400',
+                ].join(' ')}
+              >
+                {s.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="flex flex-col gap-1">
