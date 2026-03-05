@@ -108,7 +108,7 @@ export default function SafetyPage() {
             Subletting Safely
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            SubletBuff connects renters and listers — we don't manage payments, sign leases,
+            SubletBuff connects renters and listers — we don&apos;t manage payments, sign leases,
             or resolve disputes. Use these guidelines to protect yourself every step of the way.
           </p>
         </div>
@@ -195,12 +195,12 @@ export default function SafetyPage() {
               </div>
               <div>
                 <h2 className="font-serif text-xl text-gray-900 mb-2">
-                  What SubletBuff does — and doesn't do
+                  What SubletBuff does — and doesn&apos;t do
                 </h2>
                 <div className="text-sm text-gray-600 leading-relaxed space-y-2">
                   <p>
                     SubletBuff is a <strong>listing platform</strong>. We help people find
-                    each other — that's it. We review listings for quality, but we do not
+                    each other — that&apos;s it. We review listings for quality, but we do not
                     verify every identity, mediate disputes, manage payments, hold deposits,
                     or enforce lease terms.
                   </p>
