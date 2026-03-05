@@ -238,43 +238,28 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         />
       </div>
 
-      {/* Semester presets with info tooltip */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative group">
-          <button
-            type="button"
-            className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-500 text-xs font-bold hover:bg-gray-300 transition-colors"
-            aria-label="Semester date suggestions"
-          >
-            i
-          </button>
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 pointer-events-none">
-            <p className="font-medium mb-1.5">CU Semester Dates</p>
-            {SEMESTER_PRESETS.map((s) => (
-              <p key={s.from} className="text-gray-300 text-[11px]">{s.label}</p>
-            ))}
-            <p className="text-gray-400 text-[10px] mt-1.5">Click a preset below to auto-fill dates.</p>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-          </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-800">Quick Dates</label>
+        <div className="flex flex-wrap gap-2">
+          {SEMESTER_PRESETS.map((s) => {
+            const isActive = data.available_from === s.from && data.available_to === s.to
+            return (
+              <button
+                key={s.from}
+                type="button"
+                onClick={() => applySemester(s.from, s.to)}
+                className={[
+                  'px-3 py-1.5 text-xs font-medium rounded-full border transition-colors',
+                  isActive
+                    ? 'bg-primary-600 border-primary-600 text-white'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400',
+                ].join(' ')}
+              >
+                {s.label}
+              </button>
+            )
+          })}
         </div>
-        {SEMESTER_PRESETS.map((s) => {
-          const isActive = data.available_from === s.from && data.available_to === s.to
-          return (
-            <button
-              key={s.from}
-              type="button"
-              onClick={() => applySemester(s.from, s.to)}
-              className={[
-                'px-3 py-1.5 text-xs font-medium rounded-full border transition-colors',
-                isActive
-                  ? 'bg-primary-600 border-primary-600 text-white'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400',
-              ].join(' ')}
-            >
-              {s.label.split(' (')[0]}
-            </button>
-          )
-        })}
       </div>
 
       <div className="flex flex-col gap-1">
