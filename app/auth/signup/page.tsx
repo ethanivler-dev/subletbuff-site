@@ -63,7 +63,7 @@ function SignupForm() {
         <div className="w-full max-w-sm text-center">
           <div className="flex justify-center mb-8">
             <Link href="/">
-              <Image src="/logo.jpeg" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" />
+              <Image src="/logo.png" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" />
             </Link>
           </div>
           <div className="bg-white rounded-card shadow-card p-8">
@@ -94,7 +94,7 @@ function SignupForm() {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <Link href="/">
-            <Image src="/logo.jpeg" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" />
+            <Image src="/logo.png" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" />
           </Link>
         </div>
 

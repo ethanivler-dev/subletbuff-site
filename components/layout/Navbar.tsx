@@ -74,11 +74,11 @@ export function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
               <Image
-                src="/logo.jpeg"
+                src="/logo.png"
                 alt="SubletBuff"
                 width={140}
                 height={36}
-                className={['h-9 w-auto transition-all duration-300', isSolid ? 'mix-blend-multiply' : ''].join(' ')}
+                className="h-9 w-auto transition-all duration-300"
                 priority
               />
             </Link>

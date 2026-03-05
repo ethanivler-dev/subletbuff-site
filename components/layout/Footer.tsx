@@ -9,7 +9,7 @@ export function Footer() {
           {/* Col 1: Logo + tagline */}
           <div className="flex flex-col gap-4">
             <Image
-              src="/logo.jpeg"
+              src="/logo.png"
               alt="SubletBuff"
               width={140}
               height={36}
