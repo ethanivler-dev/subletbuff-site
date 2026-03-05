@@ -1,7 +1,53 @@
 'use client'
 
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
-import { NEIGHBORHOODS, ROOM_TYPES } from '@/lib/constants'
+import { ROOM_TYPES } from '@/lib/constants'
+import { MapPin } from 'lucide-react'
+
+/* ------------------------------------------------------------------ */
+/*  Lightweight Google Places Autocomplete hook                        */
+/* ------------------------------------------------------------------ */
+
+// Extend the Window interface for the Google Maps callback
+declare global {
+  interface Window {
+    __gmapsCallback?: () => void
+  }
+}
+
+let gmapsPromise: Promise<void> | null = null
+
+function loadGoogleMaps(): Promise<void> {
+  if (gmapsPromise) return gmapsPromise
+  if (typeof google !== 'undefined' && google.maps?.places) {
+    return Promise.resolve()
+  }
+  gmapsPromise = new Promise<void>((resolve, reject) => {
+    const key = process.env.NEXT_PUBLIC_MAPS_KEY
+    if (!key) { reject(new Error('Missing NEXT_PUBLIC_MAPS_KEY')); return }
+    window.__gmapsCallback = () => resolve()
+    const s = document.createElement('script')
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&callback=__gmapsCallback`
+    s.async = true
+    s.onerror = () => reject(new Error('Failed to load Google Maps'))
+    document.head.appendChild(s)
+  })
+  return gmapsPromise
+}
+
+/** Extract the best neighborhood string from place address_components. */
+function extractNeighborhood(
+  components: google.maps.GeocoderAddressComponent[]
+): string {
+  const priority = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1', 'sublocality']
+  for (const type of priority) {
+    const match = components.find((c) => c.types.includes(type))
+    if (match) return match.long_name
+  }
+  const locality = components.find((c) => c.types.includes('locality'))
+  return locality?.long_name ?? 'Boulder'
+}
 
 export interface BasicInfoData {
   title: string
@@ -22,9 +68,61 @@ interface StepBasicInfoProps {
 }
 
 export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
+  const dataRef = useRef(data)
+  dataRef.current = data
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+  const [mapsLoaded, setMapsLoaded] = useState(false)
+
   function update(field: keyof BasicInfoData, value: string) {
     onChange({ ...data, [field]: value })
   }
+
+  // Load Google Maps script once
+  useEffect(() => {
+    loadGoogleMaps()
+      .then(() => setMapsLoaded(true))
+      .catch((err) => console.warn('Google Maps not available:', err.message))
+  }, [])
+
+  // Attach autocomplete when script + input are ready
+  const attachAutocomplete = useCallback(() => {
+    if (!mapsLoaded || !inputRef.current || autocompleteRef.current) return
+
+    const ac = new google.maps.places.Autocomplete(inputRef.current, {
+      types: ['address'],
+      componentRestrictions: { country: 'us' },
+      fields: ['formatted_address', 'address_components', 'geometry'],
+    })
+
+    // Bias toward Boulder
+    ac.setBounds(new google.maps.LatLngBounds(
+      { lat: 39.95, lng: -105.35 },
+      { lat: 40.10, lng: -105.17 },
+    ))
+
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace()
+      if (!place?.address_components) return
+
+      const formatted = place.formatted_address ?? ''
+      const neighborhood = extractNeighborhood(place.address_components)
+
+      onChangeRef.current({
+        ...dataRef.current,
+        address: formatted,
+        neighborhood,
+      })
+    })
+
+    autocompleteRef.current = ac
+  }, [mapsLoaded])
+
+  useEffect(() => {
+    attachAutocomplete()
+  }, [attachAutocomplete])
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -51,29 +149,38 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         maxLength={80}
       />
 
-      <Input
-        label="Address"
-        placeholder="Full street address (kept private)"
-        value={data.address}
-        onChange={(e) => update('address', e.target.value)}
-        error={errors.address}
-      />
-      <p className="text-xs text-gray-400 -mt-3">
-        Never shown publicly. Only shared after an inquiry is accepted.
-      </p>
+      {/* Address — Google Places Autocomplete */}
+      <div className="flex flex-col gap-1">
+        <label htmlFor="address" className="text-sm font-medium text-gray-800">Address</label>
+        <input
+          ref={inputRef}
+          id="address"
+          type="text"
+          placeholder="Start typing an address in Boulder…"
+          defaultValue={data.address}
+          onChange={(e) => update('address', e.target.value)}
+          className={[
+            'w-full px-3 py-2 text-sm rounded-button border bg-white',
+            'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+            'placeholder:text-gray-400 transition-colors duration-200',
+            errors.address ? 'border-error text-error' : 'border-gray-200 text-gray-900 hover:border-gray-400',
+          ].join(' ')}
+        />
+        {errors.address && <p className="text-xs text-error">{errors.address}</p>}
+        <p className="text-xs text-gray-400">
+          Never shown publicly. Only shared after an inquiry is accepted.
+        </p>
+      </div>
 
+      {/* Neighborhood — auto-filled from place result */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Neighborhood</label>
-        <select
-          value={data.neighborhood}
-          onChange={(e) => update('neighborhood', e.target.value)}
-          className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
-        >
-          <option value="">Select neighborhood</option>
-          {NEIGHBORHOODS.map((n) => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
+          <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <span className={data.neighborhood ? 'text-gray-900' : 'text-gray-400'}>
+            {data.neighborhood || 'Auto-detected from address'}
+          </span>
+        </div>
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
       </div>
 
