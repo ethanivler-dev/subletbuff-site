@@ -1,4 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+
+function escapeLikePattern(str: string): string {
+  return str.replace(/[%_\\]/g, '\\$&')
+}
 import { type ListingCardData } from '@/components/listings/ListingCard'
 import { ListingsMapView } from '@/components/listings/ListingsMapView'
 import { sanitizeListingTitle } from '@/lib/utils'
@@ -47,7 +51,8 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
 
   // Text search on neighborhood or title
   if (params.q) {
-    query = query.or(`neighborhood.ilike.%${params.q}%,title.ilike.%${params.q}%`)
+    const safeQ = escapeLikePattern(params.q)
+    query = query.or(`neighborhood.ilike.%${safeQ}%,title.ilike.%${safeQ}%`)
   }
 
   // Neighborhood exact match

@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+function escapeLikePattern(str: string): string {
+  return str.replace(/[%_\\]/g, '\\$&')
+}
+
 /**
  * GET /api/listings — search/filter active listings
  * Never returns address, latitude, or longitude fields.
@@ -46,7 +50,8 @@ export async function GET(request: NextRequest) {
 
   // Text search
   if (q) {
-    query = query.or(`neighborhood.ilike.%${q}%,title.ilike.%${q}%`)
+    const safeQ = escapeLikePattern(q)
+    query = query.or(`neighborhood.ilike.%${safeQ}%,title.ilike.%${safeQ}%`)
   }
 
   // Neighborhood exact match
