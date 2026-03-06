@@ -138,16 +138,28 @@ export async function PATCH(
 
   const body = await request.json()
 
-  // Remove fields that shouldn't be directly updated
-  delete body.id
-  delete body.lister_id
-  delete body.user_id
-  delete body.status // Use admin review route for status changes
-  delete body.address // Address is set at creation, not updated via API
+  const ALLOWED_FIELDS = [
+    'title', 'description', 'neighborhood', 'room_type',
+    'rent_monthly', 'deposit', 'available_from', 'available_to',
+    'min_stay_weeks', 'flexible_dates', 'furnished', 'amenities',
+    'utilities_included', 'utilities_estimate', 'house_rules',
+    'roommate_info', 'is_intern_friendly', 'immediate_movein',
+    'paused', 'filled',
+    'auto_reduce_enabled', 'auto_reduce_amount',
+    'auto_reduce_interval_days', 'auto_reduce_max_times',
+  ]
+
+  const updates = Object.fromEntries(
+    Object.entries(body).filter(([key]) => ALLOWED_FIELDS.includes(key))
+  )
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+  }
 
   const { data: updated, error } = await supabase
     .from('listings')
-    .update(body)
+    .update(updates)
     .eq('id', id)
     .select('id')
     .single()
