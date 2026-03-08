@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { X, User, LogOut, Shield } from 'lucide-react'
+import { X, User, LogOut, Shield, MessageCircle } from 'lucide-react'
 import { ADMIN_USER_ID } from '@/lib/admin'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -14,6 +14,33 @@ interface MobileMenuProps {
 }
 
 export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps) {
+  const [unreadCount, setUnreadCount] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    async function fetchUnread() {
+      try {
+        const res = await fetch('/api/messages/unread-count')
+        if (res.ok) {
+          const data = await res.json()
+          setUnreadCount(data.count)
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (user && isOpen) {
+      fetchUnread()
+      intervalRef.current = setInterval(fetchUnread, 60000)
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [user, isOpen])
+
   // Close on Escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -94,6 +121,19 @@ export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps
           </Link>
           {user ? (
             <>
+              <Link
+                href="/messages"
+                onClick={onClose}
+                className="inline-flex items-center gap-2 w-full px-6 py-3 text-base font-medium rounded-button bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 transition-colors relative"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Messages
+                {unreadCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Link>
               <Link
                 href="/account"
                 onClick={onClose}

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { ListingGallery } from '@/components/listings/ListingGallery'
 import { AmenityGrid } from '@/components/listings/AmenityGrid'
 import { ListerProfile } from '@/components/listings/ListerProfile'
-import { InquiryForm } from '@/components/listings/InquiryForm'
+import { MessageListerForm } from '@/components/listings/MessageListerForm'
 import { SimilarListings } from '@/components/listings/SimilarListings'
 import { ListingDetailMap, type MapListing } from '@/components/listings/ListingDetailMap'
 import type { Metadata } from 'next'
@@ -492,8 +492,8 @@ export default async function ListingDetailPage({
               </div>
             )}
 
-            {/* Inquiry form */}
-            <InquiryForm
+            {/* Message form */}
+            <MessageListerForm
               listingId={listing.id}
               listerId={ownerId ?? ''}
               listerName={displayListerName}

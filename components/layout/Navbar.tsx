@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, User, ChevronDown, LogOut, Shield } from 'lucide-react'
+import { Menu, User, ChevronDown, LogOut, Shield, MessageCircle } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_USER_ID } from '@/lib/admin'
@@ -18,7 +18,9 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const unreadIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Scroll listener for transparent→solid transition
   useEffect(() => {
@@ -37,6 +39,33 @@ export function Navbar() {
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  // Poll unread message count
+  useEffect(() => {
+    async function fetchUnread() {
+      try {
+        const res = await fetch('/api/messages/unread-count')
+        if (res.ok) {
+          const data = await res.json()
+          setUnreadCount(data.count)
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (user) {
+      fetchUnread()
+      unreadIntervalRef.current = setInterval(fetchUnread, 60000)
+    } else {
+      setUnreadCount(0)
+    }
+
+    return () => {
+      if (unreadIntervalRef.current) {
+        clearInterval(unreadIntervalRef.current)
+        unreadIntervalRef.current = null
+      }
+    }
+  }, [user])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -119,6 +148,21 @@ export function Navbar() {
               >
                 Post a Listing
               </Link>
+
+              {user && (
+                <Link
+                  href="/messages"
+                  className={['relative p-2 rounded-lg hover:bg-black/5 transition-colors', textColor].join(' ')}
+                  title="Messages"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
 
               {user ? (
                 <div className="relative" ref={dropdownRef}>
