@@ -46,6 +46,11 @@ interface ListerProfile {
 
 type Tab = 'all' | 'approved' | 'paused' | 'pending' | 'rejected'
 
+const NEIGHBORHOODS = [
+  'The Hill', 'University Hill', 'Goss-Grove', 'Baseline', 'Chautauqua',
+  'Martin Acres', 'North Boulder', 'East Boulder', 'South Boulder',
+]
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -60,8 +65,12 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editData, setEditData] = useState<{ title: string; rent_monthly: string; description: string }>({
+  const [editData, setEditData] = useState<{
+    title: string; rent_monthly: string; description: string;
+    neighborhood: string; available_from: string; available_to: string;
+  }>({
     title: '', rent_monthly: '', description: '',
+    neighborhood: '', available_from: '', available_to: '',
   })
 
   // Pending review state
@@ -204,6 +213,9 @@ export default function AdminDashboard() {
       title: listing.title ?? '',
       rent_monthly: String(listing.rent_monthly ?? listing.monthly_rent ?? ''),
       description: listing.description ?? '',
+      neighborhood: listing.neighborhood ?? '',
+      available_from: listing.available_from ?? listing.start_date ?? '',
+      available_to: listing.available_to ?? listing.end_date ?? '',
     })
   }
 
@@ -213,6 +225,9 @@ export default function AdminDashboard() {
     if (editData.title.trim()) updates.title = editData.title.trim()
     if (editData.rent_monthly) updates.rent_monthly = parseInt(editData.rent_monthly, 10)
     if (editData.description.trim()) updates.description = editData.description.trim()
+    if (editData.neighborhood) updates.neighborhood = editData.neighborhood
+    if (editData.available_from) updates.available_from = editData.available_from
+    if (editData.available_to) updates.available_to = editData.available_to
 
     if (Object.keys(updates).length === 0) {
       setEditingId(null)
@@ -234,6 +249,9 @@ export default function AdminDashboard() {
               ...(updates.title ? { title: updates.title as string } : {}),
               ...(updates.rent_monthly ? { rent_monthly: updates.rent_monthly as number } : {}),
               ...(updates.description ? { description: updates.description as string } : {}),
+              ...(updates.neighborhood ? { neighborhood: updates.neighborhood as string } : {}),
+              ...(updates.available_from ? { available_from: updates.available_from as string } : {}),
+              ...(updates.available_to ? { available_to: updates.available_to as string } : {}),
             }
           : l
       ))
@@ -451,12 +469,43 @@ export default function AdminDashboard() {
 
                         {/* Neighborhood */}
                         <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap text-gray-600">
-                          {listing.neighborhood ?? '—'}
+                          {isEditing ? (
+                            <select
+                              value={editData.neighborhood}
+                              onChange={(e) => setEditData((d) => ({ ...d, neighborhood: e.target.value }))}
+                              className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">—</option>
+                              {NEIGHBORHOODS.map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            listing.neighborhood ?? '—'
+                          )}
                         </td>
 
                         {/* Dates */}
                         <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap text-gray-600">
-                          {getDates(listing)}
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="date"
+                                value={editData.available_from}
+                                onChange={(e) => setEditData((d) => ({ ...d, available_from: e.target.value }))}
+                                className="w-[130px] px-1 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <span className="text-gray-400">–</span>
+                              <input
+                                type="date"
+                                value={editData.available_to}
+                                onChange={(e) => setEditData((d) => ({ ...d, available_to: e.target.value }))}
+                                className="w-[130px] px-1 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          ) : (
+                            getDates(listing)
+                          )}
                         </td>
 
                         {/* Status */}
