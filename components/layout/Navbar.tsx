@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, User, ChevronDown, LogOut } from 'lucide-react'
+import { Menu, User, ChevronDown, LogOut, Shield } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { createClient } from '@/lib/supabase/client'
+import { ADMIN_USER_ID } from '@/lib/admin'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export function Navbar() {
@@ -155,6 +156,16 @@ export function Navbar() {
                       >
                         My Listings
                       </Link>
+                      {user.id === ADMIN_USER_ID && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          <Shield className="w-4 h-4" />
+                          Admin
+                        </Link>
+                      )}
                       <button
                         onClick={handleSignOut}
                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

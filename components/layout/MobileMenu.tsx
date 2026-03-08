@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { X, User, LogOut } from 'lucide-react'
+import { X, User, LogOut, Shield } from 'lucide-react'
+import { ADMIN_USER_ID } from '@/lib/admin'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface MobileMenuProps {
@@ -108,6 +109,16 @@ export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps
               >
                 My Listings
               </Link>
+              {user.id === ADMIN_USER_ID && (
+                <Link
+                  href="/admin"
+                  onClick={onClose}
+                  className="inline-flex items-center gap-2 w-full px-6 py-3 text-base font-medium rounded-button bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </Link>
+              )}
               <button
                 onClick={() => { onSignOut(); onClose() }}
                 className="inline-flex items-center gap-2 justify-center w-full px-6 py-3 text-base font-medium rounded-button bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
