@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (convoError) {
+      console.error('[conversations POST] Insert conversation failed:', convoError)
       // Race condition: conversation was created between our check and insert
-      // Re-fetch the existing one
       if (convoError.code === '23505') {
         const { data: raceConvo } = await supabase
           .from('conversations')
@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (msgError) {
+    console.error('[conversations POST] Insert message failed:', msgError)
     return NextResponse.json({ error: msgError.message }, { status: 500 })
   }
 

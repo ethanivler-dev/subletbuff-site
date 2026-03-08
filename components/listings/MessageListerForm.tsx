@@ -71,8 +71,9 @@ export function MessageListerForm({ listingId, listerId, listerName, user }: Mes
 
       const data = await res.json()
       setConversationId(data.conversation_id)
-    } catch {
-      setError('Failed to send message. Please try again.')
+    } catch (err) {
+      console.error('[MessageListerForm] Send failed:', err)
+      setError(err instanceof Error ? err.message : 'Failed to send message. Please try again.')
     } finally {
       setSending(false)
     }
