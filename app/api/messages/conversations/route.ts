@@ -127,8 +127,9 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/messages/conversations — List all conversations for current user
+ * Optional query param: listing_id — filter to conversations about a specific listing
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -136,8 +137,10 @@ export async function GET() {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
+  const listingIdFilter = request.nextUrl.searchParams.get('listing_id')
+
   // Fetch conversations where user is a participant
-  const { data: conversations, error } = await supabase
+  let query = supabase
     .from('conversations')
     .select(`
       id, listing_id, participant_a, participant_b,
@@ -147,6 +150,12 @@ export async function GET() {
     `)
     .or(`participant_a.eq.${user.id},participant_b.eq.${user.id}`)
     .order('last_message_at', { ascending: false })
+
+  if (listingIdFilter) {
+    query = query.eq('listing_id', listingIdFilter)
+  }
+
+  const { data: conversations, error } = await query
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

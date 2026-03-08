@@ -1,10 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
-import { Lock, Send, MessageCircle } from 'lucide-react'
+import { Lock, Send, MessageCircle, ArrowRight } from 'lucide-react'
+import { timeAgo } from '@/lib/utils'
+
+interface ConversationPreview {
+  id: string
+  other_user_name: string
+  last_message_preview: string | null
+  last_message_at: string
+  unread: boolean
+}
 
 interface MessageListerFormProps {
   listingId: string
@@ -20,9 +29,63 @@ export function MessageListerForm({ listingId, listerId, listerName, user }: Mes
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  // Completely hide if the logged-in user owns the listing
-  if (user && user.id === listerId) {
-    return null
+  // Owner view: show inquiries for this listing
+  const isOwner = user && user.id === listerId
+  const [inquiries, setInquiries] = useState<ConversationPreview[]>([])
+  const [loadingInquiries, setLoadingInquiries] = useState(false)
+
+  useEffect(() => {
+    if (!isOwner) return
+    setLoadingInquiries(true)
+    fetch(`/api/messages/conversations?listing_id=${listingId}`)
+      .then((res) => (res.ok ? res.json() : { conversations: [] }))
+      .then((data) => setInquiries(data.conversations ?? []))
+      .finally(() => setLoadingInquiries(false))
+  }, [isOwner, listingId])
+
+  if (isOwner) {
+    return (
+      <div className="rounded-card border border-gray-200 bg-white p-5">
+        <h3 className="text-base font-semibold text-gray-900 mb-3">
+          Inquiries
+        </h3>
+        {loadingInquiries ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : inquiries.length === 0 ? (
+          <p className="text-sm text-gray-500 py-3">
+            No messages yet. When someone inquires about this listing, their messages will appear here.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {inquiries.map((convo) => (
+              <Link
+                key={convo.id}
+                href={`/messages/${convo.id}`}
+                className="flex items-center justify-between gap-2 p-3 rounded-button border border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm truncate ${convo.unread ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                    {convo.other_user_name}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {convo.last_message_preview ?? 'No messages yet'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs text-gray-400">{timeAgo(convo.last_message_at)}</span>
+                  {convo.unread && <div className="w-2 h-2 rounded-full bg-primary-500" />}
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (!user) {
@@ -82,8 +145,8 @@ export function MessageListerForm({ listingId, listerId, listerName, user }: Mes
   if (conversationId) {
     return (
       <div className="rounded-card border border-gray-200 bg-white p-5 text-center">
-        <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
-          <Send className="w-5 h-5 text-success" />
+        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+          <Send className="w-5 h-5 text-green-600" />
         </div>
         <h3 className="text-base font-semibold text-gray-900">Message Sent!</h3>
         <p className="text-sm text-gray-500 mt-1 mb-4">
