@@ -10,6 +10,7 @@ import { StepVerification } from '@/components/post/StepVerification'
 import { StepReview } from '@/components/post/StepReview'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
+import { isStagingEnvironment } from '@/lib/appEnv'
 import { CheckCircle, Trash2 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
@@ -267,6 +268,7 @@ export default function PostListingPage() {
       const jitterLng = baseLng + (Math.random() - 0.5) * 0.004
 
       const uploadedPhotos = photos.filter((p) => !p.uploading)
+      const isStaging = isStagingEnvironment()
 
       const rentNum = parseInt(basicInfo.rent_monthly) || 0
       const depositNum = basicInfo.deposit ? parseInt(basicInfo.deposit) : null
@@ -347,6 +349,7 @@ export default function PostListingPage() {
 
           // === Photos + status ===
           photo_urls: uploadedPhotos.map((p) => p.url),
+          test_listing: isStaging,
           status: 'pending',
           paused: false,
           filled: false,

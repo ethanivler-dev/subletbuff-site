@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { shouldHideTestListings } from '@/lib/appEnv'
 
 function escapeLikePattern(str: string): string {
   return str.replace(/[%_\\]/g, '\\$&')
@@ -49,6 +50,10 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
+
+  if (shouldHideTestListings()) {
+    query = query.eq('test_listing', false)
+  }
 
 
   // Text search on neighborhood or title

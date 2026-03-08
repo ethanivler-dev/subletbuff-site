@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { isStagingEnvironment, shouldHideTestListings } from '@/lib/appEnv'
 
 function escapeLikePattern(str: string): string {
   return str.replace(/[%_\\]/g, '\\$&')
@@ -47,6 +48,10 @@ export async function GET(request: NextRequest) {
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
+
+  if (shouldHideTestListings()) {
+    query = query.eq('test_listing', false)
+  }
 
 
   // Text search
@@ -170,6 +175,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
+  const isStaging = isStagingEnvironment()
 
   // Jitter coordinates for privacy
   const baseLat = body.latitude ?? 40.0150
@@ -238,6 +244,7 @@ export async function POST(request: NextRequest) {
       management_company: body.management_company || null,
 
       photo_urls: body.photo_urls ?? [],
+      test_listing: isStaging,
       status: 'pending',
       paused: false,
       filled: false,

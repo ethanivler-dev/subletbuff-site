@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { shouldHideTestListings } from '@/lib/appEnv'
 
 /**
  * GET /api/listings/[id] — single listing detail
@@ -24,7 +25,7 @@ export async function GET(
       min_stay_weeks, flexible_dates,
       furnished, amenities, house_rules, roommate_info,
       is_featured, is_intern_friendly, immediate_movein,
-      created_at, lister_id, user_id, status, paused, filled, save_count,
+      created_at, lister_id, user_id, status, paused, filled, test_listing, save_count,
       original_rent_monthly, management_company,
       listing_photos(url, display_order, is_primary, caption),
       photo_urls
@@ -36,8 +37,14 @@ export async function GET(
     return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
   }
 
-  // Only show approved + visible listings publicly
-  if (data.status !== 'approved' || data.paused || data.filled) {
+  const isPublic =
+    data.status === 'approved' &&
+    !data.paused &&
+    !data.filled &&
+    (!shouldHideTestListings() || !data.test_listing)
+
+  // Only show public listings unless owner
+  if (!isPublic) {
     // Allow the lister to see their own listing regardless of status
     const { data: { user } } = await supabase.auth.getUser()
     const ownerId = data.lister_id ?? data.user_id
@@ -203,10 +210,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
   }
 
-  const { error } = await supabase
-    .from('listings')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.rpc('delete_listing_safe', { p_listing_id: id })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

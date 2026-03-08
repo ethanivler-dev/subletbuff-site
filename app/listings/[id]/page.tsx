@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { shouldHideTestListings } from '@/lib/appEnv'
 import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
@@ -53,6 +54,7 @@ interface ListingDetailRow {
   status: string | null
   paused: boolean | null
   filled: boolean | null
+  test_listing: boolean | null
   save_count: number | null
   original_rent_monthly: number | null
   management_company: string | null
@@ -83,7 +85,7 @@ async function getListing(id: string) {
       min_stay_weeks, flexible_dates,
       furnished, amenities, house_rules, roommate_info,
       is_featured, is_intern_friendly, immediate_movein,
-      created_at, lister_id, user_id, status, paused, filled, save_count,
+      created_at, lister_id, user_id, status, paused, filled, test_listing, save_count,
       original_rent_monthly, management_company, verified,
       listing_photos(url, display_order, is_primary, caption),
       photo_urls
@@ -99,7 +101,11 @@ async function getListing(id: string) {
   const ownerId = row.lister_id ?? row.user_id
 
   // Allow owners to preview their own non-approved listings
-  const isPublic = row.status === 'approved' && !row.paused && !row.filled
+  const isPublic =
+    row.status === 'approved' &&
+    !row.paused &&
+    !row.filled &&
+    (!shouldHideTestListings() || !row.test_listing)
   if (!isPublic) {
     const { data: { user } } = await supabase.auth.getUser()
     const isOwner = user && ownerId && user.id === ownerId
@@ -192,6 +198,20 @@ export default async function ListingDetailPage({
 
   // Parallel: check saved status + fetch all map listings
   const supabase = await createClient()
+  let mapListingsQuery = supabase
+    .from('listings')
+    .select('id, title, neighborhood, rent_monthly, public_latitude, public_longitude')
+    .eq('status', 'approved')
+    .eq('paused', false)
+    .eq('filled', false)
+    .not('public_latitude', 'is', null)
+    .neq('id', id)
+    .limit(100)
+
+  if (shouldHideTestListings()) {
+    mapListingsQuery = mapListingsQuery.eq('test_listing', false)
+  }
+
   const [savedRow, mapListingsResult] = await Promise.all([
     user
       ? supabase
@@ -201,16 +221,7 @@ export default async function ListingDetailPage({
           .eq('listing_id', id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from('listings')
-      .select('id, title, neighborhood, rent_monthly, public_latitude, public_longitude')
-      .eq('status', 'approved')
-      .eq('paused', false)
-      .eq('filled', false)
-
-      .not('public_latitude', 'is', null)
-      .neq('id', id)
-      .limit(100),
+    mapListingsQuery,
   ])
   const isSaved = !!(savedRow as { data: unknown }).data
   const mapListings = ((mapListingsResult.data ?? []) as MapListing[])
