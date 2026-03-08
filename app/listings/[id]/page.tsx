@@ -56,6 +56,7 @@ interface ListingDetailRow {
   save_count: number | null
   original_rent_monthly: number | null
   management_company: string | null
+  verified: boolean | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; caption?: string }> | null
   photo_urls: string[] | null
 }
@@ -83,7 +84,7 @@ async function getListing(id: string) {
       furnished, amenities, house_rules, roommate_info,
       is_featured, is_intern_friendly, immediate_movein,
       created_at, lister_id, user_id, status, paused, filled, save_count,
-      original_rent_monthly, management_company,
+      original_rent_monthly, management_company, verified,
       listing_photos(url, display_order, is_primary, caption),
       photo_urls
     `)
@@ -334,6 +335,7 @@ export default async function ListingDetailPage({
             {/* Title + badges + price */}
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
+                {listing.verified && <Badge variant="verified" />}
                 {listing.is_featured && <Badge variant="featured" />}
                 {listing.is_intern_friendly && <Badge variant="intern_friendly" />}
                 {isFurnished && <Badge variant="furnished" />}

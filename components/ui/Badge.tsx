@@ -16,7 +16,8 @@ const badgeConfig: Record<
 > = {
   verified: {
     label: 'Verified',
-    className: 'bg-blue-100 text-blue-700',
+    className: 'bg-green-100 text-green-800',
+    Icon: CheckCircle,
   },
   lease_verified: {
     label: 'Lease Verified',

@@ -15,7 +15,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
     .from('listings')
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
-      room_type, furnished, is_featured, is_intern_friendly, immediate_movein,
+      room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
       save_count, photo_urls,
       listing_photos(url, display_order, is_primary)
     `)
@@ -65,6 +65,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
       primary_photo_url: primaryPhoto,
       save_count: (row.save_count as number) ?? 0,
       is_saved: savedIds.has(row.id as string),
+      verified: (row.verified as boolean) ?? false,
     }
   })
 }

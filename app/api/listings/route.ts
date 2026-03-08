@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     .select(`
       id, title, neighborhood, rent_monthly, original_rent_monthly,
       available_from, available_to,
-      room_type, furnished, is_featured, is_intern_friendly, immediate_movein,
+      room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
       save_count, photo_urls, public_latitude, public_longitude,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })

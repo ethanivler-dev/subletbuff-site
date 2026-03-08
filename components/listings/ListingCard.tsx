@@ -26,6 +26,7 @@ export interface ListingCardData {
   public_latitude?: number
   public_longitude?: number
   original_rent_monthly?: number
+  verified?: boolean
 }
 
 interface ListingCardProps {
@@ -83,6 +84,11 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
           {is_featured && (
             <span className="absolute top-2 left-2">
               <Badge variant="featured" />
+            </span>
+          )}
+          {listing.verified && (
+            <span className="absolute top-2 right-10">
+              <Badge variant="verified" />
             </span>
           )}
           <SaveButton
@@ -167,6 +173,11 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
         {is_featured && (
           <span className="absolute top-2 left-2">
             <Badge variant="featured" />
+          </span>
+        )}
+        {listing.verified && (
+          <span className="absolute top-2 right-10">
+            <Badge variant="verified" />
           </span>
         )}
       </div>

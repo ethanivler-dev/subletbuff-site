@@ -33,6 +33,7 @@ interface AdminListing {
   paused: boolean | null
   filled: boolean | null
   test_listing: boolean | null
+  verified: boolean | null
   created_at: string | null
   lister_id: string | null
   user_id: string | null
@@ -514,6 +515,11 @@ export default function AdminDashboard() {
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
                               {status.label}
                             </span>
+                            {listing.verified && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Verified
+                              </span>
+                            )}
                             {listing.test_listing && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                                 Test

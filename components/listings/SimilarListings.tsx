@@ -20,7 +20,7 @@ export async function SimilarListings({ currentId, neighborhood, rentMonthly }: 
     .from('listings')
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
-      room_type, furnished, is_featured, is_intern_friendly, immediate_movein,
+      room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
       photo_urls,
       listing_photos(url, display_order, is_primary)
     `)
@@ -58,6 +58,7 @@ export async function SimilarListings({ currentId, neighborhood, rentMonthly }: 
       is_intern_friendly: (row.is_intern_friendly as boolean) ?? false,
       immediate_movein: (row.immediate_movein as boolean) ?? false,
       primary_photo_url: primaryPhoto,
+      verified: (row.verified as boolean) ?? false,
     }
   })
 
