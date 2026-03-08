@@ -32,6 +32,7 @@ interface AdminListing {
   status: string | null
   paused: boolean | null
   filled: boolean | null
+  test_listing: boolean | null
   created_at: string | null
   lister_id: string | null
   user_id: string | null
@@ -460,9 +461,16 @@ export default function AdminDashboard() {
 
                         {/* Status */}
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
-                            {status.label}
-                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                              {status.label}
+                            </span>
+                            {listing.test_listing && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                Test
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Posted */}

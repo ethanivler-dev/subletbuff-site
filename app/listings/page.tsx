@@ -49,6 +49,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
+    .eq('test_listing', false)
 
   // Text search on neighborhood or title
   if (params.q) {

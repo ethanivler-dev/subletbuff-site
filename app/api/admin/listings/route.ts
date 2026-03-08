@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       id, title, description, neighborhood, room_type,
       rent_monthly, monthly_rent,
       available_from, available_to, start_date, end_date,
-      status, paused, filled, created_at,
+      status, paused, filled, test_listing, created_at,
       lister_id, user_id,
       listing_photos(url, display_order, is_primary)
     `)

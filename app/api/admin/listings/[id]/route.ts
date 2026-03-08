@@ -4,7 +4,7 @@ import { isAdmin } from '@/lib/admin'
 
 const ADMIN_EDITABLE_FIELDS = [
   'title', 'description', 'rent_monthly', 'neighborhood', 'room_type',
-  'available_from', 'available_to', 'status', 'paused', 'filled',
+  'available_from', 'available_to', 'status', 'paused', 'filled', 'test_listing',
 ]
 
 /**
