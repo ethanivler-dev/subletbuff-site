@@ -9,8 +9,9 @@ import { sanitizeListingTitle } from '@/lib/utils'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Browse Listings',
-  description: 'Search verified short-term sublets in Boulder, CO.',
+  title: 'Summer Sublets in Boulder CO | Browse Verified Listings | SubletBuff',
+  description: 'Browse verified summer sublets in Boulder near CU. Filter by neighborhood, price, dates, and amenities. Furnished rooms, apartments, and houses. Free to browse.',
+  alternates: { canonical: '/listings' },
 }
 
 export const revalidate = 30
@@ -160,8 +161,26 @@ export default async function ListingsPage({
   const params = await searchParams
   const { listings, total } = await fetchListings(params)
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://subletbuff.com'
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Boulder Sublets',
+    numberOfItems: total,
+    itemListElement: listings.slice(0, 20).map((l, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${baseUrl}/listings/${l.id}`,
+      name: l.title,
+    })),
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Page header */}
       <div className="bg-white border-b border-gray-100 pt-20 pb-4">
         <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">

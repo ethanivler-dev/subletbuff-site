@@ -39,6 +39,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/neighborhoods" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">
+                  Neighborhoods
+                </Link>
+              </li>
+              <li>
                 <Link href="/how-it-works" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">
                   How It Works
                 </Link>

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { formatRent, formatPrice, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
+import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
 import { ListingGallery } from '@/components/listings/ListingGallery'
@@ -152,19 +152,25 @@ export async function generateMetadata({
     photos.sort((a, b) => a.display_order - b.display_order)[0]?.url ??
     (Array.isArray(row.photo_urls) ? (row.photo_urls as string[])[0] : undefined)
 
-  const description = row.description?.slice(0, 160) ?? `Short-term sublet in ${neighborhood}`
+  const rent = listing.rent ?? 0
+  const dateFrom = listing.dateFrom ? formatDate(listing.dateFrom) : 'soon'
+  const dateTo = listing.dateTo ? formatDate(listing.dateTo) : 'flexible'
+  const descSnippet = (row.description ?? '').slice(0, 120)
+  const description = `${formatRoomType(roomType)} available ${dateFrom} – ${dateTo} in ${neighborhood}, Boulder. ${formatRent(rent)}/mo. ${descSnippet}...`
+  const metaTitle = `${title} — ${formatRent(rent)}/mo in ${neighborhood}`
 
   return {
-    title: `${title} — ${formatRent(listing.rent ?? 0)}`,
+    title: metaTitle,
     description,
+    alternates: { canonical: `/listings/${id}` },
     openGraph: {
-      title: `${title} — ${formatRent(listing.rent ?? 0)}/mo`,
+      title: metaTitle,
       description,
       ...(ogImage ? { images: [{ url: ogImage, width: 800, height: 600 }] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} — ${formatRent(listing.rent ?? 0)}/mo`,
+      title: metaTitle,
       description,
       ...(ogImage ? { images: [ogImage] } : {}),
     },

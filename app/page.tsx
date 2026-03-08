@@ -4,18 +4,37 @@ import { ShieldCheck, Eye, MapPin } from 'lucide-react'
 import { HeroSearch } from '@/components/home/HeroSearch'
 import { FeaturedGrid } from '@/components/home/FeaturedGrid'
 import { ListingCardSkeleton } from '@/components/ui/Skeleton'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'SubletBuff | Boulder Sublets & Short-Term Housing Near CU',
+  description: 'Find verified summer sublets and short-term housing in Boulder, CO. Free for students. No scams, no fees. Browse furnished rooms, apartments, and houses near CU Boulder.',
+  alternates: { canonical: '/' },
+}
 
 export const revalidate = 60
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'SubletBuff',
+  url: 'https://subletbuff.com',
+  description: "Boulder's verified sublet marketplace for CU students, interns, and researchers.",
+}
 
 export default function HomePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero */}
       <section className="relative min-h-[60vh] sm:min-h-[75vh] lg:min-h-[80vh] flex items-center justify-center pt-16">
         {/* Background image */}
         <Image
           src="/hero-flatirons.jpg"
-          alt="Boulder Flatirons"
+          alt="Boulder Flatirons - SubletBuff short-term housing marketplace"
           fill
           priority
           placeholder="blur"

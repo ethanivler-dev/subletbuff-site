@@ -21,6 +21,8 @@ const INITIAL_BASIC: BasicInfoData = {
   address: '',
   unit_number: '',
   neighborhood: '',
+  latitude: '',
+  longitude: '',
   room_type: '',
   rent_monthly: '',
   deposit: '',
@@ -259,8 +261,8 @@ export default function PostListingPage() {
     try {
       const supabase = createClient()
 
-      const baseLat = 40.0150
-      const baseLng = -105.2705
+      const baseLat = basicInfo.latitude ? parseFloat(basicInfo.latitude) : 40.0150
+      const baseLng = basicInfo.longitude ? parseFloat(basicInfo.longitude) : -105.2705
       const jitterLat = baseLat + (Math.random() - 0.5) * 0.004
       const jitterLng = baseLng + (Math.random() - 0.5) * 0.004
 

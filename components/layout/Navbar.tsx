@@ -91,6 +91,12 @@ export function Navbar() {
                 Browse Listings
               </Link>
               <Link
+                href="/neighborhoods"
+                className={[textColor, 'text-sm font-medium hover:opacity-70 transition-opacity'].join(' ')}
+              >
+                Neighborhoods
+              </Link>
+              <Link
                 href="/how-it-works"
                 className={[textColor, 'text-sm font-medium hover:opacity-70 transition-opacity'].join(' ')}
               >

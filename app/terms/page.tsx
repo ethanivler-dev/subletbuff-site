@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Terms of Use',
   description: 'SubletBuff terms of use — user responsibilities, prohibited content, liability, and dispute resolution.',
+  alternates: { canonical: '/terms' },
 }
 
 const LAST_UPDATED = 'March 5, 2026'

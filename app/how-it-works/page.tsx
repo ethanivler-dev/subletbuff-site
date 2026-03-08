@@ -4,8 +4,9 @@ import { HowItWorksSteps } from '@/components/how-it-works/HowItWorksSteps'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'How It Works — SubletBuff',
-  description: "Learn how to list, browse, and connect on SubletBuff — Boulder's sublet marketplace.",
+  title: 'How SubletBuff Works | Find or Post Boulder Sublets for Free',
+  description: 'Learn how to find or post a verified sublet in Boulder. SubletBuff connects CU students, interns, and researchers with safe short-term housing. Free for students.',
+  alternates: { canonical: '/how-it-works' },
 }
 
 /* ------------------------------------------------------------------ */

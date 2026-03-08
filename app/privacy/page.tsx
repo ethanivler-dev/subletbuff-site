@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'SubletBuff privacy policy — how we collect, use, and protect your personal data. Compliant with CCPA and CPA.',
+  alternates: { canonical: '/privacy' },
 }
 
 const LAST_UPDATED = 'March 5, 2026'

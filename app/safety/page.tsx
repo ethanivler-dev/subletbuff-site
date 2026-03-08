@@ -6,8 +6,9 @@ import {
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Safety Tips — SubletBuff',
-  description: 'Practical safety advice for subletting in Boulder. Meet in public, use traceable payments, and always get it in writing.',
+  title: 'Safety & Trust | SubletBuff — Verified Boulder Sublets',
+  description: 'SubletBuff verifies every listing and user to keep Boulder subletting safe. Learn about our verification process, scam prevention, and how we protect students.',
+  alternates: { canonical: '/safety' },
 }
 
 /* ------------------------------------------------------------------ */

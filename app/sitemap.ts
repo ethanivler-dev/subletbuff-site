@@ -8,8 +8,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1.0 },
     { url: `${baseUrl}/listings`, lastModified: new Date(), changeFrequency: 'hourly', priority: 0.9 },
+    { url: `${baseUrl}/neighborhoods`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${baseUrl}/how-it-works`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/safety`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/post`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${baseUrl}/terms`, changeFrequency: 'yearly', priority: 0.2 },
+    { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.2 },
   ]
 
   // Dynamic listing pages

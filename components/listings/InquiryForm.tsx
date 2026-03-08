@@ -4,9 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { createClient } from '@/lib/supabase/client'
 import { Lock, Send } from 'lucide-react'
-import type { User } from '@supabase/supabase-js'
 
 interface InquiryFormProps {
   listingId: string
@@ -53,17 +51,22 @@ export function InquiryForm({ listingId, listerId, listerName, user }: InquiryFo
     setSending(true)
 
     try {
-      const supabase = createClient()
-      const { error: insertError } = await supabase.from('inquiries').insert({
-        listing_id: listingId,
-        renter_id: user!.id,
-        lister_id: listerId,
-        message: message.trim(),
-        move_in_date: moveIn || null,
-        move_out_date: moveOut || null,
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listing_id: listingId,
+          lister_id: listerId,
+          message: message.trim(),
+          move_in_date: moveIn || null,
+          move_out_date: moveOut || null,
+        }),
       })
 
-      if (insertError) throw insertError
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to send')
+      }
       setSent(true)
     } catch {
       setError('Failed to send message. Please try again.')

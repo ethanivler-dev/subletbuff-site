@@ -70,7 +70,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
           {primary_photo_url ? (
             <Image
               src={primary_photo_url}
-              alt={title}
+              alt={`${title} - ${formatRoomType(room_type)} in ${neighborhood}`}
               fill
               className="object-cover"
               sizes="176px"
@@ -146,7 +146,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
         {primary_photo_url ? (
           <Image
             src={primary_photo_url}
-            alt={title}
+            alt={`${title} - ${formatRoomType(room_type)} in ${neighborhood}`}
             fill
             className="object-cover"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"

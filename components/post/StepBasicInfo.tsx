@@ -61,6 +61,8 @@ export interface BasicInfoData {
   address: string
   unit_number: string
   neighborhood: string
+  latitude: string
+  longitude: string
   room_type: string
   rent_monthly: string
   deposit: string
@@ -123,11 +125,15 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
 
       const formatted = place.formatted_address ?? ''
       const neighborhood = resolveNeighborhood(extractNeighborhood(place.address_components))
+      const lat = place.geometry?.location?.lat()
+      const lng = place.geometry?.location?.lng()
 
       onChangeRef.current({
         ...dataRef.current,
         address: formatted,
         neighborhood,
+        latitude: lat ? String(lat) : '',
+        longitude: lng ? String(lng) : '',
       })
     })
 

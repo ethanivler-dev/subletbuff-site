@@ -19,7 +19,7 @@ const sans = Plus_Jakarta_Sans({
 
 const siteTitle = 'SubletBuff | Boulder Sublets & Short-Term Housing Near CU'
 const siteDescription =
-  'Find verified short-term sublets in Boulder, CO. Perfect for CU interns, researchers, and seasonal workers. Browse furnished rooms, apartments, and shared spaces.'
+  'Find verified summer sublets and short-term housing in Boulder, CO. Free for students. No scams, no fees. Browse furnished rooms, apartments, and houses near CU Boulder.'
 
 export const metadata: Metadata = {
   title: {

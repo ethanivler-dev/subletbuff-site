@@ -61,6 +61,13 @@ export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps
             Browse Listings
           </Link>
           <Link
+            href="/neighborhoods"
+            onClick={onClose}
+            className="py-3 px-2 text-gray-800 hover:text-primary-600 font-medium rounded-button hover:bg-gray-50 transition-colors"
+          >
+            Neighborhoods
+          </Link>
+          <Link
             href="/how-it-works"
             onClick={onClose}
             className="py-3 px-2 text-gray-800 hover:text-primary-600 font-medium rounded-button hover:bg-gray-50 transition-colors"
