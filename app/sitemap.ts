@@ -24,7 +24,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
-    .eq('test_listing', false)
     .order('created_at', { ascending: false })
 
   const listingPages: MetadataRoute.Sitemap = (listings ?? []).map((listing) => ({

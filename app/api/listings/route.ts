@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
-    .eq('test_listing', false)
+
 
   // Text search
   if (q) {

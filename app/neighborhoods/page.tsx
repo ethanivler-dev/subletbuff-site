@@ -115,7 +115,7 @@ async function getListingCounts(): Promise<Record<string, number>> {
       .eq('status', 'approved')
       .eq('paused', false)
       .eq('filled', false)
-      .eq('test_listing', false)
+
       .eq('neighborhood', n.dbName)
 
     counts[n.dbName] = count ?? 0

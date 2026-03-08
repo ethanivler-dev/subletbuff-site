@@ -27,7 +27,7 @@ export async function SimilarListings({ currentId, neighborhood, rentMonthly }: 
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
-    .eq('test_listing', false)
+
     .neq('id', currentId)
     .or(`neighborhood.eq.${neighborhood},and(rent_monthly.gte.${minRent},rent_monthly.lte.${maxRent})`)
     .order('created_at', { ascending: false })

@@ -206,7 +206,7 @@ export default async function ListingDetailPage({
       .eq('status', 'approved')
       .eq('paused', false)
       .eq('filled', false)
-      .eq('test_listing', false)
+
       .not('public_latitude', 'is', null)
       .neq('id', id)
       .limit(100),

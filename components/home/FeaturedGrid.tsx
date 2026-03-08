@@ -22,7 +22,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
-    .eq('test_listing', false)
+
     .order('created_at', { ascending: false })
     .limit(8)
 
