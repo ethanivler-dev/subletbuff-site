@@ -6,8 +6,11 @@ import { NextRequest, NextResponse } from 'next/server'
  * Body: { listing_id, recipient_id, message }
  */
 export async function POST(request: NextRequest) {
+  console.log('[conversations POST] === START ===')
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  console.log('[conversations POST] Auth:', user ? `user=${user.id} (${user.email})` : 'NO USER', authError ? `authError=${authError.message}` : '')
 
   if (!user) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
@@ -15,21 +18,25 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json()
   const { listing_id, recipient_id, message } = body
+  console.log('[conversations POST] Body:', JSON.stringify({ listing_id, recipient_id, message: message?.slice(0, 50) }))
 
   if (!listing_id || !recipient_id || !message?.trim()) {
+    console.log('[conversations POST] Validation failed: missing fields')
     return NextResponse.json({ error: 'listing_id, recipient_id, and message are required' }, { status: 400 })
   }
 
   if (recipient_id === user.id) {
+    console.log('[conversations POST] Blocked: user messaging themselves')
     return NextResponse.json({ error: 'Cannot message yourself' }, { status: 400 })
   }
 
   // Canonical ordering: participant_a < participant_b
   const participant_a = user.id < recipient_id ? user.id : recipient_id
   const participant_b = user.id < recipient_id ? recipient_id : user.id
+  console.log('[conversations POST] Participants:', { participant_a, participant_b })
 
   // Upsert conversation — ON CONFLICT returns existing
-  const { data: existingConvo } = await supabase
+  const { data: existingConvo, error: selectError } = await supabase
     .from('conversations')
     .select('id')
     .eq('listing_id', listing_id)
@@ -37,10 +44,13 @@ export async function POST(request: NextRequest) {
     .eq('participant_b', participant_b)
     .maybeSingle()
 
+  console.log('[conversations POST] Existing convo:', existingConvo, selectError ? `selectError=${selectError.message}` : '')
+
   let conversationId: string
 
   if (existingConvo) {
     conversationId = existingConvo.id
+    console.log('[conversations POST] Using existing conversation:', conversationId)
   } else {
     const { data: newConvo, error: convoError } = await supabase
       .from('conversations')
@@ -53,6 +63,8 @@ export async function POST(request: NextRequest) {
       })
       .select('id')
       .single()
+
+    console.log('[conversations POST] Insert convo result:', newConvo, convoError ? `error=${JSON.stringify(convoError)}` : '')
 
     if (convoError) {
       console.error('[conversations POST] Insert conversation failed:', convoError)
@@ -78,6 +90,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  console.log('[conversations POST] ConversationId:', conversationId)
+
   // Insert message
   const { data: msg, error: msgError } = await supabase
     .from('messages')
@@ -89,19 +103,24 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
+  console.log('[conversations POST] Insert msg result:', msg, msgError ? `error=${JSON.stringify(msgError)}` : '')
+
   if (msgError) {
     console.error('[conversations POST] Insert message failed:', msgError)
     return NextResponse.json({ error: msgError.message }, { status: 500 })
   }
 
   // Update conversation metadata
-  await supabase
+  const { error: updateError } = await supabase
     .from('conversations')
     .update({
       last_message_at: new Date().toISOString(),
       last_message_preview: message.trim().slice(0, 200),
     })
     .eq('id', conversationId)
+
+  console.log('[conversations POST] Update convo metadata:', updateError ? `error=${updateError.message}` : 'OK')
+  console.log('[conversations POST] === SUCCESS === conversation_id:', conversationId, 'message_id:', msg.id)
 
   return NextResponse.json({ conversation_id: conversationId, message_id: msg.id }, { status: 201 })
 }
