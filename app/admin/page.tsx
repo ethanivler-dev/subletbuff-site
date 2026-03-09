@@ -607,14 +607,13 @@ export default function AdminDashboard() {
                                   <ExternalLink className="w-4 h-4" />
                                 </Link>
                                 {/* Edit */}
-                                <button
-                                  onClick={() => startEdit(listing)}
-                                  disabled={isActioning}
-                                  className="p-1.5 rounded hover:bg-blue-100 text-blue-600 transition-colors disabled:opacity-50"
+                                <Link
+                                  href={`/admin/listings/${listing.id}/edit`}
+                                  className="p-1.5 rounded hover:bg-blue-100 text-blue-600 transition-colors"
                                   title="Edit"
                                 >
                                   <Pencil className="w-4 h-4" />
-                                </button>
+                                </Link>
                                 {/* Pause/Unpause */}
                                 {listing.status === 'approved' && (
                                   listing.paused ? (

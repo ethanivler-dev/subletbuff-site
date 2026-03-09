@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { shouldHideTestListings } from '@/lib/appEnv'
+import { isAdmin } from '@/lib/admin'
 import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
@@ -110,7 +111,8 @@ async function getListing(id: string) {
   if (!isPublic) {
     const { data: { user } } = await supabase.auth.getUser()
     const isOwner = user && ownerId && user.id === ownerId
-    if (!isOwner) return null
+    const isAdminUser = user && isAdmin(user.id)
+    if (!isOwner && !isAdminUser) return null
   }
 
   // Fetch profile separately (no FK from listings.lister_id → profiles.id)
