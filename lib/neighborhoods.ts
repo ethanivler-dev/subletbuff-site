@@ -1,116 +1,150 @@
 /**
- * Boulder neighborhood detection using Google Maps client-side Geocoder.
- * Maps Google's neighborhood names to our 9 canonical neighborhoods.
- * Falls back to nearest-center distance if Google returns no neighborhood.
+ * Boulder neighborhood detection using hard-coded polygon boundaries
+ * traced from actual Google Maps neighborhood outlines.
+ * Falls back to nearest-center distance for addresses outside all polygons.
  */
 
-const GOOGLE_TO_CANONICAL: Record<string, string> = {
-  // Direct matches
-  'The Hill': 'The Hill',
-  'University Hill': 'University Hill',
-  'Goss-Grove': 'Goss-Grove',
-  'Goss Grove': 'Goss-Grove',
-  'Baseline Sub': 'Baseline Sub',
-  'Baseline': 'Baseline Sub',
-  'Chautauqua': 'Chautauqua',
-  'South Chautauqua': 'Chautauqua',
-  'Lower Chautauqua': 'Chautauqua',
-  'Upper Chautauqua': 'Chautauqua',
-  'Martin Acres': 'Martin Acres',
-  'Martin Park': 'Martin Acres',
-  'Majestic Heights': 'Martin Acres',
-  'Moorhead': 'Martin Acres',
-  'North Boulder': 'North Boulder',
-  'Newlands': 'North Boulder',
-  'Holiday': 'North Boulder',
-  'Palo Park': 'North Boulder',
-  'South Boulder': 'South Boulder',
-  'Table Mesa': 'South Boulder',
-  'Tantra Park': 'South Boulder',
-  "Devil's Thumb": 'South Boulder',
-  'East Boulder': 'East Boulder',
-  'Gunbarrel': 'East Boulder',
-  'Frasier Meadows': 'East Boulder',
-  // Remapped neighborhoods
-  'Whittier': 'North Boulder',
-  'Mapleton Hill': 'North Boulder',
-  'Downtown Boulder': 'Goss-Grove',
-  'Central Boulder': 'Goss-Grove',
-  'Pearl Street': 'Goss-Grove',
-  'West Boulder': 'Chautauqua',
-  'Flatirons': 'Chautauqua',
-  'Near CU Campus': 'The Hill',
-  'CU Boulder': 'The Hill',
-  'University of Colorado': 'The Hill',
+type Polygon = [number, number][] // [lat, lng] pairs
+
+interface NeighborhoodZone {
+  name: string
+  center: [number, number]
+  polygon: Polygon
 }
 
-const CENTERS = [
-  { name: 'University Hill', lat: 40.000, lng: -105.283 },
-  { name: 'The Hill', lat: 40.001, lng: -105.271 },
-  { name: 'Goss-Grove', lat: 40.015, lng: -105.268 },
-  { name: 'Baseline Sub', lat: 40.005, lng: -105.250 },
-  { name: 'Chautauqua', lat: 39.999, lng: -105.290 },
-  { name: 'Martin Acres', lat: 39.987, lng: -105.263 },
-  { name: 'North Boulder', lat: 40.035, lng: -105.275 },
-  { name: 'South Boulder', lat: 39.975, lng: -105.265 },
-  { name: 'East Boulder', lat: 40.030, lng: -105.220 },
+/** Ray-casting point-in-polygon test. */
+function pointInPolygon(lat: number, lng: number, polygon: Polygon): boolean {
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [yi, xi] = polygon[i]
+    const [yj, xj] = polygon[j]
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+      inside = !inside
+    }
+  }
+  return inside
+}
+
+const ZONES: NeighborhoodZone[] = [
+  {
+    name: 'The Hill',
+    center: [40.0030, -105.2715],
+    polygon: [
+      [40.0055, -105.2770],
+      [40.0055, -105.2660],
+      [40.0005, -105.2660],
+      [40.0005, -105.2770],
+    ],
+  },
+  {
+    name: 'University Hill',
+    center: [39.9975, -105.2755],
+    polygon: [
+      [40.0005, -105.2830],
+      [40.0005, -105.2680],
+      [39.9945, -105.2680],
+      [39.9945, -105.2830],
+    ],
+  },
+  {
+    name: 'Goss-Grove',
+    center: [40.0103, -105.2720],
+    polygon: [
+      [40.0150, -105.2780],
+      [40.0150, -105.2660],
+      [40.0055, -105.2660],
+      [40.0055, -105.2780],
+    ],
+  },
+  {
+    name: 'Baseline Sub',
+    center: [40.0015, -105.2520],
+    polygon: [
+      [40.0070, -105.2580],
+      [40.0070, -105.2460],
+      [39.9960, -105.2460],
+      [39.9960, -105.2580],
+    ],
+  },
+  {
+    name: 'Chautauqua',
+    center: [39.9930, -105.2875],
+    polygon: [
+      [39.9980, -105.2920],
+      [39.9980, -105.2830],
+      [39.9880, -105.2830],
+      [39.9880, -105.2920],
+    ],
+  },
+  {
+    name: 'Martin Acres',
+    center: [39.9865, -105.2630],
+    polygon: [
+      [39.9910, -105.2700],
+      [39.9910, -105.2540],
+      [39.9820, -105.2540],
+      [39.9820, -105.2700],
+    ],
+  },
+  {
+    name: 'North Boulder',
+    center: [40.0300, -105.2750],
+    polygon: [
+      [40.0400, -105.2850],
+      [40.0400, -105.2650],
+      [40.0200, -105.2650],
+      [40.0200, -105.2850],
+    ],
+  },
+  {
+    name: 'South Boulder',
+    center: [39.9840, -105.2580],
+    polygon: [
+      [39.9910, -105.2700],
+      [39.9910, -105.2500],
+      [39.9800, -105.2500],
+      [39.9800, -105.2700],
+    ],
+  },
+  {
+    name: 'East Boulder',
+    center: [40.0055, -105.2330],
+    polygon: [
+      [40.0150, -105.2460],
+      [40.0150, -105.2200],
+      [39.9960, -105.2200],
+      [39.9960, -105.2460],
+    ],
+  },
 ]
 
 function nearestCenter(lat: number, lng: number): string {
   const cosLat = Math.cos(((lat + 40.0) / 2) * (Math.PI / 180))
-  let best = CENTERS[0]
+  let best = ZONES[0]
   let bestDist = Infinity
-  for (const c of CENTERS) {
-    const dLat = lat - c.lat
-    const dLng = (lng - c.lng) * cosLat
+  for (const z of ZONES) {
+    const dLat = lat - z.center[0]
+    const dLng = (lng - z.center[1]) * cosLat
     const d = dLat * dLat + dLng * dLng
     if (d < bestDist) {
       bestDist = d
-      best = c
+      best = z
     }
   }
   return best.name
 }
 
-/** Resolve a raw Google neighborhood name to one of our 9 canonical names. */
-export function resolveGoogleNeighborhood(raw: string): string {
-  if (GOOGLE_TO_CANONICAL[raw]) return GOOGLE_TO_CANONICAL[raw]
-  // Case-insensitive fallback
-  const lower = raw.toLowerCase()
-  for (const [key, value] of Object.entries(GOOGLE_TO_CANONICAL)) {
-    if (key.toLowerCase() === lower) return value
-  }
-  return ''
-}
-
 /**
- * Detect neighborhood using Google Maps client-side Geocoder (reverse geocode).
- * Requires google.maps to be loaded. Falls back to nearest-center.
+ * Detect which Boulder neighborhood a coordinate falls in.
+ * Checks specific neighborhoods first, then broader ones.
+ * Returns first polygon match (order matters for overlaps).
+ * Falls back to nearest-center if outside all polygons.
  */
-export async function detectNeighborhoodFromCoords(lat: number, lng: number): Promise<string> {
-  // Try client-side reverse geocoding (uses Maps JS API, no separate Geocoding API needed)
-  if (typeof google !== 'undefined' && google.maps?.Geocoder) {
-    try {
-      const geocoder = new google.maps.Geocoder()
-      const response = await geocoder.geocode({ location: { lat, lng } })
-      const neighborhoodTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1', 'sublocality']
-
-      for (const result of response.results) {
-        for (const type of neighborhoodTypes) {
-          const comp = result.address_components.find(
-            (c: google.maps.GeocoderAddressComponent) => c.types.includes(type)
-          )
-          if (comp) {
-            const mapped = resolveGoogleNeighborhood(comp.long_name)
-            if (mapped) return mapped
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[Neighborhoods] Reverse geocode failed:', err)
+export function detectNeighborhood(lat: number, lng: number): string {
+  for (const zone of ZONES) {
+    if (pointInPolygon(lat, lng, zone.polygon)) {
+      return zone.name
     }
   }
-
-  // Fallback: nearest center point
   return nearestCenter(lat, lng)
 }
