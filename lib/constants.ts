@@ -7,7 +7,7 @@ export const NEIGHBORHOODS = [
   'Martin Acres',
   'North Boulder',
   'South Boulder',
-  'East Boulder',
+  'Downtown',
 ]
 
 export const NEIGHBORHOOD_ALIASES: Record<string, string> = {
@@ -19,12 +19,14 @@ export const NEIGHBORHOOD_ALIASES: Record<string, string> = {
   'Goss-Grove': 'Goss-Grove',
   'Whittier': 'North Boulder',
   'Mapleton Hill': 'North Boulder',
-  'Downtown Boulder': 'North Boulder',
+  'Downtown Boulder': 'Downtown',
   'Flatirons': 'Chautauqua',
   'South Boulder Creek': 'South Boulder',
   'Baseline': 'Baseline Sub',
   'Table Mesa': 'South Boulder',
-  'Gunbarrel': 'East Boulder',
+  'Pearl Street': 'Downtown',
+  'Pearl Street Mall': 'Downtown',
+  'Gunbarrel': 'Downtown',
   'Martin Acres': 'Martin Acres',
   'CU Boulder': 'The Hill',
   'University of Colorado': 'The Hill',

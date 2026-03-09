@@ -1,10 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, Gem, Landmark, TreePine, Building2, Mountain, Users, Coffee, Bus, Leaf } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { shouldHideTestListings } from '@/lib/appEnv'
 import type { Metadata } from 'next'
-import type { LucideIcon } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Boulder Neighborhoods for Student Housing | SubletBuff',
@@ -14,95 +13,78 @@ export const metadata: Metadata = {
 
 export const revalidate = 300
 
-const neighborhoods: {
-  slug: string
-  dbName: string
-  name: string
-  vibe: string
-  description: string
-  image: string
-  icon: LucideIcon
-}[] = [
+const neighborhoods = [
   {
     slug: 'the-hill',
     dbName: 'The Hill',
     name: 'The Hill',
     vibe: 'Social & Energetic',
-    description: 'The classic CU Boulder experience. Right next to campus, bustling with activity, students, and iconic local spots like The Sink.',
-    image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80',
-    icon: Gem,
+    description: 'The student hub right next to campus. Packed with bars, restaurants, and shops along University Hill. Walk to class in under 10 minutes. Best for undergrads who want to be in the middle of everything.',
+    image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=500&fit=crop',
   },
   {
     slug: 'university-hill',
     dbName: 'University Hill',
     name: 'University Hill',
     vibe: 'Historic & Walkable',
-    description: 'Historic homes and tree-lined streets just east of campus. Home to many Greek life organizations. Walking distance to everything.',
-    image: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80',
-    icon: Landmark,
+    description: 'Tree-lined streets and historic homes just east of campus. Home to Greek life and longtime Boulder families. A 5-10 minute walk to most campus buildings.',
+    image: 'https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=500&fit=crop',
   },
   {
     slug: 'goss-grove',
     dbName: 'Goss-Grove',
     name: 'Goss-Grove',
     vibe: 'Convenient & Quiet',
-    description: 'A charming area tucked between campus and Pearl Street. Known for its historic homes and beautiful tree-lined streets.',
-    image: 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&q=80',
-    icon: TreePine,
+    description: 'A quiet pocket between campus and Pearl Street. Small historic homes on shaded streets. Popular with grad students and staff who want walkable access to both campus and downtown.',
+    image: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&h=500&fit=crop',
   },
   {
     slug: 'baseline-sub',
     dbName: 'Baseline Sub',
     name: 'Baseline Sub',
     vibe: 'Student Apartments',
-    description: 'The apartment complex corridor along 28th Street. U Club, Gold Run, Spanish Towers, and more. Student-heavy with lots of amenities.',
-    image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80',
-    icon: Building2,
+    description: 'The apartment corridor along 28th Street — U Club, Gold Run, Spanish Towers, and others. Purpose-built student housing with pools, gyms, and shuttle access. Best for students who want amenities without a house.',
+    image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=500&fit=crop',
   },
   {
     slug: 'chautauqua',
     dbName: 'Chautauqua',
     name: 'Chautauqua',
     vibe: 'Premium & Scenic',
-    description: 'At the base of the Flatirons. Quieter, more premium housing. Beautiful nature access. Great for grad students and researchers.',
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
-    icon: Mountain,
+    description: 'At the base of the Flatirons with direct trail access. Quieter, more expensive, and stunning. Great for grad students, researchers, or anyone who prioritizes nature and space over nightlife.',
+    image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=800&h=500&fit=crop',
   },
   {
     slug: 'martin-acres',
     dbName: 'Martin Acres',
     name: 'Martin Acres',
     vibe: 'Spacious & Residential',
-    description: 'Located south of campus, this area offers more space and a more traditional residential feel while still being bikeable to class.',
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
-    icon: Users,
+    description: 'A residential neighborhood south of campus with more room and lower rents. Bikeable to CU in 10-15 minutes. Popular with families, grad students, and anyone who wants a quieter pace.',
+    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=500&fit=crop',
   },
   {
     slug: 'north-boulder',
     dbName: 'North Boulder',
-    name: 'North Boulder',
-    vibe: 'Modern & Trendy',
-    description: 'A bit further from campus but offers modern apartments, great coffee shops, and easy access to the mountain trails.',
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80',
-    icon: Coffee,
-  },
-  {
-    slug: 'east-boulder',
-    dbName: 'East Boulder',
-    name: 'East Boulder',
-    vibe: 'Industrial & Accessible',
-    description: 'Home to many newer apartment complexes and convenient shopping centers. Great transit access to campus.',
-    image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80',
-    icon: Bus,
+    name: 'North Boulder (NoBo)',
+    vibe: 'Modern & Laid-Back',
+    description: 'Boulder\u2019s most laid-back area, north of downtown. Local coffee shops, breweries, and a community feel. A bus ride or 15-20 minute bike to campus. Best for people who don\u2019t need to be close to the university.',
+    image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=500&fit=crop',
   },
   {
     slug: 'south-boulder',
     dbName: 'South Boulder',
-    name: 'South Boulder / Table Mesa',
+    name: 'South Boulder',
     vibe: 'Quiet & Nature-Adjacent',
-    description: 'Quiet residential area popular with grad students and families. Close to NCAR, South Boulder trails, and the Table Mesa bus route.',
-    image: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80',
-    icon: Leaf,
+    description: 'Residential and nature-adjacent along the South Boulder Creek trail. Close to Table Mesa park-and-ride for easy bus commutes. A good balance of quiet living and campus access.',
+    image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=500&fit=crop',
+  },
+  {
+    slug: 'downtown',
+    dbName: 'Downtown',
+    name: 'Downtown / Pearl Street',
+    vibe: 'Central & Vibrant',
+    description: 'The heart of Boulder — restaurants, shops, street performers on the Pearl Street Mall. Walking distance to campus. Pricier, but you\u2019re at the center of everything.',
+    image: 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=800&h=500&fit=crop',
   },
 ]
 
@@ -157,12 +139,12 @@ export default async function NeighborhoodsPage() {
       <div className="min-h-screen bg-white pt-28 pb-20">
         <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-14">
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-gray-900 mb-4 leading-tight">
-              Boulder&apos;s <span className="text-primary-600">Best Neighborhoods.</span>
+          <div className="mb-12">
+            <h1 className="font-serif text-4xl sm:text-5xl text-gray-900 mb-3">
+              Neighborhoods
             </h1>
             <p className="text-gray-500 text-lg max-w-2xl">
-              From the energetic Hill to the quiet trails of North Boulder, find the area that fits your student lifestyle.
+              Find the Boulder neighborhood that fits your lifestyle.
             </p>
           </div>
 
@@ -170,7 +152,6 @@ export default async function NeighborhoodsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {neighborhoods.map((n) => {
               const listingCount = counts[n.dbName] ?? 0
-              const Icon = n.icon
               return (
                 <div
                   key={n.slug}
@@ -192,11 +173,8 @@ export default async function NeighborhoodsPage() {
                   </div>
 
                   <div className="p-5 flex flex-col flex-1">
-                    {/* Name + icon */}
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <h2 className="font-serif text-xl text-gray-900">{n.name}</h2>
-                      <Icon className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    </div>
+                    {/* Name */}
+                    <h2 className="font-serif text-xl text-gray-900 mb-2">{n.name}</h2>
 
                     {/* Vibe tag */}
                     <span className="inline-block text-[11px] font-semibold tracking-wider uppercase border border-gray-200 text-gray-600 px-2.5 py-1 rounded-full w-fit mb-3">
@@ -204,7 +182,7 @@ export default async function NeighborhoodsPage() {
                     </span>
 
                     {/* Description */}
-                    <p className="text-sm text-gray-500 leading-relaxed line-clamp-3 flex-1 mb-4">
+                    <p className="text-sm text-gray-500 leading-relaxed flex-1 mb-4">
                       {n.description}
                     </p>
 
