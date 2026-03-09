@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, CheckCircle2, XCircle, Clock, MapPin, Calendar } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Clock, MapPin, Calendar, FileText } from 'lucide-react'
 import { formatRent, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 
 interface SubletRequest {
@@ -203,12 +203,28 @@ export default function RequestsPage() {
                           </button>
                         </div>
                       ) : (
-                        <span className={[
-                          'text-xs font-medium px-2 py-0.5 rounded-badge',
-                          req.status === 'approved' ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100',
-                        ].join(' ')}>
-                          {req.status === 'approved' ? 'Approved' : 'Rejected'}
-                        </span>
+                        <>
+                          <span className={[
+                            'text-xs font-medium px-2 py-0.5 rounded-badge',
+                            req.status === 'approved' ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100',
+                          ].join(' ')}>
+                            {req.status === 'approved' ? 'Approved' : 'Rejected'}
+                          </span>
+                          {req.status === 'approved' && (
+                            <button
+                              onClick={async () => {
+                                const res = await fetch(`/api/landlords/requests/${req.id}/agreement`)
+                                if (res.ok) {
+                                  const { url } = await res.json()
+                                  window.open(url, '_blank')
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium"
+                            >
+                              <FileText className="w-3.5 h-3.5" /> Download Agreement
+                            </button>
+                          )}
+                        </>
                       )}
                       <span className="text-xs text-gray-400">
                         {new Date(req.requested_at).toLocaleDateString()}
