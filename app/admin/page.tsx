@@ -48,7 +48,7 @@ interface ListerProfile {
 type Tab = 'all' | 'approved' | 'paused' | 'pending' | 'rejected'
 
 const NEIGHBORHOODS = [
-  'The Hill', 'University Hill', 'Goss-Grove', 'Baseline', 'Chautauqua',
+  'The Hill', 'University Hill', 'Goss-Grove', 'Baseline Sub', 'Chautauqua',
   'Martin Acres', 'North Boulder', 'East Boulder', 'South Boulder',
 ]
 

@@ -45,7 +45,7 @@ const neighborhoods = [
   },
   {
     slug: 'baseline-sub',
-    dbName: 'Baseline',
+    dbName: 'Baseline Sub',
     name: 'Baseline Sub',
     vibe: 'Student Apartments',
     vibeColor: 'bg-purple-100 text-purple-800',
