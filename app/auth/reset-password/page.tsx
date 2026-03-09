@@ -1,21 +1,45 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 
 function ResetPasswordForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [exchanging, setExchanging] = useState(true)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code) {
+      const supabase = createClient()
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          setError('Reset link is invalid or expired. Please request a new one.')
+        }
+        setExchanging(false)
+      })
+    } else {
+      // No code param — check if user already has a session (e.g. navigated here directly)
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data }) => {
+        if (!data.user) {
+          setError('No active reset session. Please request a new password reset.')
+        }
+        setExchanging(false)
+      })
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,6 +62,16 @@ function ResetPasswordForm() {
     }
     await supabase.auth.signOut()
     router.push('/auth/login?message=password_updated')
+  }
+
+  if (exchanging) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-20">
+        <div className="w-full max-w-sm text-center">
+          <p className="text-sm text-gray-500">Verifying reset link…</p>
+        </div>
+      </div>
+    )
   }
 
   return (
