@@ -84,7 +84,7 @@ export function ListingGallery({
           {/* Main photo */}
           <button
             onClick={() => openLightbox(0)}
-            className="relative md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-auto bg-gray-100 cursor-pointer group overflow-hidden"
+            className="relative md:col-span-2 md:row-span-2 aspect-[4/3] bg-gray-100 cursor-pointer group overflow-hidden"
           >
             <Image
               src={main.url}
