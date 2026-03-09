@@ -3,7 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { ROOM_TYPES, MANAGEMENT_COMPANIES } from '@/lib/constants'
-import { resolveGoogleNeighborhood, detectNeighborhoodFromCoords } from '@/lib/neighborhoods'
+import { detectNeighborhood } from '@/lib/neighborhoods'
 import { MapPin } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -100,7 +100,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       { lat: 40.10, lng: -105.17 },
     ))
 
-    ac.addListener('place_changed', async () => {
+    ac.addListener('place_changed', () => {
       const place = ac.getPlace()
       if (!place?.address_components) return
 
@@ -108,21 +108,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       const lat = place.geometry?.location?.lat()
       const lng = place.geometry?.location?.lng()
 
-      // 1. Try Places address_components first (already available, no extra API call)
-      let neighborhood = ''
-      const neighborhoodTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1', 'sublocality']
-      for (const type of neighborhoodTypes) {
-        const comp = place.address_components.find((c) => c.types.includes(type))
-        if (comp) {
-          neighborhood = resolveGoogleNeighborhood(comp.long_name)
-          if (neighborhood) break
-        }
-      }
-
-      // 2. If Places didn't have it, use reverse geocoding + nearest-center fallback
-      if (!neighborhood && lat && lng) {
-        neighborhood = await detectNeighborhoodFromCoords(lat, lng)
-      }
+      const neighborhood = (lat && lng) ? detectNeighborhood(lat, lng) : ''
 
       onChangeRef.current({
         ...dataRef.current,
