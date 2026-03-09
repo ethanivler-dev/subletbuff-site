@@ -2,9 +2,20 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
-import { ROOM_TYPES, MANAGEMENT_COMPANIES } from '@/lib/constants'
-import { detectNeighborhood } from '@/lib/neighborhoods'
+import { ROOM_TYPES, NEIGHBORHOODS, MANAGEMENT_COMPANIES } from '@/lib/constants'
 import { MapPin } from 'lucide-react'
+
+const NEIGHBORHOOD_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
+  'The Hill': { lat: 40.0030, lng: -105.2715, zoom: 15 },
+  'University Hill': { lat: 39.9975, lng: -105.2755, zoom: 15 },
+  'Goss-Grove': { lat: 40.0103, lng: -105.2720, zoom: 15 },
+  'Baseline Sub': { lat: 40.0015, lng: -105.2520, zoom: 15 },
+  'Chautauqua': { lat: 39.9930, lng: -105.2875, zoom: 15 },
+  'Martin Acres': { lat: 39.9865, lng: -105.2630, zoom: 15 },
+  'North Boulder': { lat: 40.0300, lng: -105.2750, zoom: 14 },
+  'South Boulder': { lat: 39.9855, lng: -105.2600, zoom: 14 },
+  'East Boulder': { lat: 40.0055, lng: -105.2330, zoom: 14 },
+}
 
 /* ------------------------------------------------------------------ */
 /*  Lightweight Google Places Autocomplete hook                        */
@@ -108,12 +119,9 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       const lat = place.geometry?.location?.lat()
       const lng = place.geometry?.location?.lng()
 
-      const neighborhood = (lat && lng) ? detectNeighborhood(lat, lng) : ''
-
       onChangeRef.current({
         ...dataRef.current,
         address: formatted,
-        neighborhood,
         latitude: lat ? String(lat) : '',
         longitude: lng ? String(lng) : '',
       })
@@ -201,16 +209,37 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         maxLength={20}
       />
 
-      {/* Neighborhood — auto-detected from address */}
+      {/* Neighborhood — manual dropdown with map preview */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Neighborhood</label>
-        <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
-          <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span className={data.neighborhood ? 'text-gray-900' : 'text-gray-400'}>
-            {data.neighborhood || 'Auto-detected from address'}
-          </span>
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <select
+            value={data.neighborhood}
+            onChange={(e) => update('neighborhood', e.target.value)}
+            className={[
+              'w-full pl-9 pr-3 py-2 text-sm rounded-button border bg-white',
+              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+              'hover:border-gray-400 transition-colors',
+              errors.neighborhood ? 'border-error' : 'border-gray-200',
+            ].join(' ')}
+          >
+            <option value="">Select your neighborhood</option>
+            {NEIGHBORHOODS.map((n) => (
+              <option key={n} value={n}>{n === 'South Boulder' ? 'South Boulder / Table Mesa' : n}</option>
+            ))}
+          </select>
         </div>
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
+        {data.neighborhood && NEIGHBORHOOD_CENTERS[data.neighborhood] && (
+          <div className="mt-1.5 rounded-button overflow-hidden border border-gray-200">
+            <img
+              src={`https://maps.googleapis.com/maps/api/staticmap?center=${NEIGHBORHOOD_CENTERS[data.neighborhood].lat},${NEIGHBORHOOD_CENTERS[data.neighborhood].lng}&zoom=${NEIGHBORHOOD_CENTERS[data.neighborhood].zoom}&size=600x200&scale=2&maptype=roadmap&key=${process.env.NEXT_PUBLIC_MAPS_KEY}`}
+              alt={`Map of ${data.neighborhood}`}
+              className="w-full h-[120px] object-cover"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
