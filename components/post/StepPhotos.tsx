@@ -3,7 +3,6 @@
 import { useCallback, useState, useRef } from 'react'
 import Image from 'next/image'
 import { Upload, X, GripVertical, AlertCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 export interface PhotoItem {
   file?: File
@@ -96,35 +95,32 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
     const updated = [...photos, ...placeholders]
     onChange(updated)
 
-    // Upload each to Supabase Storage
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const ownerId = user?.id ?? 'anonymous'
+    // Upload each via server-side API route
     const results: PhotoItem[] = [...photos]
 
     for (const placeholder of placeholders) {
       const file = placeholder.file!
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const path = `listings/${ownerId}/${Date.now()}-${crypto.randomUUID()}.${ext}`
+      const formData = new FormData()
+      formData.append('file', file)
 
-      const { error: upErr } = await supabase.storage
-        .from('listing-photos')
-        .upload(path, file, { contentType: file.type, upsert: false })
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        const data = await res.json()
 
-      if (upErr) {
-        setUploadError(`Upload failed: ${upErr.message}`)
+        if (!res.ok) {
+          setUploadError(`Upload failed: ${data.error || res.statusText}`)
+          continue
+        }
+
+        results.push({
+          url: data.url,
+          storagePath: data.storage_path,
+          uploading: false,
+        })
+      } catch {
+        setUploadError('Upload failed: network error')
         continue
       }
-
-      const { data: publicData } = supabase.storage
-        .from('listing-photos')
-        .getPublicUrl(path)
-
-      results.push({
-        url: publicData.publicUrl,
-        storagePath: path,
-        uploading: false,
-      })
     }
 
     onChange(results)
