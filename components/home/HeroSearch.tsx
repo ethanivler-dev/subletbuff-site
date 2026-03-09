@@ -6,6 +6,8 @@ import { Search, CalendarDays } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { QUICK_FILTERS } from '@/lib/constants'
 
+const today = new Date().toISOString().split('T')[0]
+
 export function HeroSearch() {
   const router = useRouter()
   const [query, setQuery] = useState('')
@@ -91,8 +93,12 @@ export function HeroSearch() {
                 <input
                   type="date"
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-button px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  min={today}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value)
+                    if (dateTo && e.target.value > dateTo) setDateTo('')
+                  }}
+                  className="w-full text-sm border border-gray-200 rounded-button px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 hover:border-gray-400 transition-colors"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -100,9 +106,9 @@ export function HeroSearch() {
                 <input
                   type="date"
                   value={dateTo}
-                  min={dateFrom}
+                  min={dateFrom || today}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-button px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full text-sm border border-gray-200 rounded-button px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 hover:border-gray-400 transition-colors"
                 />
               </div>
               <button

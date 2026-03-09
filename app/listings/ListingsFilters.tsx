@@ -137,8 +137,13 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
           <input
             type="date"
             value={params.date_from ?? ''}
-            onChange={(e) => update('date_from', e.target.value || null)}
-            className="text-sm border border-gray-200 rounded-button px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            onChange={(e) => {
+              update('date_from', e.target.value || null)
+              if (params.date_to && e.target.value && e.target.value > params.date_to) {
+                update('date_to', null)
+              }
+            }}
+            className="text-sm border border-gray-200 rounded-button px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 hover:border-gray-400 transition-colors"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -146,8 +151,9 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
           <input
             type="date"
             value={params.date_to ?? ''}
+            min={params.date_from ?? undefined}
             onChange={(e) => update('date_to', e.target.value || null)}
-            className="text-sm border border-gray-200 rounded-button px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="text-sm border border-gray-200 rounded-button px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 hover:border-gray-400 transition-colors"
           />
         </div>
 
@@ -235,6 +241,7 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
             label="Intern-Friendly"
             active={params.intern_friendly === 'true'}
             onClick={() => update('intern_friendly', params.intern_friendly === 'true' ? null : 'true')}
+            title="Short-term stays welcome — flexible lease lengths and no long-term commitment required"
           />
           <CheckPill
             label="Parking"
@@ -303,10 +310,11 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
   )
 }
 
-function CheckPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function CheckPill({ label, active, onClick, title }: { label: string; active: boolean; onClick: () => void; title?: string }) {
   return (
     <button
       onClick={onClick}
+      title={title}
       className={[
         'px-3 py-1.5 text-sm rounded-full border transition-colors',
         active

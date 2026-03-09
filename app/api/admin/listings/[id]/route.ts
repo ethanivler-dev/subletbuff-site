@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminServer } from '@/lib/admin'
-import { sendListingApprovedEmail, sendListingRejectedEmail } from '@/lib/email'
+import {
+  sendListingApprovedEmail, sendListingRejectedEmail,
+  sendLeaseApprovedEmail, sendLeaseRejectedEmail,
+} from '@/lib/email'
 
 const ADMIN_EDITABLE_FIELDS = [
   'title', 'description', 'rent_monthly', 'neighborhood', 'room_type',
@@ -49,21 +52,45 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Send email notification on status change (fire-and-forget)
-  if (updates.status === 'approved' || updates.status === 'rejected') {
+  // Send email notification on status or lease_status change (fire-and-forget)
+  const statusChanged = updates.status === 'approved' || updates.status === 'rejected'
+  const leaseChanged = updates.lease_status === 'verified' || updates.lease_status === 'rejected'
+
+  if (statusChanged || leaseChanged) {
     const { data: listing } = await supabase
       .from('listings')
-      .select('title, email, first_name')
+      .select('title, email, first_name, lister_id, user_id')
       .eq('id', id)
       .single()
 
-    if (listing?.email) {
+    // Resolve email: try listing.email first, then fall back to auth user email
+    let email = listing?.email
+    if (!email && listing) {
+      const ownerId = listing.lister_id ?? listing.user_id
+      if (ownerId) {
+        const { data: { user: ownerUser } } = await supabase.auth.admin.getUserById(ownerId)
+        email = ownerUser?.email ?? null
+      }
+    }
+
+    if (email && listing) {
       const name = listing.first_name || 'there'
       const title = listing.title || 'your listing'
-      if (updates.status === 'approved') {
-        sendListingApprovedEmail(listing.email, name, title, id)
-      } else {
-        sendListingRejectedEmail(listing.email, name, title)
+
+      if (statusChanged) {
+        if (updates.status === 'approved') {
+          sendListingApprovedEmail(email, name, title, id)
+        } else {
+          sendListingRejectedEmail(email, name, title)
+        }
+      }
+
+      if (leaseChanged) {
+        if (updates.lease_status === 'verified') {
+          sendLeaseApprovedEmail(email, name, title, id)
+        } else {
+          sendLeaseRejectedEmail(email, name, title)
+        }
       }
     }
   }

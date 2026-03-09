@@ -39,6 +39,10 @@ const FAQS = [
     a: 'Yes. Go to your dashboard and click on the listing you want to update. You can change photos, pricing, dates, and description at any time.',
   },
   {
+    q: 'What does "Intern-Friendly" mean?',
+    a: 'Listings tagged Intern-Friendly welcome short-term renters like summer interns, co-op students, and researchers. It signals that the lister is open to flexible lease lengths (often 2\u20134 months) and won\'t require a full-year commitment. If you\'re listing a place, toggle this on to attract more applicants during peak intern season.',
+  },
+  {
     q: 'How does payment work?',
     a: 'Payments happen directly between the renter and lister — SubletBuff does not process payments or hold deposits. We strongly recommend using traceable payment methods like Venmo, Zelle, or PayPal. See our safety tips for more guidance.',
     link: { href: '/safety', label: 'Read our safety tips' },

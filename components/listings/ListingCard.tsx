@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { MapPin, Calendar, Bed } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { SaveButton } from '@/components/listings/SaveButton'
-import { formatRent, formatDateRange, formatRoomType } from '@/lib/utils'
+import { formatRent, formatDateRange, formatRoomType, walkingTimeToCU } from '@/lib/utils'
 
 export interface ListingCardData {
   id: string
@@ -55,6 +55,8 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
     public_latitude,
     public_longitude,
   } = listing
+
+  const walkTime = walkingTimeToCU(public_latitude, public_longitude)
 
   const isFurnished =
     furnished === true ||
@@ -119,7 +121,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
 
           <div className="flex items-center gap-1 text-gray-500 text-xs">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>{neighborhood} · {formatRoomType(room_type)}</span>
+            <span>{neighborhood}{walkTime && ` · ~${walkTime} to CU`} · {formatRoomType(room_type)}</span>
           </div>
 
           <div className="flex items-center gap-1 text-gray-500 text-xs">
@@ -202,7 +204,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
 
         <div className="flex items-center gap-1 text-gray-500 text-xs">
           <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="truncate">{neighborhood}</span>
+          <span className="truncate">{neighborhood}{walkTime && ` · ~${walkTime} to CU`}</span>
         </div>
 
         <div className="flex items-center gap-1 text-gray-400 text-xs">

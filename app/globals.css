@@ -41,4 +41,29 @@
   h1, h2 {
     font-family: var(--font-serif), Georgia, serif;
   }
+
+  /* Date inputs — better mobile touch targets & consistent styling */
+  input[type="date"] {
+    min-height: 44px; /* Apple HIG minimum touch target */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Style the calendar icon on WebKit browsers */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 4px;
+    margin-right: -4px;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.8;
+  }
+
+  /* Remove inner padding on date inputs in Firefox */
+  input[type="date"]::-moz-focus-inner {
+    padding: 0;
+    border: 0;
+  }
 }

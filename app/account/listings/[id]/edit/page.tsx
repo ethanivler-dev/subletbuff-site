@@ -433,11 +433,25 @@ export default function EditListingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
                 <label className={labelClass}>Available From</label>
-                <input type="date" value={availableFrom} onChange={(e) => setAvailableFrom(e.target.value)} className={inputClass} />
+                <input
+                  type="date"
+                  value={availableFrom}
+                  onChange={(e) => {
+                    setAvailableFrom(e.target.value)
+                    if (availableTo && e.target.value > availableTo) setAvailableTo('')
+                  }}
+                  className={inputClass}
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <label className={labelClass}>Available To</label>
-                <input type="date" value={availableTo} onChange={(e) => setAvailableTo(e.target.value)} className={inputClass} />
+                <input
+                  type="date"
+                  value={availableTo}
+                  min={availableFrom || undefined}
+                  onChange={(e) => setAvailableTo(e.target.value)}
+                  className={inputClass}
+                />
               </div>
             </div>
 

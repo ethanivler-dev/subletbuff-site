@@ -5,7 +5,7 @@ import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag }
 import { createClient } from '@/lib/supabase/server'
 import { shouldHideTestListings } from '@/lib/appEnv'
 import { isAdmin } from '@/lib/admin'
-import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
+import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle, walkingTimeToCU } from '@/lib/utils'
 import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
 import { ListingGallery } from '@/components/listings/ListingGallery'
@@ -379,6 +379,9 @@ export default async function ListingDetailPage({
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4" /> {neighborhood}
+                  {walkingTimeToCU(listing.public_latitude, listing.public_longitude) && (
+                    <span className="text-gray-400">· ~{walkingTimeToCU(listing.public_latitude, listing.public_longitude)} walk to CU</span>
+                  )}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Home className="w-4 h-4" /> {formatRoomType(roomType)}

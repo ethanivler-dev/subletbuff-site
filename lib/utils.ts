@@ -66,6 +66,36 @@ export function sanitizeListingTitle(
   return t
 }
 
+/** CU Boulder campus center (Norlin Library area) */
+const CU_LAT = 40.0076
+const CU_LNG = -105.2659
+
+/** Haversine distance in miles */
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3959 // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
+/**
+ * Estimate walking time from CU Boulder campus.
+ * Returns a string like "5 min" or "25 min", or null if too far (>5 mi) or no coords.
+ * Uses ~3 mph walking speed with 1.3x detour factor for streets.
+ */
+export function walkingTimeToCU(lat?: number | null, lng?: number | null): string | null {
+  if (lat == null || lng == null) return null
+  const miles = haversine(lat, lng, CU_LAT, CU_LNG) * 1.3 // street detour factor
+  if (miles > 5) return null
+  const minutes = Math.round(miles * 20) // 20 min/mile
+  if (minutes < 1) return '1 min'
+  return `${minutes} min`
+}
+
 /** Clamp string to max length with ellipsis */
 export function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max - 1) + '…' : str

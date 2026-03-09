@@ -40,7 +40,7 @@ const badgeConfig: Record<
   },
   intern_friendly: {
     label: 'Intern-Friendly',
-    title: 'Open to summer interns and short-term renters',
+    title: 'Short-term stays welcome — flexible lease lengths, no long-term commitment required',
     className: 'bg-purple-100 text-purple-700',
   },
   featured: {

@@ -18,13 +18,19 @@ function wrap(body: string): string {
 
 async function send(to: string, subject: string, html: string) {
   if (!resend) {
-    console.warn('[email] RESEND_API_KEY not set, skipping email:', subject)
-    return
+    console.warn('[email] RESEND_API_KEY not set — skipping:', subject, '→', to)
+    return { success: false, reason: 'no_api_key' as const }
   }
   try {
-    await resend.emails.send({ from: FROM, to: [to], replyTo: REPLY_TO, subject, html })
+    const { error } = await resend.emails.send({ from: FROM, to: [to], replyTo: REPLY_TO, subject, html })
+    if (error) {
+      console.error('[email] Resend API error:', subject, '→', to, error)
+      return { success: false, reason: 'api_error' as const, error }
+    }
+    return { success: true }
   } catch (err) {
-    console.error('[email] Failed to send:', subject, err)
+    console.error('[email] Failed to send:', subject, '→', to, err)
+    return { success: false, reason: 'exception' as const, error: err }
   }
 }
 
