@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Boulder Neighborhoods for Student Housing | SubletBuff',
-  description: 'Explore Boulder neighborhoods near CU. Find the best area for your summer sublet — The Hill, University Hill, Goss-Grove, Baseline Sub, Chautauqua, and more.',
+  description: 'Explore Boulder neighborhoods near CU. Find the best area for your summer sublet — The Hill, Goss-Grove, Baseline Sub, Chautauqua, and more.',
   alternates: { canonical: '/neighborhoods' },
 }
 
@@ -18,17 +18,9 @@ const neighborhoods = [
     slug: 'the-hill',
     dbName: 'The Hill',
     name: 'The Hill',
-    vibe: 'Social & Energetic',
-    description: 'The student hub right next to campus. Packed with bars, restaurants, and shops along University Hill. Walk to class in under 10 minutes. Best for undergrads who want to be in the middle of everything.',
+    vibe: 'Social & Walkable',
+    description: 'The student hub right next to campus. Packed with bars, restaurants, and shops. Tree-lined streets, historic homes, and Greek life. Walk to class in under 10 minutes. Best for students who want to be in the middle of everything.',
     image: '/neighborhoods/the-hill.webp',
-  },
-  {
-    slug: 'university-hill',
-    dbName: 'University Hill',
-    name: 'University Hill',
-    vibe: 'Historic & Walkable',
-    description: 'Tree-lined streets and historic homes just east of campus. Home to Greek life and longtime Boulder families. A 5-10 minute walk to most campus buildings.',
-    image: 'https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=500&fit=crop',
   },
   {
     slug: 'goss-grove',

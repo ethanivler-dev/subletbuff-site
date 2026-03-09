@@ -166,7 +166,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           Make it descriptive — mention a feature, vibe, or landmark. Avoid putting just your address.
         </p>
         <p className="text-xs text-gray-300 mt-1">
-          Examples: &ldquo;Furnished room on The Hill — summer sublet&rdquo; · &ldquo;Cozy studio near campus, May–Aug&rdquo; · &ldquo;Private BR in 3BR apartment, CU area&rdquo; · &ldquo;Sunny 1BR with parking, University Hill&rdquo;
+          Examples: &ldquo;Furnished room on The Hill — summer sublet&rdquo; · &ldquo;Cozy studio near campus, May–Aug&rdquo; · &ldquo;Private BR in 3BR apartment, CU area&rdquo; · &ldquo;Sunny 1BR with parking, Goss-Grove&rdquo;
         </p>
       </div>
 

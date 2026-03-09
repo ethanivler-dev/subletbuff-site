@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
   if (filter === 'pets') query = query.or('pets.eq.Yes,pets.ilike.%yes%')
   if (filter === 'utilities_included') query = query.eq('utilities_included', true)
   if (filter === 'near_campus') {
-    query = query.or('neighborhood.ilike.%university hill%,neighborhood.ilike.%the hill%,neighborhood.ilike.%near cu%')
+    query = query.or('neighborhood.ilike.%the hill%,neighborhood.ilike.%near cu%')
   }
 
   // Boolean filters

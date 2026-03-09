@@ -1,6 +1,5 @@
 export const NEIGHBORHOODS = [
   'The Hill',
-  'University Hill',
   'Goss-Grove',
   'Baseline Sub',
   'Chautauqua',
@@ -13,7 +12,7 @@ export const NEIGHBORHOODS = [
 export const NEIGHBORHOOD_ALIASES: Record<string, string> = {
   'Lower Chautauqua': 'Chautauqua',
   'Upper Chautauqua': 'Chautauqua',
-  'University Hill': 'University Hill',
+  'University Hill': 'The Hill',
   'The Hill': 'The Hill',
   'Newlands': 'North Boulder',
   'Goss-Grove': 'Goss-Grove',

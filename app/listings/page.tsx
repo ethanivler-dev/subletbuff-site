@@ -92,7 +92,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
   if (params.filter === 'pets') query = query.eq('pets', 'Yes').or('pets.ilike.%yes%')
   if (params.filter === 'utilities_included') query = query.eq('utilities_included', true)
   if (params.filter === 'near_campus') {
-    query = query.or('neighborhood.ilike.%university hill%,neighborhood.ilike.%the hill%,neighborhood.ilike.%near cu%')
+    query = query.or('neighborhood.ilike.%the hill%,neighborhood.ilike.%near cu%')
   }
   if (params.filter === 'short_term') {
     query = query.or('min_stay_weeks.eq.0,min_stay_weeks.lte.8')

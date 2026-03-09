@@ -28,21 +28,11 @@ function pointInPolygon(lat: number, lng: number, polygon: Polygon): boolean {
 const ZONES: NeighborhoodZone[] = [
   {
     name: 'The Hill',
-    center: [40.0030, -105.2715],
+    center: [40.0000, -105.2745],
     polygon: [
-      [40.0055, -105.2770],
+      [40.0055, -105.2830],
       [40.0055, -105.2660],
-      [40.0005, -105.2660],
-      [40.0005, -105.2770],
-    ],
-  },
-  {
-    name: 'University Hill',
-    center: [39.9975, -105.2755],
-    polygon: [
-      [40.0005, -105.2830],
-      [40.0005, -105.2680],
-      [39.9945, -105.2680],
+      [39.9945, -105.2660],
       [39.9945, -105.2830],
     ],
   },
