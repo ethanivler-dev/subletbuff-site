@@ -226,38 +226,15 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         maxLength={20}
       />
 
-      {/* Neighborhood — auto-detected or manual fallback */}
+      {/* Neighborhood — auto-detected from address */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Neighborhood</label>
-        {data.neighborhood ? (
-          <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
-            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <span className="text-gray-900">{data.neighborhood}</span>
-            <button
-              type="button"
-              onClick={() => update('neighborhood', '')}
-              className="ml-auto text-xs text-gray-400 hover:text-gray-600"
-            >
-              Change
-            </button>
-          </div>
-        ) : data.address ? (
-          <select
-            value={data.neighborhood}
-            onChange={(e) => update('neighborhood', e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
-          >
-            <option value="">Select neighborhood</option>
-            {NEIGHBORHOODS.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        ) : (
-          <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
-            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <span className="text-gray-400">Auto-detected from address</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
+          <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <span className={data.neighborhood ? 'text-gray-900' : 'text-gray-400'}>
+            {data.neighborhood || 'Auto-detected from address'}
+          </span>
+        </div>
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
       </div>
 
