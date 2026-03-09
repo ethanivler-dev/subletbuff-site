@@ -92,6 +92,7 @@ function computeDateErrors(
 export default function PostListingPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [eduEmail, setEduEmail] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [step, setStep] = useState(1)
   const [basicInfo, setBasicInfo] = useState<BasicInfoData>(INITIAL_BASIC)
@@ -105,10 +106,20 @@ export default function PostListingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
 
-  // Auth check
+  // Auth check + fetch edu_email
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user)
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('edu_email')
+          .eq('id', data.user.id)
+          .single()
+        if (profile?.edu_email) setEduEmail(profile.edu_email)
+      }
+    })
   }, [])
 
   // Restore draft from localStorage on mount (data first, then step)
@@ -499,7 +510,9 @@ export default function PostListingPage() {
           <StepVerification
             userId={user.id}
             leaseDocPath={leaseDocPath || undefined}
+            eduEmail={eduEmail}
             onLeaseUpload={setLeaseDocPath}
+            onEduVerified={setEduEmail}
             onSkip={nextStep}
           />
         )}

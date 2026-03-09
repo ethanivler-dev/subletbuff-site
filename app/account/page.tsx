@@ -10,10 +10,11 @@ import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/
 import {
   Heart, MessageSquare, Settings, BarChart2,
   ChevronRight, MapPin, Calendar, Crown,
-  ShieldCheck, Upload, GraduationCap, CheckCircle,
+  ShieldCheck, Upload, CheckCircle,
   Bell, Trash2, Search,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { EduGoogleVerify } from '@/components/EduGoogleVerify'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
 /* ------------------------------------------------------------------ */
@@ -120,14 +121,7 @@ export default function AccountPage() {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Settings: edu verification
-  const [eduStep, setEduStep] = useState<'idle' | 'email' | 'code' | 'done'>('idle')
-  const [eduEmail, setEduEmail] = useState('')
-  const [eduCode, setEduCode] = useState('')
-  const [eduSending, setEduSending] = useState(false)
-  const [eduVerifying, setEduVerifying] = useState(false)
-  const [eduError, setEduError] = useState('')
-  const [eduSuccess, setEduSuccess] = useState('')
+  // Settings: edu verification (Google OAuth flow)
 
   // Settings: delete account
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -628,133 +622,13 @@ export default function AccountPage() {
                       color="text-green-600 bg-green-50"
                     />
 
-                    {/* CU Student */}
-                    {profile?.verification_level === 'edu_verified' || eduStep === 'done' ? (
-                      <VerificationTier
-                        icon={<GraduationCap className="w-4 h-4" />}
-                        title="CU Student"
-                        description={profile?.edu_email ? `Verified: ${profile.edu_email}` : 'Verified CU Boulder student'}
-                        completed
-                        color="text-accent-600 bg-accent-400/10"
-                      />
-                    ) : eduStep === 'idle' ? (
-                      <VerificationTier
-                        icon={<GraduationCap className="w-4 h-4" />}
-                        title="CU Student"
-                        description="Connect a @colorado.edu email address"
-                        completed={false}
-                        color="text-accent-600 bg-accent-400/10"
-                        actionLabel="Connect .edu Email"
-                        onAction={() => setEduStep('email')}
-                      />
-                    ) : (
-                      <div className="px-4 py-4 rounded-card border border-accent-200 bg-accent-400/5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-accent-600 bg-accent-400/10 flex-shrink-0">
-                            <GraduationCap className="w-4 h-4" />
-                          </div>
-                          <p className="text-sm font-medium text-gray-900">Verify CU Email</p>
-                        </div>
-
-                        {eduError && (
-                          <p className="text-xs text-red-600 mb-2">{eduError}</p>
-                        )}
-                        {eduSuccess && (
-                          <p className="text-xs text-green-600 mb-2">{eduSuccess}</p>
-                        )}
-
-                        {eduStep === 'email' && (
-                          <div className="flex flex-col gap-2">
-                            <input
-                              type="email"
-                              placeholder="yourname@colorado.edu"
-                              value={eduEmail}
-                              onChange={(e) => setEduEmail(e.target.value)}
-                              className="text-sm px-3 py-2 rounded-button border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            />
-                            <div className="flex gap-2">
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                disabled={eduSending || !eduEmail.trim().toLowerCase().endsWith('@colorado.edu')}
-                                onClick={async () => {
-                                  setEduSending(true)
-                                  setEduError('')
-                                  const res = await fetch('/api/verify-edu', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ email: eduEmail.trim() }),
-                                  })
-                                  const data = await res.json()
-                                  setEduSending(false)
-                                  if (!res.ok) {
-                                    setEduError(data.error || 'Failed to send code')
-                                    return
-                                  }
-                                  setEduSuccess('Code sent! Check your .edu inbox.')
-                                  setEduStep('code')
-                                }}
-                              >
-                                {eduSending ? 'Sending...' : 'Send Code'}
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => { setEduStep('idle'); setEduError(''); setEduSuccess('') }}>
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {eduStep === 'code' && (
-                          <div className="flex flex-col gap-2">
-                            <p className="text-xs text-gray-500">
-                              Enter the 6-digit code sent to <strong>{eduEmail}</strong>
-                            </p>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="123456"
-                              maxLength={6}
-                              value={eduCode}
-                              onChange={(e) => setEduCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                              className="text-sm px-3 py-2 rounded-button border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 tracking-widest font-mono"
-                            />
-                            <div className="flex gap-2">
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                disabled={eduVerifying || eduCode.length !== 6}
-                                onClick={async () => {
-                                  setEduVerifying(true)
-                                  setEduError('')
-                                  setEduSuccess('')
-                                  const res = await fetch('/api/verify-edu', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ code: eduCode, email: eduEmail.trim() }),
-                                  })
-                                  const data = await res.json()
-                                  setEduVerifying(false)
-                                  if (!res.ok) {
-                                    setEduError(data.error || 'Verification failed')
-                                    return
-                                  }
-                                  setEduStep('done')
-                                  setProfile((prev) => prev ? { ...prev, verification_level: 'edu_verified', edu_email: eduEmail.trim().toLowerCase() } : prev)
-                                }}
-                              >
-                                {eduVerifying ? 'Verifying...' : 'Verify'}
-                              </Button>
-                              <button
-                                onClick={() => { setEduStep('email'); setEduCode(''); setEduError(''); setEduSuccess('') }}
-                                className="text-xs text-primary-600 hover:text-primary-700"
-                              >
-                                Resend code
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* CU Student — Google OAuth verification */}
+                    <EduGoogleVerify
+                      eduEmail={profile?.edu_email}
+                      onVerified={(email) => {
+                        setProfile((prev) => prev ? { ...prev, verification_level: 'edu_verified', edu_email: email } : prev)
+                      }}
+                    />
                   </div>
                 </div>
 

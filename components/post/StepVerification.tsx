@@ -1,17 +1,22 @@
 'use client'
 
-import { Shield, Mail } from 'lucide-react'
+import { useState } from 'react'
+import { Shield } from 'lucide-react'
 import { LeaseUpload } from '@/components/LeaseUpload'
+import { EduGoogleVerify } from '@/components/EduGoogleVerify'
 
 interface StepVerificationProps {
   userId: string
   leaseDocPath?: string
+  eduEmail?: string | null
   onLeaseUpload: (path: string) => void
+  onEduVerified?: (email: string) => void
   onSkip: () => void
 }
 
-export function StepVerification({ userId, leaseDocPath, onLeaseUpload, onSkip }: StepVerificationProps) {
+export function StepVerification({ userId, leaseDocPath, eduEmail: initialEduEmail, onLeaseUpload, onEduVerified, onSkip }: StepVerificationProps) {
   const leaseStatus = leaseDocPath ? 'pending' : 'none'
+  const [eduEmail, setEduEmail] = useState(initialEduEmail)
 
   return (
     <div className="max-w-xl mx-auto flex flex-col gap-5">
@@ -26,7 +31,7 @@ export function StepVerification({ userId, leaseDocPath, onLeaseUpload, onSkip }
         <div>
           <p className="text-sm font-medium text-gray-900">Build Trust</p>
           <p className="text-xs text-gray-500">
-            Upload your lease to earn a verified badge. Verified listings rank higher in search results.
+            Upload your lease or verify your student status to earn trust badges.
           </p>
         </div>
       </div>
@@ -46,16 +51,14 @@ export function StepVerification({ userId, leaseDocPath, onLeaseUpload, onSkip }
         />
       </div>
 
-      {/* .edu verification info */}
-      <div className="rounded-card border border-gray-200 p-4 flex items-start gap-3">
-        <Mail className="w-5 h-5 text-accent-600 mt-0.5 flex-shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-900">Connect .edu Email</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Verify your CU or university email from your Account page to earn the &ldquo;CU Student&rdquo; badge.
-          </p>
-        </div>
-      </div>
+      {/* CU Student verification via Google */}
+      <EduGoogleVerify
+        eduEmail={eduEmail}
+        onVerified={(email) => {
+          setEduEmail(email)
+          onEduVerified?.(email)
+        }}
+      />
 
       <div className="text-center pt-2">
         <button
