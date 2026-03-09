@@ -47,7 +47,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     .select(`
       id, title, neighborhood, rent_monthly, original_rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified, landlord_approved,
-      save_count, photo_urls, public_latitude, public_longitude,
+      save_count, photo_urls, public_latitude, public_longitude, user_id,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
     .eq('status', 'approved')
@@ -119,6 +119,21 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
 
   if (error || !data) return { listings: [], total: 0, page: 1, totalPages: 0 }
 
+  // Batch-fetch verification levels for listers
+  const userIds = [...new Set(data.map((r: Record<string, unknown>) => r.user_id as string).filter(Boolean))]
+  const verificationMap = new Map<string, string>()
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, verification_level')
+      .in('id', userIds)
+    if (profiles) {
+      for (const p of profiles) {
+        if (p.verification_level) verificationMap.set(p.id, p.verification_level)
+      }
+    }
+  }
+
   // Fetch user's saved listing IDs if logged in
   let savedIds = new Set<string>()
   if (user && data.length > 0) {
@@ -161,6 +176,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
       original_rent_monthly: row.original_rent_monthly as number | undefined,
       verified: (row.verified as boolean) ?? false,
       landlord_approved: (row.landlord_approved as boolean) ?? false,
+      verification_level: verificationMap.get(row.user_id as string),
     }
   })
 

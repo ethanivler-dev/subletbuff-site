@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       id, title, neighborhood, rent_monthly, original_rent_monthly,
       available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
-      lease_status, save_count, photo_urls, public_latitude, public_longitude,
+      lease_status, save_count, photo_urls, public_latitude, public_longitude, user_id,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
     .eq('status', 'approved')
@@ -119,6 +119,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Batch-fetch verification levels for listers
+  const userIds = [...new Set((data ?? []).map((r: Record<string, unknown>) => r.user_id as string).filter(Boolean))]
+  const verificationMap = new Map<string, string>()
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, verification_level')
+      .in('id', userIds)
+    if (profiles) {
+      for (const p of profiles) {
+        if (p.verification_level) verificationMap.set(p.id, p.verification_level)
+      }
+    }
+  }
+
   // Check saved status for logged-in user
   const { data: { user } } = await supabase.auth.getUser()
   let savedIds = new Set<string>()
@@ -158,6 +173,7 @@ export async function GET(request: NextRequest) {
       is_saved: savedIds.has(row.id as string),
       public_latitude: row.public_latitude,
       public_longitude: row.public_longitude,
+      verification_level: verificationMap.get(row.user_id as string),
       // NOTE: address, latitude, longitude are intentionally excluded
     }
   })

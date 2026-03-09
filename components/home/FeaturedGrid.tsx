@@ -16,7 +16,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
-      save_count, photo_urls,
+      save_count, photo_urls, user_id,
       listing_photos(url, display_order, is_primary)
     `)
     .eq('status', 'approved')
@@ -28,6 +28,21 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
   const { data, error } = await query.order('created_at', { ascending: false }).limit(8)
 
   if (error || !data) return []
+
+  // Batch-fetch verification levels for listers
+  const userIds = [...new Set(data.map((r: Record<string, unknown>) => r.user_id as string).filter(Boolean))]
+  const verificationMap = new Map<string, string>()
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, verification_level')
+      .in('id', userIds)
+    if (profiles) {
+      for (const p of profiles) {
+        if (p.verification_level) verificationMap.set(p.id, p.verification_level)
+      }
+    }
+  }
 
   // Fetch user's saved IDs if logged in
   let savedIds = new Set<string>()
@@ -67,6 +82,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
       save_count: (row.save_count as number) ?? 0,
       is_saved: savedIds.has(row.id as string),
       verified: (row.verified as boolean) ?? false,
+      verification_level: verificationMap.get(row.user_id as string),
     }
   })
 }
