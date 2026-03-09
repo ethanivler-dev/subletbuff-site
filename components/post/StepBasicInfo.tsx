@@ -243,44 +243,21 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-800">Monthly Rent ($)</label>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                const cur = parseInt(data.rent_monthly) || 0
-                if (cur >= 50) update('rent_monthly', String(cur - 50))
-              }}
-              className="flex-shrink-0 px-2.5 py-2 text-xs font-medium rounded-button border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
-            >
-              −$50
-            </button>
-            <input
-              type="number"
-              step={50}
-              min={0}
-              placeholder="1200"
-              value={data.rent_monthly}
-              onChange={(e) => update('rent_monthly', e.target.value)}
-              className={[
-                'w-full px-3 py-2 text-sm rounded-button border bg-white text-center',
-                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-                'placeholder:text-gray-400 transition-colors duration-200',
-                errors.rent_monthly
-                  ? 'border-error text-error'
-                  : 'border-gray-200 text-gray-900 hover:border-gray-400',
-              ].join(' ')}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const cur = parseInt(data.rent_monthly) || 0
-                update('rent_monthly', String(cur + 50))
-              }}
-              className="flex-shrink-0 px-2.5 py-2 text-xs font-medium rounded-button border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
-            >
-              +$50
-            </button>
-          </div>
+          <input
+            type="number"
+            min={0}
+            placeholder="1200"
+            value={data.rent_monthly}
+            onChange={(e) => update('rent_monthly', e.target.value)}
+            className={[
+              'w-full px-3 py-2 text-sm rounded-button border bg-white',
+              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+              'placeholder:text-gray-400 transition-colors duration-200',
+              errors.rent_monthly
+                ? 'border-error text-error'
+                : 'border-gray-200 text-gray-900 hover:border-gray-400',
+            ].join(' ')}
+          />
           {errors.rent_monthly && <p className="text-xs text-error">{errors.rent_monthly}</p>}
         </div>
         <Input
