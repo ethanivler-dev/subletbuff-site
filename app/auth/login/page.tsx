@@ -189,7 +189,7 @@ function LoginForm() {
 
             {resetSent && (
               <p className="text-sm text-success bg-success/10 px-3 py-2 rounded-button">
-                Password reset link sent! Check your email.
+                Password reset link sent! Check your email — be sure to check your spam, junk, and promotions folders.
               </p>
             )}
 
