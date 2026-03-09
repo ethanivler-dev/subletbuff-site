@@ -28,6 +28,18 @@ async function send(to: string, subject: string, html: string) {
   }
 }
 
+export function sendEduVerificationEmail(email: string, code: string) {
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Verify your CU Boulder email</h2>
+    <p>Enter this code on SubletBuff to verify your .edu email and earn the <strong>Verified Buff</strong> badge:</p>
+    <div style="text-align:center;margin:24px 0">
+      <span style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#1C1810">${code}</span>
+    </div>
+    <p style="font-size:0.85rem;color:#666">This code expires in 10 minutes. If you didn&rsquo;t request this, you can safely ignore this email.</p>
+  `)
+  return send(email, 'Your SubletBuff verification code', html)
+}
+
 export function sendListingSubmittedEmail(email: string, name: string, title: string) {
   const html = wrap(`
     <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">We got your listing! Under review</h2>

@@ -14,12 +14,13 @@ interface StepReviewProps {
   basicInfo: BasicInfoData
   details: DetailsData
   photos: PhotoItem[]
+  leaseDocPath?: string
   onEdit: (step: number) => void
   onSubmit: () => void
   submitting: boolean
 }
 
-export function StepReview({ basicInfo, details, photos, onEdit, onSubmit, submitting }: StepReviewProps) {
+export function StepReview({ basicInfo, details, photos, leaseDocPath, onEdit, onSubmit, submitting }: StepReviewProps) {
   const uploadedPhotos = photos.filter((p) => !p.uploading)
 
   return (
@@ -82,6 +83,18 @@ export function StepReview({ basicInfo, details, photos, onEdit, onSubmit, submi
             </span>
           ))}
         </div>
+      </ReviewSection>
+
+      {/* Verification */}
+      <ReviewSection title="Verification" onEdit={() => onEdit(4)}>
+        {leaseDocPath ? (
+          <div className="flex items-center gap-2 text-sm">
+            <Badge variant="lease_verified" />
+            <span className="text-gray-600">Lease uploaded — will be reviewed after submission</span>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No lease uploaded (optional)</p>
+        )}
       </ReviewSection>
 
       {/* Submit */}

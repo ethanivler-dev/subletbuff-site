@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       id, title, neighborhood, rent_monthly, original_rent_monthly,
       available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
-      save_count, photo_urls, public_latitude, public_longitude,
+      lease_status, save_count, photo_urls, public_latitude, public_longitude,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
     .eq('status', 'approved')
@@ -154,6 +154,7 @@ export async function GET(request: NextRequest) {
       immediate_movein: row.immediate_movein ?? false,
       primary_photo_url: primaryPhoto,
       save_count: row.save_count ?? 0,
+      lease_status: row.lease_status ?? 'none',
       is_saved: savedIds.has(row.id as string),
       public_latitude: row.public_latitude,
       public_longitude: row.public_longitude,
@@ -247,6 +248,10 @@ export async function POST(request: NextRequest) {
       auto_reduce_max_times: body.auto_reduce_max_times ? parseInt(body.auto_reduce_max_times) : null,
 
       management_company: body.management_company || null,
+
+      // Lease verification — server-side enforcement: never trust client-sent lease_status
+      lease_document_path: body.lease_document_path || null,
+      lease_status: body.lease_document_path ? 'pending' : 'none',
 
       photo_urls: body.photo_urls ?? [],
       test_listing: isStaging,

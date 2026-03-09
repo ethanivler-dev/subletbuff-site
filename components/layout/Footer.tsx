@@ -51,6 +51,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/faq" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">
+                  FAQ
+                </Link>
+              </li>
+              <li>
                 <Link href="/safety" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">
                   Safety
                 </Link>
@@ -71,6 +76,11 @@ export function Footer() {
                 >
                   Contact Us
                 </a>
+              </li>
+              <li>
+                <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">
+                  Pricing
+                </Link>
               </li>
               <li>
                 <Link href="/terms" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">

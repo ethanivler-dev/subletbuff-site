@@ -100,6 +100,7 @@ export default function PostListingPage() {
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof BasicInfoData, string>>>({})
   const [detailsErrors, setDetailsErrors] = useState<Partial<Record<keyof DetailsData, string>>>({})
   const [photosError, setPhotosError] = useState('')
+  const [leaseDocPath, setLeaseDocPath] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
@@ -119,6 +120,7 @@ export default function PostListingPage() {
         if (draft.basicInfo) setBasicInfo({ ...INITIAL_BASIC, ...draft.basicInfo })
         if (draft.details) setDetails({ ...INITIAL_DETAILS, ...draft.details })
         if (Array.isArray(draft.photos)) setPhotos(draft.photos)
+        if (typeof draft.leaseDocPath === 'string') setLeaseDocPath(draft.leaseDocPath)
         if (typeof draft.step === 'number') setStep(draft.step)
       }
     } catch {}
@@ -135,13 +137,14 @@ export default function PostListingPage() {
           step,
           basicInfo,
           details,
+          leaseDocPath,
           photos: photos
             .filter((p) => !p.uploading)
             .map(({ url, storagePath, caption }) => ({ url, storagePath, caption, uploading: false })),
         }),
       )
     } catch {}
-  }, [initialized, step, basicInfo, details, photos])
+  }, [initialized, step, basicInfo, details, photos, leaseDocPath])
 
   function clearDraft() {
     const confirmed = window.confirm(
@@ -152,6 +155,7 @@ export default function PostListingPage() {
     setBasicInfo(INITIAL_BASIC)
     setDetails(INITIAL_DETAILS)
     setPhotos([])
+    setLeaseDocPath('')
     setStep(1)
     setBasicErrors({})
     setDetailsErrors({})
@@ -347,6 +351,10 @@ export default function PostListingPage() {
             : (basicInfo.management_company && basicInfo.management_company !== 'None / Self-managed')
               ? basicInfo.management_company : null,
 
+          // === Lease verification ===
+          lease_document_path: leaseDocPath || null,
+          lease_status: leaseDocPath ? 'pending' : 'none',
+
           // === Photos + status ===
           photo_urls: uploadedPhotos.map((p) => p.url),
           test_listing: isStaging,
@@ -487,14 +495,20 @@ export default function PostListingPage() {
         {step === 3 && (
           <StepDetails data={details} onChange={setDetails} errors={detailsErrors} availableFrom={basicInfo.available_from} />
         )}
-        {step === 4 && (
-          <StepVerification onSkip={nextStep} />
+        {step === 4 && user && (
+          <StepVerification
+            userId={user.id}
+            leaseDocPath={leaseDocPath || undefined}
+            onLeaseUpload={setLeaseDocPath}
+            onSkip={nextStep}
+          />
         )}
         {step === 5 && (
           <StepReview
             basicInfo={basicInfo}
             details={details}
             photos={photos}
+            leaseDocPath={leaseDocPath || undefined}
             onEdit={goToStep}
             onSubmit={handleSubmit}
             submitting={submitting}
