@@ -20,25 +20,45 @@ function ResetPasswordForm() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    const supabase = createClient()
+
+    // Listen for PASSWORD_RECOVERY event (works for both PKCE code and hash fragment flows)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setExchanging(false)
+      }
+    })
+
+    // If there's a code param, exchange it (PKCE flow)
     const code = searchParams.get('code')
     if (code) {
-      const supabase = createClient()
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
         if (error) {
           setError('Reset link is invalid or expired. Please request a new one.')
+          setExchanging(false)
         }
-        setExchanging(false)
+        // onAuthStateChange will fire on success
       })
     } else {
-      // No code param — check if user already has a session (e.g. navigated here directly)
-      const supabase = createClient()
-      supabase.auth.getUser().then(({ data }) => {
-        if (!data.user) {
-          setError('No active reset session. Please request a new password reset.')
+      // No code — check if already authenticated (hash fragment may have been auto-processed)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setExchanging(false)
+        } else {
+          // Wait briefly for hash fragment auto-processing, then give up
+          setTimeout(() => {
+            supabase.auth.getSession().then(({ data: { session: s } }) => {
+              if (!s) {
+                setError('No active reset session. Please request a new password reset.')
+              }
+              setExchanging(false)
+            })
+          }, 1500)
         }
-        setExchanging(false)
       })
     }
+
+    return () => subscription.unsubscribe()
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
