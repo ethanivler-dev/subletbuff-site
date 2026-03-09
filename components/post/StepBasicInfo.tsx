@@ -2,8 +2,8 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
-import { ROOM_TYPES, NEIGHBORHOODS, NEIGHBORHOOD_ALIASES, MANAGEMENT_COMPANIES } from '@/lib/constants'
-import { detectNeighborhood } from '@/lib/neighborhoods'
+import { ROOM_TYPES, NEIGHBORHOODS, MANAGEMENT_COMPANIES } from '@/lib/constants'
+import { resolveGoogleNeighborhood, nearestNeighborhood } from '@/lib/neighborhoods'
 import { MapPin } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -27,23 +27,17 @@ function loadGoogleMaps(): Promise<void> {
   gmapsPromise = new Promise<void>((resolve, reject) => {
     const key = process.env.NEXT_PUBLIC_MAPS_KEY
     if (!key) { reject(new Error('Missing NEXT_PUBLIC_MAPS_KEY')); return }
-    window.__gmapsCallback = () => {
-      console.log('[Maps] Google Maps loaded successfully')
-      resolve()
-    }
+    window.__gmapsCallback = () => resolve()
     const s = document.createElement('script')
     s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async&callback=__gmapsCallback`
     s.async = true
-    s.onerror = () => {
-      console.error('[Maps] Failed to load Google Maps script')
-      reject(new Error('Failed to load Google Maps'))
-    }
+    s.onerror = () => reject(new Error('Failed to load Google Maps'))
     document.head.appendChild(s)
   })
   return gmapsPromise
 }
 
-/** Extract the best neighborhood string from place address_components. */
+/** Extract neighborhood from Google geocoder address components. */
 function extractNeighborhood(
   components: google.maps.GeocoderAddressComponent[]
 ): string {
@@ -52,15 +46,35 @@ function extractNeighborhood(
     const match = components.find((c) => c.types.includes(type))
     if (match) return match.long_name
   }
-  const locality = components.find((c) => c.types.includes('locality'))
-  return locality?.long_name ?? ''
+  return ''
 }
 
-/** Map a raw Google Places neighborhood name to a canonical NEIGHBORHOODS entry. */
-function resolveNeighborhood(raw: string): string {
-  if (NEIGHBORHOOD_ALIASES[raw]) return NEIGHBORHOOD_ALIASES[raw]
-  if (NEIGHBORHOODS.includes(raw)) return raw
-  return ''
+/**
+ * Detect neighborhood using Google Maps reverse geocoding.
+ * Falls back to nearest-center if Google doesn't return a neighborhood.
+ */
+async function detectNeighborhoodFromGoogle(
+  lat: number,
+  lng: number,
+): Promise<string> {
+  try {
+    const geocoder = new google.maps.Geocoder()
+    const response = await geocoder.geocode({ location: { lat, lng } })
+
+    // Check all results for a neighborhood component
+    for (const result of response.results) {
+      const raw = extractNeighborhood(result.address_components)
+      if (raw) {
+        const mapped = resolveGoogleNeighborhood(raw)
+        if (mapped) return mapped
+      }
+    }
+  } catch (err) {
+    console.warn('[Maps] Reverse geocode failed, using fallback:', err)
+  }
+
+  // Fallback: nearest center
+  return nearestNeighborhood(lat, lng)
 }
 
 export interface BasicInfoData {
@@ -112,7 +126,6 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
 
   // Attach autocomplete when script + input are ready
   const attachAutocomplete = useCallback(() => {
-    console.log('[Maps] attachAutocomplete called', { mapsLoaded, hasInput: !!inputRef.current, hasAC: !!autocompleteRef.current })
     if (!mapsLoaded || !inputRef.current || autocompleteRef.current) return
 
     const ac = new google.maps.places.Autocomplete(inputRef.current, {
@@ -127,24 +140,27 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       { lat: 40.10, lng: -105.17 },
     ))
 
-    console.log('[Maps] Autocomplete attached to input')
-
-    ac.addListener('place_changed', () => {
+    ac.addListener('place_changed', async () => {
       const place = ac.getPlace()
-      console.log('[Maps] place_changed fired', { hasComponents: !!place?.address_components, hasGeometry: !!place?.geometry })
       if (!place?.address_components) return
 
       const formatted = place.formatted_address ?? ''
       const lat = place.geometry?.location?.lat()
       const lng = place.geometry?.location?.lng()
-      console.log('[Maps] Coordinates:', { lat, lng })
 
-      // Primary: coordinate-based polygon detection
-      let neighborhood = (lat && lng) ? (detectNeighborhood(lat, lng) ?? '') : ''
-      console.log('[Maps] Detected neighborhood:', neighborhood)
-      // Fallback: Google Places address component extraction
-      if (!neighborhood) {
-        neighborhood = resolveNeighborhood(extractNeighborhood(place.address_components))
+      // Try Google Places address_components first (already available, no extra API call)
+      let neighborhood = ''
+      const raw = extractNeighborhood(place.address_components)
+      if (raw) neighborhood = resolveGoogleNeighborhood(raw)
+
+      // If Places didn't have it, use reverse geocoding
+      if (!neighborhood && lat && lng) {
+        neighborhood = await detectNeighborhoodFromGoogle(lat, lng)
+      }
+
+      // Final fallback: nearest center
+      if (!neighborhood && lat && lng) {
+        neighborhood = nearestNeighborhood(lat, lng)
       }
 
       onChangeRef.current({
@@ -238,14 +254,21 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         maxLength={20}
       />
 
-      {/* Neighborhood — auto-detected from address */}
+      {/* Neighborhood — auto-detected with manual override */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Neighborhood</label>
-        <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
-          <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span className={data.neighborhood ? 'text-gray-900' : 'text-gray-400'}>
-            {data.neighborhood || 'Auto-detected from address'}
-          </span>
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <select
+            value={data.neighborhood}
+            onChange={(e) => update('neighborhood', e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
+          >
+            <option value="">Auto-detected from address</option>
+            {NEIGHBORHOODS.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
         </div>
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
       </div>
