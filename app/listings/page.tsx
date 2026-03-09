@@ -43,7 +43,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     .from('listings')
     .select(`
       id, title, neighborhood, rent_monthly, original_rent_monthly, available_from, available_to,
-      room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
+      room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified, landlord_approved,
       save_count, photo_urls, public_latitude, public_longitude,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
@@ -154,6 +154,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
       public_longitude: row.public_longitude as number | undefined,
       original_rent_monthly: row.original_rent_monthly as number | undefined,
       verified: (row.verified as boolean) ?? false,
+      landlord_approved: (row.landlord_approved as boolean) ?? false,
     }
   })
 

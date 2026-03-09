@@ -27,6 +27,7 @@ export interface ListingCardData {
   public_longitude?: number
   original_rent_monthly?: number
   verified?: boolean
+  landlord_approved?: boolean
 }
 
 interface ListingCardProps {
@@ -128,6 +129,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
           </div>
 
           <div className="flex flex-wrap gap-1.5 mt-1">
+            {listing.landlord_approved && <Badge variant="landlord_approved" />}
             {verification_level && verification_level !== 'basic' && (
               <Badge variant={verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
             )}
@@ -212,6 +214,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
         </div>
 
         <div className="flex flex-wrap gap-1 mt-auto pt-2">
+          {listing.landlord_approved && <Badge variant="landlord_approved" />}
           {verification_level && verification_level !== 'basic' && (
             <Badge variant={verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
           )}

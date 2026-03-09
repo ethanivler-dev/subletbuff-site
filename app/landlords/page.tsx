@@ -35,10 +35,15 @@ export default function LandlordsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        console.error('[landlord form]', res.status, data)
+        throw new Error()
+      }
       setSubmitted(true)
-    } catch {
-      setError('Something went wrong. Please email us at subletbuff@gmail.com.')
+    } catch (err) {
+      console.error('[landlord form submit]', err)
+      setError('Something went wrong. Please email us at support@subletbuff.com.')
     } finally {
       setSubmitting(false)
     }

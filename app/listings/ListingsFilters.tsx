@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Bell, Check } from 'lucide-react'
 import { ROOM_TYPES, NEIGHBORHOODS } from '@/lib/constants'
+import { createClient } from '@/lib/supabase/client'
 
 const PRICE_MIN = 0
 const PRICE_MAX = 3000
@@ -39,6 +40,12 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
     params.price_max ? parseInt(params.price_max) : PRICE_MAX,
   ])
   const priceDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'login'>('idle')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setIsLoggedIn(!!data.user))
+  }, [])
 
   function update(key: string, value: string | null) {
     const sp = new URLSearchParams()
@@ -234,6 +241,62 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
             active={params.parking === 'true'}
             onClick={() => update('parking', params.parking === 'true' ? null : 'true')}
           />
+        </div>
+      )}
+
+      {/* Save Search */}
+      {hasFilters && (
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={async () => {
+              if (!isLoggedIn) {
+                setSaveState('login')
+                setTimeout(() => {
+                  router.push(`/auth/login?next=${encodeURIComponent(pathname + '?' + new URLSearchParams(params as Record<string, string>).toString())}`)
+                }, 800)
+                return
+              }
+              setSaveState('saving')
+              try {
+                const res = await fetch('/api/saved-searches', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    neighborhoods: params.neighborhood ? [params.neighborhood] : [],
+                    min_price: params.price_min ? parseInt(params.price_min) : null,
+                    max_price: params.price_max ? parseInt(params.price_max) : null,
+                    move_in_after: params.date_from || null,
+                    move_out_before: params.date_to || null,
+                    room_types: params.room_type ? [params.room_type] : [],
+                  }),
+                })
+                if (!res.ok) throw new Error()
+                setSaveState('saved')
+                setTimeout(() => setSaveState('idle'), 3000)
+              } catch {
+                setSaveState('idle')
+              }
+            }}
+            disabled={saveState === 'saving'}
+            className={[
+              'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-button border transition-colors',
+              saveState === 'saved'
+                ? 'bg-green-50 border-green-300 text-green-700'
+                : saveState === 'login'
+                  ? 'bg-amber-50 border-amber-300 text-amber-700'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-primary-400 hover:text-primary-700',
+            ].join(' ')}
+          >
+            {saveState === 'saved' ? (
+              <><Check className="w-3.5 h-3.5" /> Saved! We&apos;ll email you when new listings match.</>
+            ) : saveState === 'login' ? (
+              <>Sign in to save searches…</>
+            ) : saveState === 'saving' ? (
+              <>Saving…</>
+            ) : (
+              <><Bell className="w-3.5 h-3.5" /> Save this search &amp; get alerts</>
+            )}
+          </button>
         </div>
       )}
     </div>

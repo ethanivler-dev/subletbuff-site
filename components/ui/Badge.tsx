@@ -1,4 +1,4 @@
-import { CheckCircle, Star, Zap, BookOpen } from 'lucide-react'
+import { CheckCircle, Star, Zap, BookOpen, ShieldCheck } from 'lucide-react'
 
 type BadgeVariant =
   | 'verified'
@@ -9,6 +9,7 @@ type BadgeVariant =
   | 'featured'
   | 'immediate'
   | 'furnished'
+  | 'landlord_approved'
 
 const badgeConfig: Record<
   BadgeVariant,
@@ -51,6 +52,11 @@ const badgeConfig: Record<
   furnished: {
     label: 'Furnished',
     className: 'bg-teal-100 text-teal-700',
+  },
+  landlord_approved: {
+    label: 'Landlord Approved',
+    className: 'bg-blue-100 text-blue-700',
+    Icon: ShieldCheck,
   },
 }
 

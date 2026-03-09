@@ -11,6 +11,7 @@ import {
   Heart, MessageSquare, Settings, BarChart2,
   ChevronRight, MapPin, Calendar, Crown,
   ShieldCheck, Upload, GraduationCap, CheckCircle,
+  Bell, Trash2, Search,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import type { User as AuthUser } from '@supabase/supabase-js'
@@ -50,6 +51,17 @@ interface InquiryRow {
   } | null
 }
 
+interface SavedSearch {
+  id: string
+  neighborhoods: string[] | null
+  min_price: number | null
+  max_price: number | null
+  move_in_after: string | null
+  move_out_before: string | null
+  room_types: string[] | null
+  created_at: string
+}
+
 interface Profile {
   verification_level: string | null
   edu_email: string | null
@@ -57,7 +69,7 @@ interface Profile {
   account_type: string | null
 }
 
-type Tab = 'saved' | 'inquiries' | 'settings'
+type Tab = 'saved' | 'searches' | 'inquiries' | 'settings'
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -93,6 +105,7 @@ export default function AccountPage() {
 
   // Tab data
   const [savedListings, setSavedListings] = useState<SavedItem[]>([])
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
   const [inquiries, setInquiries] = useState<InquiryRow[]>([])
   const [tabLoading, setTabLoading] = useState(false)
 
@@ -141,6 +154,18 @@ export default function AccountPage() {
     if (tab === 'settings') return
     setTabLoading(true)
     const supabase = createClient()
+
+    if (tab === 'searches') {
+      try {
+        const res = await fetch('/api/saved-searches')
+        if (res.ok) {
+          const data = await res.json()
+          setSavedSearches(data)
+        }
+      } catch { /* ignore */ }
+      setTabLoading(false)
+      return
+    }
 
     if (tab === 'saved') {
       const { data } = await supabase
@@ -291,7 +316,8 @@ export default function AccountPage() {
             {(
               [
                 { key: 'saved' as Tab, label: 'Saved Listings', Icon: Heart },
-                { key: 'inquiries' as Tab, label: 'Inquiry History', Icon: MessageSquare },
+                { key: 'searches' as Tab, label: 'Saved Searches', Icon: Bell },
+                { key: 'inquiries' as Tab, label: 'Inquiries', Icon: MessageSquare },
                 { key: 'settings' as Tab, label: 'Settings', Icon: Settings },
               ] as const
             ).map(({ key, label, Icon }) => (
@@ -389,6 +415,81 @@ export default function AccountPage() {
                             </p>
                           </div>
                         </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ---- Saved Searches ---- */}
+            {!tabLoading && activeTab === 'searches' && (
+              <>
+                {savedSearches.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Bell className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 mb-1">No saved searches yet</p>
+                    <p className="text-xs text-gray-400 mb-3">Apply filters on the listings page and click &quot;Save this search&quot; to get alerts.</p>
+                    <Link href="/listings">
+                      <Button variant="secondary" size="sm">Browse Listings</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {savedSearches.map((search) => {
+                      const parts: string[] = []
+                      if (search.neighborhoods?.length) parts.push(search.neighborhoods.join(', '))
+                      if (search.room_types?.length) parts.push(search.room_types.map(formatRoomType).join(', '))
+                      if (search.min_price || search.max_price) {
+                        const min = search.min_price ? `$${search.min_price}` : '$0'
+                        const max = search.max_price ? `$${search.max_price}` : 'any'
+                        parts.push(`${min}–${max}`)
+                      }
+                      if (search.move_in_after) parts.push(`from ${formatDate(search.move_in_after)}`)
+                      if (search.move_out_before) parts.push(`until ${formatDate(search.move_out_before)}`)
+
+                      const searchParams = new URLSearchParams()
+                      if (search.neighborhoods?.[0]) searchParams.set('neighborhood', search.neighborhoods[0])
+                      if (search.room_types?.[0]) searchParams.set('room_type', search.room_types[0])
+                      if (search.min_price) searchParams.set('price_min', String(search.min_price))
+                      if (search.max_price) searchParams.set('price_max', String(search.max_price))
+                      if (search.move_in_after) searchParams.set('date_from', search.move_in_after)
+                      if (search.move_out_before) searchParams.set('date_to', search.move_out_before)
+
+                      return (
+                        <div key={search.id} className="flex items-center gap-3 p-4 rounded-card border border-gray-100">
+                          <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                            <Search className="w-4 h-4 text-primary-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                              {parts.length > 0 ? parts.join(' · ') : 'All listings'}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              Saved {formatDate(search.created_at.split('T')[0])}
+                            </p>
+                          </div>
+                          <Link
+                            href={`/listings?${searchParams.toString()}`}
+                            className="text-xs font-medium text-primary-600 hover:text-primary-800 flex-shrink-0"
+                          >
+                            View
+                          </Link>
+                          <button
+                            onClick={async () => {
+                              await fetch('/api/saved-searches', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: search.id }),
+                              })
+                              setSavedSearches((prev) => prev.filter((s) => s.id !== search.id))
+                            }}
+                            className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                            title="Delete saved search"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )
                     })}
                   </div>
