@@ -245,7 +245,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           value={data.rent_monthly}
           onChange={(e) => update('rent_monthly', e.target.value)}
           error={errors.rent_monthly}
-          min={0}
+          min={1}
         />
         <Input
           label="Security Deposit ($)"

@@ -1,11 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 /**
  * POST /api/messages/conversations — Create or get a conversation and send the first message
  * Body: { listing_id, recipient_id, message }
  */
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { key: 'conversations', limit: 10, windowSeconds: 60 })
+  if (limited) return limited
+
   console.log('[conversations POST] === START ===')
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()

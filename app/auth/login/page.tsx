@@ -33,7 +33,7 @@ function LoginForm() {
     const supabase = createClient()
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
-    if (err) { setError(err.message); return }
+    if (err) { setError('Email or password is incorrect'); return }
     router.push(next)
     router.refresh()
   }

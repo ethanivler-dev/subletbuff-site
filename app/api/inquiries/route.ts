@@ -1,11 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 /**
  * POST /api/inquiries — send an inquiry from renter to lister
  * Auth required. Body: listing_id, message, move_in_date?, move_out_date?
  */
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { key: 'inquiries', limit: 10, windowSeconds: 60 })
+  if (limited) return limited
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

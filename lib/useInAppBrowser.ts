@@ -13,6 +13,7 @@ const IN_APP_PATTERNS = [
   'LinkedInApp',
   'Pinterest',
   'GSA', // Google Search app webview
+  'GoogleApp', // Google app built-in browser
   'MicroMessenger', // WeChat
   'WhatsApp',
 ]

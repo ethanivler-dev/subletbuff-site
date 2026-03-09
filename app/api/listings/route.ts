@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { isStagingEnvironment, shouldHideTestListings } from '@/lib/appEnv'
+import { rateLimit } from '@/lib/rate-limit'
 
 function escapeLikePattern(str: string): string {
   return str.replace(/[%_\\]/g, '\\$&')
@@ -167,6 +168,9 @@ export async function GET(request: NextRequest) {
  * Auth required. Auto-jitters coordinates. Sets status to 'pending'.
  */
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { key: 'listings', limit: 5, windowSeconds: 60 })
+  if (limited) return limited
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

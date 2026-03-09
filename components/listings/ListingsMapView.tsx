@@ -220,11 +220,32 @@ export function ListingsMapView({ listings, total, params }: Props) {
 
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
+  const hasActiveFilters = !!(
+    params.q || params.neighborhood || params.price_min || params.price_max ||
+    params.room_type || params.filter || params.date_from || params.date_to ||
+    params.min_stay || params.furnished || params.intern_friendly || params.parking
+  )
+
   const cardList =
     visibleListings.length === 0 ? (
       <div className="text-center py-20 text-gray-500">
-        <p className="text-lg font-medium mb-2">No listings found</p>
-        <p className="text-sm">Try adjusting your filters or search term.</p>
+        {hasActiveFilters ? (
+          <>
+            <p className="text-lg font-medium mb-2">No listings found</p>
+            <p className="text-sm">Try adjusting your filters or search term.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-lg font-medium mb-2">No listings available yet</p>
+            <p className="text-sm mb-6">Be the first to post a sublet in Boulder!</p>
+            <a
+              href="/post"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-button bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+            >
+              Post a Listing
+            </a>
+          </>
+        )}
       </div>
     ) : (
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${showMap ? '' : 'lg:grid-cols-3'} gap-4 mt-6`}>

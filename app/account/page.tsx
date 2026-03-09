@@ -109,6 +109,23 @@ export default function AccountPage() {
   const [inquiries, setInquiries] = useState<InquiryRow[]>([])
   const [tabLoading, setTabLoading] = useState(false)
 
+  // Settings: edit name
+  const [editingName, setEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
+
+  // Settings: change password
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Settings: delete account
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
   /* ---- Auth + initial counts ---- */
   useEffect(() => {
     async function init() {
@@ -624,9 +641,46 @@ export default function AccountPage() {
                 <div className="flex flex-col gap-3">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Display Name</p>
-                    <p className="text-sm text-gray-900 px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
-                      {displayName}
-                    </p>
+                    {editingName ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={nameValue}
+                          onChange={(e) => setNameValue(e.target.value)}
+                          className="flex-1 text-sm px-3 py-2 rounded-button border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          maxLength={100}
+                        />
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={nameSaving || !nameValue.trim()}
+                          onClick={async () => {
+                            setNameSaving(true)
+                            const supabase = createClient()
+                            await supabase.from('profiles').update({ full_name: nameValue.trim() }).eq('id', user.id)
+                            await supabase.auth.updateUser({ data: { full_name: nameValue.trim() } })
+                            setEditingName(false)
+                            setNameSaving(false)
+                            window.location.reload()
+                          }}
+                        >
+                          {nameSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingName(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
+                        <p className="text-sm text-gray-900">{displayName}</p>
+                        <button
+                          onClick={() => { setNameValue(displayName); setEditingName(true) }}
+                          className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Email</p>
@@ -647,11 +701,73 @@ export default function AccountPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* Change Password */}
                 <div className="mt-6 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4">Change Password</h3>
+                  {changingPassword ? (
+                    <div className="flex flex-col gap-3">
+                      <input
+                        type="password"
+                        placeholder="New password (min 8 characters)"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        minLength={8}
+                        className="text-sm px-3 py-2 rounded-button border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="text-sm px-3 py-2 rounded-button border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      {passwordMessage && (
+                        <p className={`text-xs ${passwordMessage.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>
+                          {passwordMessage.text}
+                        </p>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={passwordSaving || newPassword.length < 8 || newPassword !== confirmPassword}
+                          onClick={async () => {
+                            setPasswordSaving(true)
+                            setPasswordMessage(null)
+                            const supabase = createClient()
+                            const { error } = await supabase.auth.updateUser({ password: newPassword })
+                            setPasswordSaving(false)
+                            if (error) {
+                              setPasswordMessage({ type: 'error', text: error.message })
+                            } else {
+                              setPasswordMessage({ type: 'success', text: 'Password updated successfully.' })
+                              setNewPassword('')
+                              setConfirmPassword('')
+                              setTimeout(() => { setChangingPassword(false); setPasswordMessage(null) }, 2000)
+                            }
+                          }}
+                        >
+                          {passwordSaving ? 'Updating...' : 'Update Password'}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setChangingPassword(false); setPasswordMessage(null); setNewPassword(''); setConfirmPassword('') }}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button variant="secondary" size="sm" onClick={() => setChangingPassword(true)}>
+                      Change Password
+                    </Button>
+                  )}
+                </div>
+
+                {/* Sign Out & Delete Account */}
+                <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-4">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-600 hover:bg-red-50"
+                    className="text-gray-600 hover:bg-gray-100 self-start"
                     onClick={async () => {
                       const supabase = createClient()
                       await supabase.auth.signOut()
@@ -660,6 +776,57 @@ export default function AccountPage() {
                   >
                     Sign Out
                   </Button>
+
+                  <div className="pt-4 border-t border-gray-100">
+                    {showDeleteConfirm ? (
+                      <div className="bg-red-50 border border-red-200 rounded-card p-4">
+                        <p className="text-sm font-semibold text-red-800 mb-2">Delete your account?</p>
+                        <p className="text-xs text-red-600 mb-3">
+                          This will permanently delete your account, listings, messages, and all associated data. This cannot be undone.
+                        </p>
+                        <p className="text-xs text-gray-600 mb-2">Type <span className="font-mono font-bold">DELETE</span> to confirm:</p>
+                        <input
+                          type="text"
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          className="w-full text-sm px-3 py-2 rounded-button border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 mb-3"
+                          placeholder="Type DELETE"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="!bg-red-600 hover:!bg-red-700"
+                            disabled={deleteConfirmText !== 'DELETE' || deleting}
+                            onClick={async () => {
+                              setDeleting(true)
+                              const res = await fetch('/api/account/delete', { method: 'POST' })
+                              if (res.ok) {
+                                const supabase = createClient()
+                                await supabase.auth.signOut()
+                                router.push('/')
+                              } else {
+                                setDeleting(false)
+                                setDeleteConfirmText('')
+                              }
+                            }}
+                          >
+                            {deleting ? 'Deleting...' : 'Permanently Delete Account'}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        Delete account
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

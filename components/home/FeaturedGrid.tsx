@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ListingCard, type ListingCardData } from '@/components/listings/ListingCard'
-import { ListingCardSkeleton } from '@/components/ui/Skeleton'
 import { StaggeredGrid } from '@/components/home/StaggeredGrid'
 import { sanitizeListingTitle } from '@/lib/utils'
 import { shouldHideTestListings } from '@/lib/appEnv'
@@ -79,16 +78,17 @@ export async function FeaturedGrid() {
     return (
       <section className="py-16 lg:py-24 bg-white">
         <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-serif text-3xl text-gray-900">Featured Listings</h2>
-            <Link href="/listings" className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1">
-              View All <ArrowRight className="w-4 h-4" />
+          <div className="text-center py-12">
+            <h2 className="font-serif text-3xl text-gray-900 mb-3">Featured Listings</h2>
+            <p className="text-gray-500 mb-6">
+              No listings available yet. Be the first to post a sublet in Boulder!
+            </p>
+            <Link
+              href="/post"
+              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-button bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+            >
+              Post a Listing <ArrowRight className="w-4 h-4" />
             </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <ListingCardSkeleton key={i} variant="vertical" />
-            ))}
           </div>
         </div>
       </section>

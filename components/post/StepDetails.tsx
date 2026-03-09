@@ -55,6 +55,7 @@ export function StepDetails({ data, onChange, errors, availableFrom }: StepDetai
           onChange={(e) => update('description', e.target.value)}
           placeholder="Describe your space, the neighborhood, what's nearby…"
           rows={5}
+          maxLength={5000}
           className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder:text-gray-400 transition-colors resize-none hover:border-gray-400"
         />
         <div className="flex justify-between">

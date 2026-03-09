@@ -102,7 +102,13 @@ function ResetPasswordForm() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-sm text-center">
-          <p className="text-sm text-gray-500">Verifying reset link…</p>
+          <div className="flex justify-center mb-6">
+            <Link href="/">
+              <Image src="/logo.png" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" unoptimized />
+            </Link>
+          </div>
+          <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Processing your reset link...</p>
         </div>
       </div>
     )
