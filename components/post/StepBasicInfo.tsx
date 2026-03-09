@@ -27,11 +27,17 @@ function loadGoogleMaps(): Promise<void> {
   gmapsPromise = new Promise<void>((resolve, reject) => {
     const key = process.env.NEXT_PUBLIC_MAPS_KEY
     if (!key) { reject(new Error('Missing NEXT_PUBLIC_MAPS_KEY')); return }
-    window.__gmapsCallback = () => resolve()
+    window.__gmapsCallback = () => {
+      console.log('[Maps] Google Maps loaded successfully')
+      resolve()
+    }
     const s = document.createElement('script')
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&callback=__gmapsCallback`
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async&callback=__gmapsCallback`
     s.async = true
-    s.onerror = () => reject(new Error('Failed to load Google Maps'))
+    s.onerror = () => {
+      console.error('[Maps] Failed to load Google Maps script')
+      reject(new Error('Failed to load Google Maps'))
+    }
     document.head.appendChild(s)
   })
   return gmapsPromise
@@ -106,6 +112,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
 
   // Attach autocomplete when script + input are ready
   const attachAutocomplete = useCallback(() => {
+    console.log('[Maps] attachAutocomplete called', { mapsLoaded, hasInput: !!inputRef.current, hasAC: !!autocompleteRef.current })
     if (!mapsLoaded || !inputRef.current || autocompleteRef.current) return
 
     const ac = new google.maps.places.Autocomplete(inputRef.current, {
@@ -120,16 +127,21 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       { lat: 40.10, lng: -105.17 },
     ))
 
+    console.log('[Maps] Autocomplete attached to input')
+
     ac.addListener('place_changed', () => {
       const place = ac.getPlace()
+      console.log('[Maps] place_changed fired', { hasComponents: !!place?.address_components, hasGeometry: !!place?.geometry })
       if (!place?.address_components) return
 
       const formatted = place.formatted_address ?? ''
       const lat = place.geometry?.location?.lat()
       const lng = place.geometry?.location?.lng()
+      console.log('[Maps] Coordinates:', { lat, lng })
 
       // Primary: coordinate-based polygon detection
       let neighborhood = (lat && lng) ? (detectNeighborhood(lat, lng) ?? '') : ''
+      console.log('[Maps] Detected neighborhood:', neighborhood)
       // Fallback: Google Places address component extraction
       if (!neighborhood) {
         neighborhood = resolveNeighborhood(extractNeighborhood(place.address_components))
