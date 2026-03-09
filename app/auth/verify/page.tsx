@@ -14,7 +14,7 @@ function VerifyForm() {
   const email = searchParams.get('email') ?? ''
   const next = searchParams.get('next') ?? '/'
 
-  const [code, setCode] = useState(['', '', '', '', '', ''])
+  const [code, setCode] = useState(['', '', '', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [error, setError] = useState('')
@@ -24,13 +24,13 @@ function VerifyForm() {
   function handleChange(index: number, value: string) {
     // Handle paste of full code
     if (value.length > 1) {
-      const digits = value.replace(/\D/g, '').slice(0, 6).split('')
+      const digits = value.replace(/\D/g, '').slice(0, 8).split('')
       const newCode = [...code]
       digits.forEach((d, i) => {
-        if (index + i < 6) newCode[index + i] = d
+        if (index + i < 8) newCode[index + i] = d
       })
       setCode(newCode)
-      const nextIndex = Math.min(index + digits.length, 5)
+      const nextIndex = Math.min(index + digits.length, 7)
       inputRefs.current[nextIndex]?.focus()
       return
     }
@@ -41,7 +41,7 @@ function VerifyForm() {
     newCode[index] = value
     setCode(newCode)
 
-    if (value && index < 5) {
+    if (value && index < 7) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -55,8 +55,8 @@ function VerifyForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const token = code.join('')
-    if (token.length !== 6) {
-      setError('Please enter the full 6-digit code.')
+    if (token.length !== 8) {
+      setError('Please enter the full 8-digit code.')
       return
     }
     setLoading(true)
@@ -110,7 +110,7 @@ function VerifyForm() {
 
           <h1 className="text-xl font-semibold text-gray-900 mb-2 text-center">Check your email</h1>
           <p className="text-sm text-gray-500 text-center mb-6">
-            Enter the 6-digit code we sent to <strong>{email}</strong>
+            Enter the 8-digit code we sent to <strong>{email}</strong>
           </p>
 
           {error && (
@@ -121,18 +121,18 @@ function VerifyForm() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-1.5">
               {code.map((digit, i) => (
                 <input
                   key={i}
                   ref={(el) => { inputRefs.current[i] = el }}
                   type="text"
                   inputMode="numeric"
-                  maxLength={6}
+                  maxLength={8}
                   value={digit}
                   onChange={(e) => handleChange(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="w-11 h-12 text-center text-lg font-semibold border border-gray-200 rounded-button focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-9 h-11 text-center text-lg font-semibold border border-gray-200 rounded-button focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   autoFocus={i === 0}
                 />
               ))}
