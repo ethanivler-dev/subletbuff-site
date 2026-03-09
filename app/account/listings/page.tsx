@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/lib/utils'
 import {
   Eye, Heart, MessageSquare, TrendingUp,
-  Plus, Star, ArrowLeft, ExternalLink,
+  Plus, Star, ArrowLeft, ExternalLink, Pencil,
   Pause, Play, CheckCircle, Trash2, MoreVertical,
 } from 'lucide-react'
 import {
@@ -503,6 +503,16 @@ export default function ListerDashboardPage() {
                                     <ExternalLink className="w-3.5 h-3.5" />
                                     View Listing
                                   </Link>
+                                  {(listing.status === 'pending' || listing.status === 'approved') && !listing.filled && (
+                                    <Link
+                                      href={`/account/listings/${listing.id}/edit`}
+                                      onClick={() => setOpenMenu(null)}
+                                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                      Edit Listing
+                                    </Link>
+                                  )}
                                   {listing.status === 'approved' && !listing.filled && (
                                     <button
                                       onClick={() => patchListing(listing.id, { paused: !listing.paused })}

@@ -43,20 +43,34 @@ export async function GET(
     !data.filled &&
     (!shouldHideTestListings() || !data.test_listing)
 
+  // Check auth early so we know if owner
+  const { data: { user } } = await supabase.auth.getUser()
+  const ownerId = data.lister_id ?? data.user_id
+  const isOwner = !!user && user.id === ownerId
+
   // Only show public listings unless owner
-  if (!isPublic) {
-    // Allow the lister to see their own listing regardless of status
-    const { data: { user } } = await supabase.auth.getUser()
-    const ownerId = data.lister_id ?? data.user_id
-    if (!user || user.id !== ownerId) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
-    }
+  if (!isPublic && !isOwner) {
+    return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+  }
+
+  // If owner, fetch private fields for editing
+  let ownerFields: Record<string, unknown> = {}
+  if (isOwner) {
+    const { data: privateData } = await supabase
+      .from('listings')
+      .select(`
+        address, latitude, longitude,
+        auto_reduce_enabled, auto_reduce_amount,
+        auto_reduce_interval_days, auto_reduce_max_times
+      `)
+      .eq('id', id)
+      .single()
+    if (privateData) ownerFields = privateData
   }
 
   // Check if current user has address_shared via inquiry
-  const { data: { user } } = await supabase.auth.getUser()
   let address: string | null = null
-  if (user) {
+  if (user && !isOwner) {
     const { data: inquiry } = await supabase
       .from('inquiries')
       .select('address_shared')
@@ -65,7 +79,6 @@ export async function GET(
       .eq('address_shared', true)
       .maybeSingle()
     if (inquiry?.address_shared) {
-      // Fetch the real address for this authorized user
       const { data: addressRow } = await supabase
         .from('listings')
         .select('address')
@@ -74,9 +87,6 @@ export async function GET(
       address = addressRow?.address ?? null
     }
   }
-
-  // Fetch lister profile
-  const ownerId = data.lister_id ?? data.user_id
   let profile = null
   if (ownerId) {
     const { data: profileData } = await supabase
@@ -102,12 +112,12 @@ export async function GET(
   return NextResponse.json({
     listing: {
       ...data,
-      // NOTE: address, latitude, longitude are excluded from the spread above
-      // because they are not in the select query. Only add address if shared.
+      ...ownerFields,
       address_shared: address,
     },
     profile,
     is_saved: isSaved,
+    is_owner: isOwner,
   })
 }
 
@@ -130,7 +140,7 @@ export async function PATCH(
   // Verify ownership
   const { data: listing } = await supabase
     .from('listings')
-    .select('lister_id, user_id')
+    .select('lister_id, user_id, status')
     .eq('id', id)
     .single()
 
@@ -154,9 +164,11 @@ export async function PATCH(
     'paused', 'filled',
     'auto_reduce_enabled', 'auto_reduce_amount',
     'auto_reduce_interval_days', 'auto_reduce_max_times',
+    'address', 'latitude', 'longitude',
+    'public_latitude', 'public_longitude',
   ]
 
-  const updates = Object.fromEntries(
+  const updates: Record<string, unknown> = Object.fromEntries(
     Object.entries(body).filter(([key]) => ALLOWED_FIELDS.includes(key))
   )
 
@@ -164,18 +176,27 @@ export async function PATCH(
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
   }
 
+  // Re-review: if address or photos changed on an approved listing, send back to pending
+  const RE_REVIEW_FIELDS = ['address', 'latitude', 'longitude']
+  const needsReReview = RE_REVIEW_FIELDS.some((f) => f in updates) || body._photos_changed
+  if (needsReReview && listing.status === 'approved') {
+    updates.status = 'pending'
+    updates.reviewed_by = null
+    updates.reviewed_at = null
+  }
+
   const { data: updated, error } = await supabase
     .from('listings')
     .update(updates)
     .eq('id', id)
-    .select('id')
+    .select('id, status')
     .single()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ id: updated.id })
+  return NextResponse.json({ id: updated.id, status: updated.status })
 }
 
 /**
