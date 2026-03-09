@@ -7,15 +7,17 @@ export function Footer() {
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
           {/* Col 1: Logo + tagline */}
-          <div className="flex flex-col gap-4">
-            <Image
-              src="/logo.png"
-              alt="SubletBuff"
-              width={3772}
-              height={1120}
-              className="w-36 h-auto brightness-0 invert"
-              unoptimized
-            />
+          <div className="flex flex-col gap-4 min-w-0">
+            <div className="flex-shrink-0">
+              <Image
+                src="/logo.png"
+                alt="SubletBuff"
+                width={3772}
+                height={1120}
+                className="w-36 h-auto brightness-0 invert block"
+                unoptimized
+              />
+            </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Boulder&apos;s short-term housing marketplace. Verified sublets for interns,
               seasonal workers, and researchers.
