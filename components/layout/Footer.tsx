@@ -13,7 +13,7 @@ export function Footer() {
               alt="SubletBuff"
               width={3772}
               height={1120}
-              className="h-9 w-auto brightness-0 invert"
+              className="w-36 h-auto brightness-0 invert"
               unoptimized
             />
             <p className="text-gray-400 text-sm leading-relaxed">
