@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdmin } from '@/lib/admin'
+import { isAdminServer } from '@/lib/admin'
 import { sendListingApprovedEmail, sendListingRejectedEmail } from '@/lib/email'
 
 const ADMIN_EDITABLE_FIELDS = [
   'title', 'description', 'rent_monthly', 'neighborhood', 'room_type',
   'available_from', 'available_to', 'status', 'paused', 'filled', 'test_listing',
-  'furnished', 'is_intern_friendly', 'immediate_movein', 'verified',
+  'furnished', 'is_intern_friendly', 'immediate_movein', 'verified', 'lease_status',
 ]
 
 /**
@@ -20,18 +20,24 @@ export async function PATCH(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || !isAdmin(user.id)) {
+  if (!user || !(await isAdminServer(supabase, user.id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const body = await request.json()
 
-  const updates = Object.fromEntries(
+  const updates: Record<string, unknown> = Object.fromEntries(
     Object.entries(body).filter(([key]) => ADMIN_EDITABLE_FIELDS.includes(key))
   )
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+  }
+
+  // Track who reviewed and when for status changes
+  if (updates.status === 'approved' || updates.status === 'rejected') {
+    updates.reviewed_by = user.id
+    updates.reviewed_at = new Date().toISOString()
   }
 
   const { error } = await supabase
@@ -76,11 +82,10 @@ export async function DELETE(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || !isAdmin(user.id)) {
+  if (!user || !(await isAdminServer(supabase, user.id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Delete related rows first, then the listing itself
   await supabase.from('listing_photos').delete().eq('listing_id', id)
   await supabase.from('saved_listings').delete().eq('listing_id', id)
   await supabase.from('messages').delete().eq('listing_id', id)

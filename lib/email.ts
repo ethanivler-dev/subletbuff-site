@@ -82,3 +82,51 @@ export function sendListingRejectedEmail(email: string, name: string, title: str
   `)
   send(email, 'Update on your listing', html).catch(() => {})
 }
+
+export function sendAdminContactEmail(email: string, name: string, title: string, listingId: string, reason: string, message: string) {
+  const editUrl = `https://subletbuff.com/account/listings`
+  const reasonLabels: Record<string, string> = {
+    revision: 'Listing needs revision',
+    missing_info: 'Missing information',
+    photo_quality: 'Photo quality issue',
+    price_issue: 'Price verification',
+    custom: 'Message from SubletBuff',
+  }
+  const subject = reasonLabels[reason] ?? 'Message about your listing'
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">${subject}</h2>
+    <p>Hi ${name},</p>
+    <p>We&rsquo;re reaching out about your listing <strong>&ldquo;${title}&rdquo;</strong>:</p>
+    <div style="background:#f9f9f6;border-left:3px solid #B8922A;padding:12px 16px;margin:16px 0;font-size:0.95rem">
+      ${message.replace(/\n/g, '<br />')}
+    </div>
+    <p>You can update your listing at <a href="${editUrl}" style="color:#B8922A;font-weight:600">subletbuff.com/account/listings</a></p>
+    <p>Questions? Reply to this email.</p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  return send(email, `${subject}: "${title}"`, html)
+}
+
+export function sendLeaseApprovedEmail(email: string, name: string, title: string, listingId: string) {
+  const url = `https://subletbuff.com/listings/${listingId}`
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Lease verified!</h2>
+    <p>Hi ${name},</p>
+    <p>Your lease for <strong>&ldquo;${title}&rdquo;</strong> has been verified. Your listing now shows a &ldquo;Lease Verified&rdquo; badge!</p>
+    <p><a href="${url}" style="color:#B8922A;font-weight:600">View your listing &rarr;</a></p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  send(email, 'Lease verified!', html).catch(() => {})
+}
+
+export function sendLeaseRejectedEmail(email: string, name: string, title: string) {
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Lease document update</h2>
+    <p>Hi ${name},</p>
+    <p>We reviewed the lease document for <strong>&ldquo;${title}&rdquo;</strong> and were unable to verify it.</p>
+    <p>Common reasons: document is unclear, doesn&rsquo;t match the listing address, or is incomplete.</p>
+    <p>You can upload a new document from your listing page.</p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  send(email, 'Lease document update', html).catch(() => {})
+}
