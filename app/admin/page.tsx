@@ -137,7 +137,8 @@ export default function AdminDashboard() {
     if (res.ok) {
       setListings((prev) => prev.map((l) => l.id === id ? { ...l, paused: true } : l))
     } else {
-      alert('Failed to pause listing')
+      const body = await res.json().catch(() => ({}))
+      alert(`Failed to pause listing: ${body.error ?? res.statusText}`)
     }
     setActionLoading(null)
   }
@@ -152,7 +153,8 @@ export default function AdminDashboard() {
     if (res.ok) {
       setListings((prev) => prev.map((l) => l.id === id ? { ...l, paused: false } : l))
     } else {
-      alert('Failed to unpause listing')
+      const body = await res.json().catch(() => ({}))
+      alert(`Failed to unpause listing: ${body.error ?? res.statusText}`)
     }
     setActionLoading(null)
   }
@@ -160,12 +162,32 @@ export default function AdminDashboard() {
   async function handleDelete(id: string) {
     if (!confirm('Permanently delete this listing? This cannot be undone.')) return
     setActionLoading(id)
-    const res = await fetch(`/api/admin/listings/${id}`, { method: 'DELETE' })
-    if (res.ok) {
+    const deleteRes = await fetch(`/api/admin/listings/${id}`, { method: 'DELETE' })
+    if (deleteRes.ok) {
       setListings((prev) => prev.filter((l) => l.id !== id))
-    } else {
-      alert('Failed to delete listing')
+      setActionLoading(null)
+      return
     }
+
+    // Fallback: if hard delete is blocked, still allow admin takedown via pause.
+    const takedownRes = await fetch(`/api/admin/listings/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paused: true }),
+    })
+    if (takedownRes.ok) {
+      setListings((prev) => prev.map((l) => l.id === id ? { ...l, paused: true } : l))
+      alert('Hard delete was blocked, but listing was taken down (paused).')
+      setActionLoading(null)
+      return
+    }
+
+    const deleteBody = await deleteRes.json().catch(() => ({}))
+    const takedownBody = await takedownRes.json().catch(() => ({}))
+    alert(
+      `Failed to delete or take down listing. Delete: ${deleteBody.error ?? deleteRes.statusText}. `
+      + `Takedown: ${takedownBody.error ?? takedownRes.statusText}.`
+    )
     setActionLoading(null)
   }
 

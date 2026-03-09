@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ListingCard, type ListingCardData } from '@/components/listings/ListingCard'
 import { sanitizeListingTitle } from '@/lib/utils'
+import { shouldHideTestListings } from '@/lib/appEnv'
 
 interface SimilarListingsProps {
   currentId: string
@@ -16,7 +17,7 @@ export async function SimilarListings({ currentId, neighborhood, rentMonthly }: 
   const minRent = Math.round(rentMonthly * 0.7)
   const maxRent = Math.round(rentMonthly * 1.3)
 
-  const { data } = await supabase
+  let query = supabase
     .from('listings')
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
@@ -27,7 +28,11 @@ export async function SimilarListings({ currentId, neighborhood, rentMonthly }: 
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
+  if (shouldHideTestListings()) {
+    query = query.eq('test_listing', false)
+  }
 
+  const { data } = await query
     .neq('id', currentId)
     .or(`neighborhood.eq.${neighborhood},and(rent_monthly.gte.${minRent},rent_monthly.lte.${maxRent})`)
     .order('created_at', { ascending: false })

@@ -60,10 +60,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { error } = await supabase
-    .from('listings')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.rpc('delete_listing_safe', { p_listing_id: id })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

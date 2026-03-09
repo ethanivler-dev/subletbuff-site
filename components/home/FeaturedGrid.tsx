@@ -5,13 +5,14 @@ import { ListingCard, type ListingCardData } from '@/components/listings/Listing
 import { ListingCardSkeleton } from '@/components/ui/Skeleton'
 import { StaggeredGrid } from '@/components/home/StaggeredGrid'
 import { sanitizeListingTitle } from '@/lib/utils'
+import { shouldHideTestListings } from '@/lib/appEnv'
 
 async function fetchFeaturedListings(): Promise<ListingCardData[]> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('listings')
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
@@ -22,9 +23,10 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
-
-    .order('created_at', { ascending: false })
-    .limit(8)
+  if (shouldHideTestListings()) {
+    query = query.eq('test_listing', false)
+  }
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(8)
 
   if (error || !data) return []
 

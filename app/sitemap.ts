@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { shouldHideTestListings } from '@/lib/appEnv'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://subletbuff.com'
@@ -18,13 +19,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Dynamic listing pages
   const supabase = await createClient()
-  const { data: listings } = await supabase
+  let listingsQuery = supabase
     .from('listings')
     .select('id, created_at')
     .eq('status', 'approved')
     .eq('paused', false)
     .eq('filled', false)
     .order('created_at', { ascending: false })
+
+  if (shouldHideTestListings()) {
+    listingsQuery = listingsQuery.eq('test_listing', false)
+  }
+
+  const { data: listings } = await listingsQuery
 
   const listingPages: MetadataRoute.Sitemap = (listings ?? []).map((listing) => ({
     url: `${baseUrl}/listings/${listing.id}`,

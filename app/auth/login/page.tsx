@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
-import { useInAppBrowser } from '@/lib/useInAppBrowser'
+import { isLikelyInAppBrowser, useInAppBrowser } from '@/lib/useInAppBrowser'
 
 function LoginForm() {
   const router = useRouter()
@@ -52,6 +52,11 @@ function LoginForm() {
   }
 
   async function handleGoogle() {
+    if (isInAppBrowser || isLikelyInAppBrowser()) {
+      setError('Google sign-in is blocked in this in-app browser. Open this page in Safari or Chrome and try again.')
+      setGoogleLoading(false)
+      return
+    }
     setGoogleLoading(true)
     setError('')
     const supabase = createClient()
@@ -184,7 +189,7 @@ function LoginForm() {
 
             {resetSent && (
               <p className="text-sm text-success bg-success/10 px-3 py-2 rounded-button">
-                Password reset link sent! Check your email.
+                Password reset link sent! Check your email — be sure to check your spam, junk, and promotions folders.
               </p>
             )}
 

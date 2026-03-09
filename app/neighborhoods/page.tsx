@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { MapPin, Clock, DollarSign, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { shouldHideTestListings } from '@/lib/appEnv'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -109,14 +110,19 @@ async function getListingCounts(): Promise<Record<string, number>> {
   const counts: Record<string, number> = {}
 
   for (const n of neighborhoods) {
-    const { count } = await supabase
+    let countQuery = supabase
       .from('listings')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'approved')
       .eq('paused', false)
       .eq('filled', false)
-
       .eq('neighborhood', n.dbName)
+
+    if (shouldHideTestListings()) {
+      countQuery = countQuery.eq('test_listing', false)
+    }
+
+    const { count } = await countQuery
 
     counts[n.dbName] = count ?? 0
   }
