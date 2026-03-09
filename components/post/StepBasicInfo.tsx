@@ -5,17 +5,6 @@ import { Input } from '@/components/ui/Input'
 import { ROOM_TYPES, NEIGHBORHOODS, MANAGEMENT_COMPANIES } from '@/lib/constants'
 import { MapPin } from 'lucide-react'
 
-const NEIGHBORHOOD_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
-  'The Hill': { lat: 40.0030, lng: -105.2715, zoom: 15 },
-  'University Hill': { lat: 39.9975, lng: -105.2755, zoom: 15 },
-  'Goss-Grove': { lat: 40.0103, lng: -105.2720, zoom: 15 },
-  'Baseline Sub': { lat: 40.0015, lng: -105.2520, zoom: 15 },
-  'Chautauqua': { lat: 39.9930, lng: -105.2875, zoom: 15 },
-  'Martin Acres': { lat: 39.9865, lng: -105.2630, zoom: 15 },
-  'North Boulder': { lat: 40.0300, lng: -105.2750, zoom: 14 },
-  'South Boulder': { lat: 39.9855, lng: -105.2600, zoom: 14 },
-  'East Boulder': { lat: 40.0055, lng: -105.2330, zoom: 14 },
-}
 
 /* ------------------------------------------------------------------ */
 /*  Lightweight Google Places Autocomplete hook                        */
@@ -231,15 +220,6 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
           </select>
         </div>
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
-        {data.neighborhood && NEIGHBORHOOD_CENTERS[data.neighborhood] && (
-          <div className="mt-1.5 rounded-button overflow-hidden border border-gray-200">
-            <img
-              src={`https://maps.googleapis.com/maps/api/staticmap?center=${NEIGHBORHOOD_CENTERS[data.neighborhood].lat},${NEIGHBORHOOD_CENTERS[data.neighborhood].lng}&zoom=${NEIGHBORHOOD_CENTERS[data.neighborhood].zoom}&size=600x200&scale=2&maptype=roadmap&key=${process.env.NEXT_PUBLIC_MAPS_KEY}`}
-              alt={`Map of ${data.neighborhood}`}
-              className="w-full h-[120px] object-cover"
-            />
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col gap-1">
