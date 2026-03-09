@@ -131,7 +131,7 @@ export function ListingDetailMap({
                 )}
                 <button
                   onClick={() => handleOtherClick(listing.id)}
-                  className="px-2 py-0.5 rounded-full text-xs font-medium bg-white text-gray-700 shadow-sm border border-gray-300 hover:border-primary-500 hover:shadow-md whitespace-nowrap transition-all duration-150"
+                  className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-600 text-white shadow-sm border border-primary-600 hover:bg-primary-700 hover:shadow-md whitespace-nowrap transition-all duration-150"
                 >
                   {formatPrice(rent)}
                 </button>
@@ -146,12 +146,12 @@ export function ListingDetailMap({
           mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
           getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -(h / 2) })}
         >
-          <div
-            className="rounded-full font-bold bg-red-600 text-white shadow-lg border-2 border-white whitespace-nowrap"
-            style={{ zIndex: 20, padding: '6px 14px', fontSize: '13px', lineHeight: '1' }}
+          <button
+            className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-lg border-2 border-white whitespace-nowrap cursor-default"
+            style={{ zIndex: 20 }}
           >
             {formatPrice(currentRent)}
-          </div>
+          </button>
         </OverlayView>
       </GoogleMap>
     </div>
