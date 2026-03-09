@@ -20,7 +20,7 @@ const neighborhoods = [
     name: 'The Hill',
     vibe: 'Social & Energetic',
     description: 'The student hub right next to campus. Packed with bars, restaurants, and shops along University Hill. Walk to class in under 10 minutes. Best for undergrads who want to be in the middle of everything.',
-    image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=500&fit=crop',
+    image: '/neighborhoods/the-hill.webp',
   },
   {
     slug: 'university-hill',
@@ -36,7 +36,7 @@ const neighborhoods = [
     name: 'Goss-Grove',
     vibe: 'Convenient & Quiet',
     description: 'A quiet pocket between campus and Pearl Street. Small historic homes on shaded streets. Popular with grad students and staff who want walkable access to both campus and downtown.',
-    image: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&h=500&fit=crop',
+    image: '/neighborhoods/goss-grove.jpeg',
   },
   {
     slug: 'baseline-sub',
@@ -44,7 +44,7 @@ const neighborhoods = [
     name: 'Baseline Sub',
     vibe: 'Student Apartments',
     description: 'The apartment corridor along 28th Street — U Club, Gold Run, Spanish Towers, and others. Purpose-built student housing with pools, gyms, and shuttle access. Best for students who want amenities without a house.',
-    image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=500&fit=crop',
+    image: '/neighborhoods/baseline-sub.jpeg',
   },
   {
     slug: 'chautauqua',
@@ -52,7 +52,7 @@ const neighborhoods = [
     name: 'Chautauqua',
     vibe: 'Premium & Scenic',
     description: 'At the base of the Flatirons with direct trail access. Quieter, more expensive, and stunning. Great for grad students, researchers, or anyone who prioritizes nature and space over nightlife.',
-    image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=800&h=500&fit=crop',
+    image: '/neighborhoods/chautauqua.jpg',
   },
   {
     slug: 'martin-acres',
@@ -60,7 +60,7 @@ const neighborhoods = [
     name: 'Martin Acres',
     vibe: 'Spacious & Residential',
     description: 'A residential neighborhood south of campus with more room and lower rents. Bikeable to CU in 10-15 minutes. Popular with families, grad students, and anyone who wants a quieter pace.',
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=500&fit=crop',
+    image: '/neighborhoods/martin-acres.jpeg',
   },
   {
     slug: 'north-boulder',
@@ -68,7 +68,7 @@ const neighborhoods = [
     name: 'North Boulder (NoBo)',
     vibe: 'Modern & Laid-Back',
     description: 'Boulder\u2019s most laid-back area, north of downtown. Local coffee shops, breweries, and a community feel. A bus ride or 15-20 minute bike to campus. Best for people who don\u2019t need to be close to the university.',
-    image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=500&fit=crop',
+    image: '/neighborhoods/north-boulder.jpg',
   },
   {
     slug: 'south-boulder',
@@ -76,7 +76,7 @@ const neighborhoods = [
     name: 'South Boulder',
     vibe: 'Quiet & Nature-Adjacent',
     description: 'Residential and nature-adjacent along the South Boulder Creek trail. Close to Table Mesa park-and-ride for easy bus commutes. A good balance of quiet living and campus access.',
-    image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=500&fit=crop',
+    image: '/neighborhoods/south-boulder.avif',
   },
   {
     slug: 'downtown',
@@ -84,7 +84,7 @@ const neighborhoods = [
     name: 'Downtown / Pearl Street',
     vibe: 'Central & Vibrant',
     description: 'The heart of Boulder — restaurants, shops, street performers on the Pearl Street Mall. Walking distance to campus. Pricier, but you\u2019re at the center of everything.',
-    image: 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=800&h=500&fit=crop',
+    image: '/neighborhoods/downtown.jpg',
   },
 ]
 
