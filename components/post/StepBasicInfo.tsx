@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { ROOM_TYPES, NEIGHBORHOODS, NEIGHBORHOOD_ALIASES, MANAGEMENT_COMPANIES } from '@/lib/constants'
+import { detectNeighborhood } from '@/lib/neighborhoods'
 import { MapPin } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -124,9 +125,15 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       if (!place?.address_components) return
 
       const formatted = place.formatted_address ?? ''
-      const neighborhood = resolveNeighborhood(extractNeighborhood(place.address_components))
       const lat = place.geometry?.location?.lat()
       const lng = place.geometry?.location?.lng()
+
+      // Primary: coordinate-based polygon detection
+      let neighborhood = (lat && lng) ? (detectNeighborhood(lat, lng) ?? '') : ''
+      // Fallback: Google Places address component extraction
+      if (!neighborhood) {
+        neighborhood = resolveNeighborhood(extractNeighborhood(place.address_components))
+      }
 
       onChangeRef.current({
         ...dataRef.current,
@@ -219,21 +226,38 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         maxLength={20}
       />
 
-      {/* Neighborhood — auto-filled from place result, read-only */}
+      {/* Neighborhood — auto-detected or manual fallback */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Neighborhood</label>
-        <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
-          <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          {data.neighborhood ? (
+        {data.neighborhood ? (
+          <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
+            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <span className="text-gray-900">{data.neighborhood}</span>
-          ) : data.address ? (
-            <span className="text-amber-600 text-xs">
-              We couldn&apos;t detect the neighborhood for this address. Try a slightly different address.
-            </span>
-          ) : (
+            <button
+              type="button"
+              onClick={() => update('neighborhood', '')}
+              className="ml-auto text-xs text-gray-400 hover:text-gray-600"
+            >
+              Change
+            </button>
+          </div>
+        ) : data.address ? (
+          <select
+            value={data.neighborhood}
+            onChange={(e) => update('neighborhood', e.target.value)}
+            className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
+          >
+            <option value="">Select neighborhood</option>
+            {NEIGHBORHOODS.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        ) : (
+          <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
+            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <span className="text-gray-400">Auto-detected from address</span>
-          )}
-        </div>
+          </div>
+        )}
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
       </div>
 
