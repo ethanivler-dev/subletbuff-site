@@ -76,6 +76,10 @@ function VerifyForm() {
   }
 
   async function handleResend() {
+    if (!email) {
+      setError('Email address is missing. Please go back and sign up again.')
+      return
+    }
     setResending(true)
     setError('')
     setResent(false)
