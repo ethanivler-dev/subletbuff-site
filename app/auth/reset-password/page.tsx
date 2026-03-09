@@ -104,7 +104,7 @@ function ResetPasswordForm() {
         <div className="w-full max-w-sm text-center">
           <div className="flex justify-center mb-6">
             <Link href="/">
-              <Image src="/logo.png" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" unoptimized />
+              <Image src="/logo.png" alt="SubletBuff" width={3772} height={1120} className="h-10 w-auto" unoptimized />
             </Link>
           </div>
           <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -119,7 +119,7 @@ function ResetPasswordForm() {
       <div className="w-full max-w-sm">
         <div className="flex justify-center mb-8">
           <Link href="/">
-            <Image src="/logo.png" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" unoptimized />
+            <Image src="/logo.png" alt="SubletBuff" width={3772} height={1120} className="h-10 w-auto" unoptimized />
           </Link>
         </div>
 

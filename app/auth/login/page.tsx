@@ -75,7 +75,7 @@ function LoginForm() {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <Link href="/">
-            <Image src="/logo.png" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" unoptimized />
+            <Image src="/logo.png" alt="SubletBuff" width={3772} height={1120} className="h-10 w-auto" unoptimized />
           </Link>
         </div>
 

@@ -11,8 +11,8 @@ export function Footer() {
             <Image
               src="/logo.png"
               alt="SubletBuff"
-              width={140}
-              height={36}
+              width={3772}
+              height={1120}
               className="h-9 w-auto brightness-0 invert"
               unoptimized
             />
