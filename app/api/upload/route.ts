@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -9,6 +10,9 @@ const MAX_SIZE = 5 * 1024 * 1024 // 5MB
  * Auth required. Accepts multipart form data. Returns public URL.
  */
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { key: 'upload', limit: 10, windowSeconds: 60 })
+  if (limited) return limited
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

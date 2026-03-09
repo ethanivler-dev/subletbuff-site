@@ -1,8 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rate-limit'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { key: 'account-delete', limit: 3, windowSeconds: 60 })
+  if (limited) return limited
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
