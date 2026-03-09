@@ -21,7 +21,6 @@ function SignupForm() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const isInAppBrowser = useInAppBrowser()
 
   async function handleSignup(e: React.FormEvent) {
@@ -43,7 +42,7 @@ function SignupForm() {
     })
     setLoading(false)
     if (err) { setError(err.message); return }
-    setSuccess(true)
+    router.push(`/auth/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`)
   }
 
   async function handleGoogle() {
@@ -62,37 +61,6 @@ function SignupForm() {
       },
     })
     if (err) { setError(err.message); setGoogleLoading(false) }
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-20">
-        <div className="w-full max-w-sm text-center">
-          <div className="flex justify-center mb-8">
-            <Link href="/">
-              <Image src="/logo.png" alt="SubletBuff" width={160} height={40} className="h-10 w-auto" unoptimized />
-            </Link>
-          </div>
-          <div className="bg-white rounded-card shadow-card p-8">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-semibold text-gray-900 mb-2">Check your email</h1>
-            <p className="text-sm text-gray-500">
-              We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
-            </p>
-            <p className="text-xs text-gray-400 mt-4">
-              Already confirmed?{' '}
-              <Link href={`/auth/login?next=${encodeURIComponent(next)}`} className="text-primary-600 hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (

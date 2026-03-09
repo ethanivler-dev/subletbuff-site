@@ -459,8 +459,17 @@ export default async function ListingDetailPage({
               </section>
             )}
 
-            {/* Report listing */}
-            <div className="flex justify-end pt-4 border-t border-gray-100 mt-4">
+            {/* Share + Report */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-4">
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://subletbuff.com/listings/${listing.id}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition text-gray-600"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                Share on Facebook
+              </a>
               <a
                 href={`mailto:subletbuff@gmail.com?subject=${encodeURIComponent(`Report Listing: ${title} (ID: ${listing.id})`)}`}
                 className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"

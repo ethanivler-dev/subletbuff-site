@@ -14,6 +14,7 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const next = searchParams.get('next') ?? '/'
   const errorParam = searchParams.get('error')
+  const messageParam = searchParams.get('message')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -43,7 +44,7 @@ function LoginForm() {
     setError('')
     const supabase = createClient()
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/`,
+      redirectTo: `${window.location.origin}/auth/reset-password`,
     })
     setResetLoading(false)
     if (err) { setError(err.message); return }
@@ -81,6 +82,12 @@ function LoginForm() {
         <div className="bg-white rounded-card shadow-card p-8">
           <h1 className="text-2xl font-semibold text-gray-900 mb-1">Welcome back</h1>
           <p className="text-sm text-gray-500 mb-6">Sign in to your SubletBuff account</p>
+
+          {messageParam === 'password_updated' && (
+            <p className="text-sm text-green-700 bg-green-50 px-3 py-2 rounded-button mb-4">
+              Password updated successfully. Sign in with your new password.
+            </p>
+          )}
 
           {error && (
             <div className="flex items-start gap-2 bg-red-50 text-error text-sm p-3 rounded-button mb-4">
