@@ -1,4 +1,4 @@
-import { CheckCircle, Star, Zap, BookOpen, ShieldCheck } from 'lucide-react'
+import { CheckCircle, Star, Zap, BookOpen } from 'lucide-react'
 
 type BadgeVariant =
   | 'verified'
@@ -9,7 +9,6 @@ type BadgeVariant =
   | 'featured'
   | 'immediate'
   | 'furnished'
-  | 'landlord_approved'
 
 const badgeConfig: Record<
   BadgeVariant,
@@ -60,12 +59,6 @@ const badgeConfig: Record<
     label: 'Furnished',
     title: 'This sublet comes furnished',
     className: 'bg-teal-100 text-teal-700',
-  },
-  landlord_approved: {
-    label: 'Landlord Approved',
-    title: 'The property landlord has approved this sublet',
-    className: 'bg-blue-100 text-blue-700',
-    Icon: ShieldCheck,
   },
 }
 
