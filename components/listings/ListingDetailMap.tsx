@@ -147,10 +147,10 @@ export function ListingDetailMap({
           getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -(h / 2) })}
         >
           <div
-            className="px-3 py-2 rounded-lg text-sm font-bold bg-primary-600 text-white shadow-lg border-2 border-white whitespace-nowrap"
+            className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-600 text-white shadow-lg border-2 border-white whitespace-nowrap"
             style={{ zIndex: 20 }}
           >
-            {formatFullPrice(currentRent)}
+            {formatPrice(currentRent)}
           </div>
         </OverlayView>
       </GoogleMap>
