@@ -208,23 +208,16 @@ export default function AdminDashboard() {
 
   async function handleReject(id: string) {
     setActionLoading(id)
-    const reason = rejectionReasons[id]?.trim() || null
-    const supabase = createClient()
-    const updateData: Record<string, unknown> = { status: 'rejected' }
-    if (reason) updateData.rejection_reason = reason
-
-    const { error } = await supabase.from('listings').update(updateData).eq('id', id)
-    if (error) {
-      // Retry without rejection_reason if column doesn't exist
-      if (error.message.includes('rejection_reason')) {
-        await supabase.from('listings').update({ status: 'rejected' }).eq('id', id)
-      } else {
-        alert(`Reject failed: ${error.message}`)
-        setActionLoading(null)
-        return
-      }
+    const res = await fetch(`/api/admin/listings/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'rejected' }),
+    })
+    if (res.ok) {
+      setListings((prev) => prev.map((l) => l.id === id ? { ...l, status: 'rejected' } : l))
+    } else {
+      alert('Failed to reject listing')
     }
-    setListings((prev) => prev.map((l) => l.id === id ? { ...l, status: 'rejected' } : l))
     setRejectionReasons((prev) => { const n = { ...prev }; delete n[id]; return n })
     setExpandedRejection(null)
     setActionLoading(null)

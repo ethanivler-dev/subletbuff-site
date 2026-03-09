@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { isStagingEnvironment, shouldHideTestListings } from '@/lib/appEnv'
 import { rateLimit } from '@/lib/rate-limit'
+import { sendListingSubmittedEmail } from '@/lib/email'
 
 function escapeLikePattern(str: string): string {
   return str.replace(/[%_\\]/g, '\\$&')
@@ -302,6 +303,12 @@ export async function POST(request: NextRequest) {
       .from('listings')
       .update({ photo_urls: movedPhotos.map((ph) => ph.url) })
       .eq('id', listing.id)
+  }
+
+  // Send "under review" email (fire-and-forget)
+  if (user.email) {
+    const firstName = user.user_metadata?.full_name?.split(' ')[0] ?? 'there'
+    sendListingSubmittedEmail(user.email, firstName, body.title ?? 'your listing')
   }
 
   return NextResponse.json({ id: listing.id }, { status: 201 })

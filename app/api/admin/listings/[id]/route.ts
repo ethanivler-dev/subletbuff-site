@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
+import { sendListingApprovedEmail, sendListingRejectedEmail } from '@/lib/email'
 
 const ADMIN_EDITABLE_FIELDS = [
   'title', 'description', 'rent_monthly', 'neighborhood', 'room_type',
@@ -40,6 +41,25 @@ export async function PATCH(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Send email notification on status change (fire-and-forget)
+  if (updates.status === 'approved' || updates.status === 'rejected') {
+    const { data: listing } = await supabase
+      .from('listings')
+      .select('title, email, first_name')
+      .eq('id', id)
+      .single()
+
+    if (listing?.email) {
+      const name = listing.first_name || 'there'
+      const title = listing.title || 'your listing'
+      if (updates.status === 'approved') {
+        sendListingApprovedEmail(listing.email, name, title, id)
+      } else {
+        sendListingRejectedEmail(listing.email, name, title)
+      }
+    }
   }
 
   return NextResponse.json({ success: true })
