@@ -32,7 +32,7 @@ function SignupForm() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error: err } = await supabase.auth.signUp({
+    const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -42,6 +42,11 @@ function SignupForm() {
     })
     setLoading(false)
     if (err) { setError(err.message); return }
+    // Supabase returns a fake success with empty identities when the email is already registered
+    if (data.user && data.user.identities?.length === 0) {
+      setError('An account with this email already exists. Try signing in instead.')
+      return
+    }
     router.push(`/auth/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`)
   }
 
