@@ -166,8 +166,8 @@ export async function generateMetadata({
   const dateFrom = listing.dateFrom ? formatDate(listing.dateFrom) : 'soon'
   const dateTo = listing.dateTo ? formatDate(listing.dateTo) : 'flexible'
   const descSnippet = (row.description ?? '').slice(0, 120)
-  const description = `${formatRoomType(roomType)} available ${dateFrom} – ${dateTo} in ${neighborhood}, Boulder. ${formatRent(rent)}/mo. ${descSnippet}...`
-  const metaTitle = `${title} — ${formatRent(rent)}/mo in ${neighborhood}`
+  const description = `${formatRoomType(roomType)} available ${dateFrom} – ${dateTo} in ${neighborhood}, Boulder. ${formatRent(rent)}. ${descSnippet}...`
+  const metaTitle = `${title} — ${formatRent(rent)} in ${neighborhood}`
 
   return {
     title: metaTitle,
@@ -468,7 +468,7 @@ export default async function ListingDetailPage({
             {/* Share + Report */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-4">
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://subletbuff.com/listings/${listing.id}`)}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${baseUrl}/listings/${listing.id}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition text-gray-600"
@@ -540,15 +540,20 @@ export default async function ListingDetailPage({
                     <span className="font-medium text-gray-900">{formatPrice(deposit)}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Utilities</span>
-                  <span className="font-medium text-gray-900">
-                    {listing.utilities_included
-                      ? 'Included'
-                      : listing.utilities_estimate
-                        ? `~${formatPrice(listing.utilities_estimate)}/mo`
-                        : 'Not included'}
-                  </span>
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Utilities</span>
+                    <span className="font-medium text-gray-900">
+                      {listing.utilities_included
+                        ? 'Included'
+                        : listing.utilities_estimate
+                          ? `~${formatPrice(listing.utilities_estimate)}/mo`
+                          : 'Not included'}
+                    </span>
+                  </div>
+                  {!listing.utilities_included && listing.utilities_estimate && (
+                    <p className="text-xs text-gray-400">Estimate covers electric, gas, water, and internet</p>
+                  )}
                 </div>
                 {listing.min_stay_weeks != null && listing.min_stay_weeks > 0 && (
                   <div className="flex justify-between pt-2 border-t border-gray-100">

@@ -199,7 +199,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
       <ResetPasswordForm />
     </Suspense>
   )

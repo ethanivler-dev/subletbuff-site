@@ -133,6 +133,7 @@ async function getListingCounts(): Promise<Record<string, number>> {
 export default async function NeighborhoodsPage() {
   const counts = await getListingCounts()
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://subletbuff.com'
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -142,7 +143,7 @@ export default async function NeighborhoodsPage() {
       '@type': 'ListItem',
       position: i + 1,
       name: n.name,
-      url: `https://subletbuff.com/listings?neighborhood=${encodeURIComponent(n.dbName)}`,
+      url: `${baseUrl}/listings?neighborhood=${encodeURIComponent(n.dbName)}`,
     })),
   }
 

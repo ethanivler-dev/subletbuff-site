@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { GoogleMap, useJsApiLoader, OverlayView } from '@react-google-maps/api'
-import { Map as MapIcon, X, ChevronRight } from 'lucide-react'
+import { Map as MapIcon, X, ChevronRight, ChevronLeft } from 'lucide-react'
 import { ListingCard, type ListingCardData } from './ListingCard'
 import { ListingsFilters } from '@/app/listings/ListingsFilters'
 
@@ -36,12 +37,15 @@ interface SearchParams {
   furnished?: string
   intern_friendly?: string
   parking?: string
+  page?: string
 }
 
 interface Props {
   listings: ListingCardData[]
   total: number
   params: SearchParams
+  page: number
+  totalPages: number
 }
 
 function formatPrice(price: number): string {
@@ -84,7 +88,18 @@ function PriceMarker({
   )
 }
 
-export function ListingsMapView({ listings, total, params }: Props) {
+export function ListingsMapView({ listings, total, params, page, totalPages }: Props) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const goToPage = useCallback((p: number) => {
+    const sp = new URLSearchParams(searchParams.toString())
+    if (p <= 1) sp.delete('page')
+    else sp.set('page', String(p))
+    router.push(`${pathname}?${sp.toString()}`)
+  }, [router, pathname, searchParams])
+
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMap, setShowMap] = useState(true)
@@ -268,6 +283,52 @@ export function ListingsMapView({ listings, total, params }: Props) {
       </div>
     )
 
+  const pagination = totalPages > 1 ? (
+    <div className="flex items-center justify-center gap-2 mt-8 mb-4">
+      <button
+        onClick={() => goToPage(page - 1)}
+        disabled={page <= 1}
+        className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-button border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Prev
+      </button>
+      {Array.from({ length: totalPages }, (_, i) => i + 1)
+        .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+        .reduce<(number | 'ellipsis')[]>((acc, p, i, arr) => {
+          if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('ellipsis')
+          acc.push(p)
+          return acc
+        }, [])
+        .map((item, i) =>
+          item === 'ellipsis' ? (
+            <span key={`e${i}`} className="px-1 text-gray-400">…</span>
+          ) : (
+            <button
+              key={item}
+              onClick={() => goToPage(item as number)}
+              className={[
+                'w-9 h-9 text-sm font-medium rounded-button transition-colors',
+                item === page
+                  ? 'bg-primary-600 text-white'
+                  : 'border border-gray-200 bg-white hover:bg-gray-50 text-gray-700',
+              ].join(' ')}
+            >
+              {item}
+            </button>
+          ),
+        )}
+      <button
+        onClick={() => goToPage(page + 1)}
+        disabled={page >= totalPages}
+        className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-button border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        Next
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  ) : null
+
   return (
     <>
       {/* ── Desktop split panel ──────────────────────────────────── */}
@@ -304,6 +365,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
           </div>
 
           {cardList}
+          {pagination}
         </div>
 
         {/* Right: sticky map */}
@@ -326,6 +388,7 @@ export function ListingsMapView({ listings, total, params }: Props) {
       <div className="md:hidden px-4 py-6 pb-24">
         <ListingsFilters params={params} total={total} />
         {cardList}
+        {pagination}
       </div>
 
       {/* Floating Map button (mobile only) */}

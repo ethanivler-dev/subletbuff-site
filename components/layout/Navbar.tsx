@@ -138,12 +138,6 @@ export function Navbar() {
               >
                 Safety
               </Link>
-              <Link
-                href="/landlords"
-                className={[textColor, 'text-sm font-medium hover:opacity-70 transition-opacity'].join(' ')}
-              >
-                For Landlords
-              </Link>
             </nav>
 
             {/* Right side (desktop) */}

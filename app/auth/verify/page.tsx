@@ -174,7 +174,7 @@ function VerifyForm() {
 
 export default function VerifyPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
       <VerifyForm />
     </Suspense>
   )

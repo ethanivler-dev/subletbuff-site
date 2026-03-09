@@ -31,9 +31,12 @@ interface SearchParams {
   furnished?: string     // 'true'
   intern_friendly?: string // 'true'
   parking?: string         // 'true'
+  page?: string
 }
 
-async function fetchListings(params: SearchParams): Promise<{ listings: ListingCardData[]; total: number }> {
+const PAGE_SIZE = 24
+
+async function fetchListings(params: SearchParams): Promise<{ listings: ListingCardData[]; total: number; page: number; totalPages: number }> {
   const supabase = await createClient()
 
   // Get current user to mark saved listings
@@ -107,11 +110,14 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
   else if (sort === 'soonest') query = query.order('available_from', { ascending: true })
   else query = query.order('created_at', { ascending: false })
 
-  query = query.limit(50)
+  const page = Math.max(1, parseInt(params.page ?? '1') || 1)
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+  query = query.range(from, to)
 
   const { data, error, count } = await query
 
-  if (error || !data) return { listings: [], total: 0 }
+  if (error || !data) return { listings: [], total: 0, page: 1, totalPages: 0 }
 
   // Fetch user's saved listing IDs if logged in
   let savedIds = new Set<string>()
@@ -158,7 +164,8 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     }
   })
 
-  return { listings, total: count ?? listings.length }
+  const totalCount = count ?? listings.length
+  return { listings, total: totalCount, page, totalPages: Math.ceil(totalCount / PAGE_SIZE) }
 }
 
 export default async function ListingsPage({
@@ -167,7 +174,7 @@ export default async function ListingsPage({
   searchParams: Promise<SearchParams>
 }) {
   const params = await searchParams
-  const { listings, total } = await fetchListings(params)
+  const { listings, total, page, totalPages } = await fetchListings(params)
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://subletbuff.com'
   const jsonLd = {
@@ -201,7 +208,7 @@ export default async function ListingsPage({
         </div>
       </div>
 
-      <ListingsMapView listings={listings} total={total} params={params} />
+      <ListingsMapView listings={listings} total={total} params={params} page={page} totalPages={totalPages} />
     </div>
   )
 }

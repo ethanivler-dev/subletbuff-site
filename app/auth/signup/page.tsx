@@ -212,7 +212,7 @@ function SignupForm() {
 
 export default function SignupPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
       <SignupForm />
     </Suspense>
   )

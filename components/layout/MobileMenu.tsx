@@ -109,13 +109,6 @@ export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps
           >
             Safety
           </Link>
-          <Link
-            href="/landlords"
-            onClick={onClose}
-            className="py-3 px-2 text-gray-800 hover:text-primary-600 font-medium rounded-button hover:bg-gray-50 transition-colors"
-          >
-            For Landlords
-          </Link>
         </nav>
 
         <div className="px-6 py-6 border-t border-gray-100 flex flex-col gap-3">
