@@ -2,8 +2,8 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Input } from '@/components/ui/Input'
-import { ROOM_TYPES, NEIGHBORHOODS, MANAGEMENT_COMPANIES } from '@/lib/constants'
-import { resolveGoogleNeighborhood, nearestNeighborhood } from '@/lib/neighborhoods'
+import { ROOM_TYPES, MANAGEMENT_COMPANIES } from '@/lib/constants'
+import { resolveGoogleNeighborhood, detectNeighborhoodFromCoords } from '@/lib/neighborhoods'
 import { MapPin } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -35,46 +35,6 @@ function loadGoogleMaps(): Promise<void> {
     document.head.appendChild(s)
   })
   return gmapsPromise
-}
-
-/** Extract neighborhood from Google geocoder address components. */
-function extractNeighborhood(
-  components: google.maps.GeocoderAddressComponent[]
-): string {
-  const priority = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1', 'sublocality']
-  for (const type of priority) {
-    const match = components.find((c) => c.types.includes(type))
-    if (match) return match.long_name
-  }
-  return ''
-}
-
-/**
- * Detect neighborhood using Google Maps reverse geocoding.
- * Falls back to nearest-center if Google doesn't return a neighborhood.
- */
-async function detectNeighborhoodFromGoogle(
-  lat: number,
-  lng: number,
-): Promise<string> {
-  try {
-    const geocoder = new google.maps.Geocoder()
-    const response = await geocoder.geocode({ location: { lat, lng } })
-
-    // Check all results for a neighborhood component
-    for (const result of response.results) {
-      const raw = extractNeighborhood(result.address_components)
-      if (raw) {
-        const mapped = resolveGoogleNeighborhood(raw)
-        if (mapped) return mapped
-      }
-    }
-  } catch (err) {
-    console.warn('[Maps] Reverse geocode failed, using fallback:', err)
-  }
-
-  // Fallback: nearest center
-  return nearestNeighborhood(lat, lng)
 }
 
 export interface BasicInfoData {
@@ -148,19 +108,20 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       const lat = place.geometry?.location?.lat()
       const lng = place.geometry?.location?.lng()
 
-      // Try Google Places address_components first (already available, no extra API call)
+      // 1. Try Places address_components first (already available, no extra API call)
       let neighborhood = ''
-      const raw = extractNeighborhood(place.address_components)
-      if (raw) neighborhood = resolveGoogleNeighborhood(raw)
-
-      // If Places didn't have it, use reverse geocoding
-      if (!neighborhood && lat && lng) {
-        neighborhood = await detectNeighborhoodFromGoogle(lat, lng)
+      const neighborhoodTypes = ['neighborhood', 'sublocality_level_2', 'sublocality_level_1', 'sublocality']
+      for (const type of neighborhoodTypes) {
+        const comp = place.address_components.find((c) => c.types.includes(type))
+        if (comp) {
+          neighborhood = resolveGoogleNeighborhood(comp.long_name)
+          if (neighborhood) break
+        }
       }
 
-      // Final fallback: nearest center
+      // 2. If Places didn't have it, use reverse geocoding + nearest-center fallback
       if (!neighborhood && lat && lng) {
-        neighborhood = nearestNeighborhood(lat, lng)
+        neighborhood = await detectNeighborhoodFromCoords(lat, lng)
       }
 
       onChangeRef.current({
@@ -254,21 +215,14 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         maxLength={20}
       />
 
-      {/* Neighborhood — auto-detected with manual override */}
+      {/* Neighborhood — auto-detected from address */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-800">Neighborhood</label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <select
-            value={data.neighborhood}
-            onChange={(e) => update('neighborhood', e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
-          >
-            <option value="">Auto-detected from address</option>
-            {NEIGHBORHOODS.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-gray-50">
+          <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <span className={data.neighborhood ? 'text-gray-900' : 'text-gray-400'}>
+            {data.neighborhood || 'Auto-detected from address'}
+          </span>
         </div>
         {errors.neighborhood && <p className="text-xs text-error">{errors.neighborhood}</p>}
       </div>
