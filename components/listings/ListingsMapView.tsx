@@ -102,7 +102,10 @@ export function ListingsMapView({ listings, total, params, page, totalPages }: P
 
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [showMobileMap, setShowMobileMap] = useState(false)
-  const [showMap, setShowMap] = useState(true)
+  const [showMap, setShowMap] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.innerWidth >= 1024
+  })
   const [mapBounds, setMapBounds] = useState<google.maps.LatLngBounds | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
 
