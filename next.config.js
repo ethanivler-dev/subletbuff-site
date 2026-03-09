@@ -10,6 +10,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'api.subletbuff.com',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'images.unsplash.com',
       },
     ],
@@ -33,9 +38,9 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://doehqqwqwjebhfgdvyum.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://images.unsplash.com",
+              "img-src 'self' data: blob: https://doehqqwqwjebhfgdvyum.supabase.co https://api.subletbuff.com https://maps.googleapis.com https://maps.gstatic.com https://images.unsplash.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://doehqqwqwjebhfgdvyum.supabase.co https://maps.googleapis.com https://www.google-analytics.com https://va.vercel-scripts.com",
+              "connect-src 'self' https://doehqqwqwjebhfgdvyum.supabase.co https://api.subletbuff.com https://maps.googleapis.com https://www.google-analytics.com https://va.vercel-scripts.com",
               "frame-src 'self' https://maps.googleapis.com",
               "object-src 'none'",
               "base-uri 'self'",
