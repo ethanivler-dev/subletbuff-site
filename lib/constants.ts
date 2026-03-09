@@ -45,6 +45,7 @@ export const ROOM_TYPES = [
   { value: 'shared_room', label: 'Shared Room' },
   { value: 'full_apartment', label: 'Full Apartment' },
   { value: 'studio', label: 'Studio' },
+  { value: 'house', label: 'House' },
 ]
 
 export const AMENITIES = [

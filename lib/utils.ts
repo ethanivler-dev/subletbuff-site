@@ -29,6 +29,7 @@ export function formatRoomType(type: string): string {
     shared_room: 'Shared Room',
     full_apartment: 'Full Apartment',
     studio: 'Studio',
+    house: 'House',
   }
   return map[type] ?? type
 }
