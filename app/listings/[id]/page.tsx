@@ -363,12 +363,14 @@ export default async function ListingDetailPage({
               {listing.original_rent_monthly && listing.original_rent_monthly > rent ? (
                 <div className="flex items-center gap-3 flex-wrap mb-3">
                   <span className="line-through text-gray-400 text-lg">{formatRent(listing.original_rent_monthly)}</span>
-                  <span className="text-2xl font-bold text-primary-600">{formatRent(rent)}</span>
+                  <span className="inline-block bg-red-600 text-white text-2xl font-bold px-4 py-1.5 rounded-badge">{formatRent(rent)}</span>
                   <span className="text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-badge px-1.5 py-0.5">Price reduced</span>
                 </div>
               ) : (
-                <p className="text-2xl font-bold text-primary-600 mb-3">
-                  {formatRent(rent)}
+                <p className="mb-3">
+                  <span className="inline-block bg-red-600 text-white text-2xl font-bold px-4 py-1.5 rounded-badge">
+                    {formatRent(rent)}
+                  </span>
                 </p>
               )}
 
