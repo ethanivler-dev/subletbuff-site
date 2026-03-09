@@ -22,14 +22,14 @@ function ResetPasswordForm() {
   useEffect(() => {
     const supabase = createClient()
 
-    // Listen for PASSWORD_RECOVERY event (works for both PKCE code and hash fragment flows)
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setExchanging(false)
       }
     })
 
-    // If there's a code param, exchange it (PKCE flow)
+    // 1. PKCE flow: code in query params
     const code = searchParams.get('code')
     if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
@@ -37,26 +37,40 @@ function ResetPasswordForm() {
           setError('Reset link is invalid or expired. Please request a new one.')
           setExchanging(false)
         }
-        // onAuthStateChange will fire on success
       })
-    } else {
-      // No code — check if already authenticated (hash fragment may have been auto-processed)
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          setExchanging(false)
-        } else {
-          // Wait briefly for hash fragment auto-processing, then give up
-          setTimeout(() => {
-            supabase.auth.getSession().then(({ data: { session: s } }) => {
-              if (!s) {
-                setError('No active reset session. Please request a new password reset.')
-              }
-              setExchanging(false)
-            })
-          }, 1500)
-        }
-      })
+      return () => subscription.unsubscribe()
     }
+
+    // 2. Implicit flow: tokens in URL hash fragment (#access_token=...&type=recovery)
+    const hash = window.location.hash.substring(1)
+    if (hash) {
+      const params = new URLSearchParams(hash)
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        }).then(({ error }) => {
+          if (error) {
+            setError('Reset link is invalid or expired. Please request a new one.')
+          }
+          setExchanging(false)
+          window.history.replaceState(null, '', window.location.pathname)
+        })
+        return () => subscription.unsubscribe()
+      }
+    }
+
+    // 3. No code or hash — check if user already has a session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setExchanging(false)
+      } else {
+        setError('No active reset session. Please request a new password reset.')
+        setExchanging(false)
+      }
+    })
 
     return () => subscription.unsubscribe()
   }, [searchParams])
