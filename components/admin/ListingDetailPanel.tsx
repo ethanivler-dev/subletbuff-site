@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
   X, ExternalLink, Pencil, MapPin, Calendar, Home, DollarSign,
-  FileText, Shield, Mail, Clock,
+  FileText, Shield, Mail, Clock, RotateCw, RotateCcw, FlipVertical2,
 } from 'lucide-react'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
+import { rotateImage } from '@/lib/image-rotate'
+import { createClient } from '@/lib/supabase/client'
 import { AMENITY_LABELS } from '@/lib/constants'
 
 interface AdminListing {
@@ -51,7 +53,7 @@ interface AdminListing {
   utilities_estimate: number | null
   deposit: number | null
   pets: string | null
-  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
+  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }> | null
 }
 
 interface ListerProfile {
@@ -100,11 +102,66 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ cla
 }
 
 export function ListingDetailPanel({ listing, profile, onClose, onContactLister, onAction, actionLoading }: Props) {
-  const photos = [...(listing.listing_photos ?? [])].sort((a, b) => {
+  const sortedPhotos = [...(listing.listing_photos ?? [])].sort((a, b) => {
     if (a.is_primary && !b.is_primary) return -1
     if (!a.is_primary && b.is_primary) return 1
     return a.display_order - b.display_order
   })
+
+  const [photos, setPhotos] = useState(sortedPhotos)
+  const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
+
+  // Reset photos when listing changes
+  useEffect(() => {
+    const sorted = [...(listing.listing_photos ?? [])].sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1
+      if (!a.is_primary && b.is_primary) return 1
+      return a.display_order - b.display_order
+    })
+    setPhotos(sorted)
+  }, [listing])
+
+  async function handleRotatePhoto(index: number, degrees: 90 | -90 | 180) {
+    const photo = photos[index]
+    if (!photo || rotatingPhoto !== null) return
+
+    setRotatingPhoto(index)
+    try {
+      const blob = await rotateImage(photo.url, degrees)
+      const storagePath = photo.storage_path || photo.photo_path
+
+      if (storagePath) {
+        const supabase = createClient()
+        const { error: uploadError } = await supabase.storage
+          .from('listing-photos')
+          .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
+
+        if (uploadError) {
+          console.error('Failed to re-upload rotated photo:', uploadError.message)
+          setRotatingPhoto(null)
+          return
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('listing-photos')
+          .getPublicUrl(storagePath)
+
+        const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
+        setPhotos((prev) =>
+          prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
+        )
+      } else {
+        const newUrl = URL.createObjectURL(blob)
+        setPhotos((prev) =>
+          prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
+        )
+      }
+    } catch {
+      console.error('Failed to rotate image')
+    } finally {
+      setRotatingPhoto(null)
+    }
+  }
 
   const rent = listing.rent_monthly ?? listing.monthly_rent
   const dateFrom = listing.available_from ?? listing.start_date
@@ -150,8 +207,39 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
           {photos.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
               {photos.map((p, i) => (
-                <div key={i} className="relative w-32 h-24 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                <div key={i} className="relative w-32 h-24 rounded-lg overflow-hidden bg-gray-100 shrink-0 group">
                   <Image src={p.url} alt="" fill className="object-cover" sizes="128px" />
+                  {/* Rotate buttons */}
+                  {rotatingPhoto !== i && (
+                    <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleRotatePhoto(i, -90)}
+                        className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                        aria-label="Rotate counter-clockwise"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleRotatePhoto(i, 90)}
+                        className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                        aria-label="Rotate clockwise"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleRotatePhoto(i, 180)}
+                        className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                        aria-label="Rotate 180 degrees"
+                      >
+                        <FlipVertical2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  {rotatingPhoto === i && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

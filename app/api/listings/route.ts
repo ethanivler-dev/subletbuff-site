@@ -242,8 +242,10 @@ export async function POST(request: NextRequest) {
 
       room_type: body.room_type,
       title: body.title,
-      beds: body.beds ?? '1',
-      baths: body.baths ?? '1',
+      beds: body.beds ? parseInt(body.beds) : 1,
+      baths: body.baths ? parseInt(body.baths) : 1,
+      bedrooms: body.beds ? parseInt(body.beds) : 1,
+      bathrooms: body.baths ? parseInt(body.baths) : 1,
 
       min_stay_weeks: minStayMonths ? minStayMonths * 4 : 0,
       min_stay_months: minStayMonths,
@@ -330,6 +332,24 @@ export async function POST(request: NextRequest) {
   if (user.email) {
     const firstName = user.user_metadata?.full_name?.split(' ')[0] ?? 'there'
     sendListingSubmittedEmail(user.email, firstName, body.title ?? 'your listing')
+  }
+
+  // Notify admins about new listing (fire-and-forget)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (supabaseUrl) {
+    fetch(`${supabaseUrl}/functions/v1/notify-admin-new-listing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        title: body.title,
+        listerName: `${body.first_name || ''} ${body.last_name || ''}`.trim() || user.email,
+        listerEmail: user.email,
+        listingId: listing.id,
+      }),
+    }).catch(err => console.error('[notify-admin] Failed:', err))
   }
 
   return NextResponse.json({ id: listing.id }, { status: 201 })

@@ -2,4 +2,8 @@ node_modules/
 .next/
 .vercel
 .env*.local
+.DS_Store
+*.bak
+.ai/
+tsconfig.tsbuildinfo
 delete-test-listings-cli.js

@@ -2,7 +2,8 @@
 
 import { useCallback, useState, useRef } from 'react'
 import Image from 'next/image'
-import { Upload, X, GripVertical, AlertCircle } from 'lucide-react'
+import { Upload, X, GripVertical, AlertCircle, RotateCw, RotateCcw, FlipVertical2 } from 'lucide-react'
+import { rotateImage } from '@/lib/image-rotate'
 
 export interface PhotoItem {
   file?: File
@@ -52,6 +53,7 @@ async function convertHeicToJpeg(file: File): Promise<File> {
 export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
   const [uploadError, setUploadError] = useState('')
   const [converting, setConverting] = useState(false)
+  const [rotatingIndex, setRotatingIndex] = useState<number | null>(null)
   const dragIndexRef = useRef<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
@@ -133,6 +135,61 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
   function updateCaption(index: number, caption: string) {
     const updated = photos.map((p, i) => i === index ? { ...p, caption } : p)
     onChange(updated)
+  }
+
+  async function handleRotate(index: number, degrees: 90 | -90 | 180) {
+    const photo = photos[index]
+    if (!photo || photo.uploading || rotatingIndex !== null) return
+
+    setRotatingIndex(index)
+    try {
+      const blob = await rotateImage(photo.url, degrees)
+
+      // Revoke old blob URL if applicable
+      if (photo.url.startsWith('blob:')) {
+        URL.revokeObjectURL(photo.url)
+      }
+
+      const newUrl = URL.createObjectURL(blob)
+      const newFile = new File([blob], 'rotated.jpg', { type: 'image/jpeg' })
+
+      let updatedPhoto: PhotoItem = { ...photo, url: newUrl, file: newFile }
+
+      // If already uploaded to Supabase, re-upload the rotated version
+      if (photo.storagePath) {
+        updatedPhoto = { ...updatedPhoto, uploading: true }
+        onChange(photos.map((p, i) => (i === index ? updatedPhoto : p)))
+
+        const formData = new FormData()
+        formData.append('file', newFile)
+        formData.append('storagePath', photo.storagePath)
+
+        try {
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (res.ok) {
+            updatedPhoto = {
+              ...updatedPhoto,
+              url: data.url,
+              storagePath: data.storage_path,
+              uploading: false,
+            }
+          } else {
+            updatedPhoto = { ...updatedPhoto, uploading: false }
+            setUploadError(`Re-upload failed: ${data.error || res.statusText}`)
+          }
+        } catch {
+          updatedPhoto = { ...updatedPhoto, uploading: false }
+          setUploadError('Re-upload failed: network error')
+        }
+      }
+
+      onChange(photos.map((p, i) => (i === index ? updatedPhoto : p)))
+    } catch {
+      setUploadError('Failed to rotate image')
+    } finally {
+      setRotatingIndex(null)
+    }
   }
 
   function handleFileDrop(e: React.DragEvent) {
@@ -270,6 +327,38 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
+                {/* Rotate buttons */}
+                {!photo.uploading && rotatingIndex !== i && (
+                  <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRotate(i, -90) }}
+                      className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                      aria-label="Rotate counter-clockwise"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRotate(i, 90) }}
+                      className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                      aria-label="Rotate clockwise"
+                    >
+                      <RotateCw className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRotate(i, 180) }}
+                      className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                      aria-label="Rotate 180 degrees"
+                    >
+                      <FlipVertical2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                {/* Rotating spinner */}
+                {rotatingIndex === i && (
+                  <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
               </div>
               {/* Caption input */}
               {!photo.uploading && (

@@ -19,6 +19,7 @@ export interface ListingCardData {
   is_featured: boolean
   is_intern_friendly: boolean
   immediate_movein: boolean
+  start_date?: string
   primary_photo_url?: string
   verification_level?: string
   is_saved?: boolean
@@ -62,6 +63,12 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
     furnished === true ||
     furnished === 'Yes' ||
     (typeof furnished === 'string' && furnished.startsWith('Yes'))
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isImmediate = immediate_movein ||
+    (available_from && new Date(available_from) <= today) ||
+    (listing.start_date && new Date(listing.start_date) <= today)
 
   if (variant === 'horizontal') {
     return (
@@ -136,7 +143,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
               <Badge variant={verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
             )}
             {is_intern_friendly && <Badge variant="intern_friendly" />}
-            {immediate_movein && <Badge variant="immediate" />}
+            {isImmediate && <Badge variant="immediate" />}
             {isFurnished && <Badge variant="furnished" />}
           </div>
 
@@ -210,6 +217,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
         <div className="flex items-center gap-1 text-gray-400 text-xs">
           <Bed className="w-3.5 h-3.5 flex-shrink-0" />
           <span>{formatRoomType(room_type)}</span>
+          <span className="text-gray-300">(whole unit)</span>
           <span>·</span>
           <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
           <span className="truncate">{formatDateRange(available_from, available_to)}</span>
@@ -222,7 +230,7 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
           )}
           {is_intern_friendly && <Badge variant="intern_friendly" />}
           {isFurnished && <Badge variant="furnished" />}
-          {immediate_movein && <Badge variant="immediate" />}
+          {isImmediate && <Badge variant="immediate" />}
         </div>
       </div>
     </Link>

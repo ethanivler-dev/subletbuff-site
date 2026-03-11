@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, RotateCw, RotateCcw, FlipVertical2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { rotateImage } from '@/lib/image-rotate'
 import { NEIGHBORHOODS, ROOM_TYPES } from '@/lib/constants'
 
 interface ListingData {
@@ -29,7 +30,7 @@ interface ListingData {
   is_intern_friendly: boolean | null
   immediate_movein: boolean | null
   photo_urls: string[] | null
-  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
+  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }> | null
   email: string | null
   first_name: string | null
   last_name: string | null
@@ -63,6 +64,54 @@ export default function AdminEditListingPage() {
   const [immediateMovein, setImmediateMovein] = useState(false)
   const [testListing, setTestListing] = useState(false)
 
+  const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
+  const [editedPhotos, setEditedPhotos] = useState<Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }>>([])
+
+  async function handleRotatePhoto(index: number, degrees: 90 | -90 | 180) {
+    const photo = editedPhotos[index]
+    if (!photo || rotatingPhoto !== null) return
+
+    setRotatingPhoto(index)
+    try {
+      const blob = await rotateImage(photo.url, degrees)
+      const storagePath = photo.storage_path || photo.photo_path
+
+      if (storagePath) {
+        // Re-upload to Supabase at the same path
+        const supabase = createClient()
+        const { error: uploadError } = await supabase.storage
+          .from('listing-photos')
+          .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
+
+        if (uploadError) {
+          setError(`Failed to re-upload rotated photo: ${uploadError.message}`)
+          setRotatingPhoto(null)
+          return
+        }
+
+        // Get the new public URL (cache-bust with timestamp)
+        const { data: urlData } = supabase.storage
+          .from('listing-photos')
+          .getPublicUrl(storagePath)
+
+        const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
+        setEditedPhotos((prev) =>
+          prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
+        )
+      } else {
+        // No storage path — just update the preview URL
+        const newUrl = URL.createObjectURL(blob)
+        setEditedPhotos((prev) =>
+          prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
+        )
+      }
+    } catch {
+      setError('Failed to rotate image')
+    } finally {
+      setRotatingPhoto(null)
+    }
+  }
+
   const fetchListing = useCallback(async () => {
     const supabase = createClient()
     const { data, error: fetchError } = await supabase
@@ -73,7 +122,7 @@ export default function AdminEditListingPage() {
         start_date, end_date, status, paused, filled, test_listing,
         verified, furnished, is_intern_friendly, immediate_movein,
         photo_urls, email, first_name, last_name,
-        listing_photos(url, display_order, is_primary)
+        listing_photos(url, display_order, is_primary, storage_path, photo_path)
       `)
       .eq('id', id)
       .single()
@@ -101,6 +150,13 @@ export default function AdminEditListingPage() {
     setIsInternFriendly(row.is_intern_friendly ?? false)
     setImmediateMovein(row.immediate_movein ?? false)
     setTestListing(row.test_listing ?? false)
+
+    // Initialize photo state
+    const resolvedPhotos = row.listing_photos && row.listing_photos.length > 0
+      ? [...row.listing_photos].sort((a, b) => a.display_order - b.display_order)
+      : (row.photo_urls ?? []).map((url: string, i: number) => ({ url, display_order: i, is_primary: i === 0 }))
+    setEditedPhotos(resolvedPhotos)
+
     setLoading(false)
   }, [id])
 
@@ -145,10 +201,7 @@ export default function AdminEditListingPage() {
     setSaving(false)
   }
 
-  // Resolve photos
-  const photos = listing?.listing_photos && listing.listing_photos.length > 0
-    ? listing.listing_photos
-    : (listing?.photo_urls ?? []).map((url, i) => ({ url, display_order: i, is_primary: i === 0 }))
+  const photos = editedPhotos
 
   if (loading) {
     return (
@@ -214,11 +267,42 @@ export default function AdminEditListingPage() {
           {/* Photos */}
           {photos.length > 0 && (
             <div className="flex gap-1 overflow-x-auto p-4 bg-gray-50 border-b border-gray-200">
-              {photos.sort((a, b) => a.display_order - b.display_order).map((photo, i) => (
-                <div key={i} className="relative flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden bg-gray-200">
+              {photos.map((photo, i) => (
+                <div key={i} className="relative flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden bg-gray-200 group">
                   <Image src={photo.url} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="128px" />
                   {photo.is_primary && (
                     <span className="absolute top-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">Primary</span>
+                  )}
+                  {/* Rotate buttons */}
+                  {rotatingPhoto !== i && (
+                    <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleRotatePhoto(i, -90)}
+                        className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                        aria-label="Rotate counter-clockwise"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleRotatePhoto(i, 90)}
+                        className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                        aria-label="Rotate clockwise"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleRotatePhoto(i, 180)}
+                        className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                        aria-label="Rotate 180 degrees"
+                      >
+                        <FlipVertical2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  {rotatingPhoto === i && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                    </div>
                   )}
                 </div>
               ))}

@@ -45,6 +45,8 @@ export interface BasicInfoData {
   latitude: string
   longitude: string
   room_type: string
+  bedrooms: string
+  bathrooms: string
   rent_monthly: string
   deposit: string
   available_from: string
@@ -239,6 +241,37 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
         </select>
         {errors.room_type && <p className="text-xs text-error">{errors.room_type}</p>}
       </div>
+
+      {/* Bedrooms & Bathrooms (whole unit) */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-800">Bedrooms (whole unit)</label>
+          <select
+            value={data.bedrooms}
+            onChange={(e) => update('bedrooms', e.target.value)}
+            className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={String(n)}>{n}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-800">Bathrooms (whole unit)</label>
+          <select
+            value={data.bathrooms}
+            onChange={(e) => update('bathrooms', e.target.value)}
+            className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={String(n)}>{n}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <p className="text-sm text-gray-500 -mt-3">
+        These refer to the entire unit, not just the room you&apos;re subletting.
+      </p>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">

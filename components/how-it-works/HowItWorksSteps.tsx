@@ -1,7 +1,10 @@
 import {
   Search, MessageSquare, Home,
   Camera, Shield, UserCheck,
+  ClipboardCheck, ShieldCheck, FileText,
+  ArrowRight,
 } from 'lucide-react'
+import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
 
 interface Step {
@@ -15,6 +18,7 @@ interface Section {
   bg: string
   accent: string
   steps: Step[]
+  cta?: { label: string; href: string }
 }
 
 const SECTIONS: Section[] = [
@@ -68,44 +72,103 @@ const SECTIONS: Section[] = [
       },
     ],
   },
+  {
+    heading: 'For Landlords',
+    bg: 'bg-primary-900',
+    accent: 'bg-white/10 text-white',
+    steps: [
+      {
+        Icon: ClipboardCheck,
+        title: 'Opt In',
+        description:
+          'Register your properties on SubletBuff. Free during our pilot program.',
+      },
+      {
+        Icon: ShieldCheck,
+        title: 'Approve Subtenants',
+        description:
+          'Review and approve every subletter from your dashboard. One-click approve or reject.',
+      },
+      {
+        Icon: FileText,
+        title: 'Stay in Control',
+        description:
+          "Auto-generated sublease agreements with your rules built in. Full visibility, zero surprises.",
+      },
+    ],
+    cta: { label: 'Learn More', href: '/landlords' },
+  },
 ]
 
 export function HowItWorksSteps() {
   return (
     <>
-      {SECTIONS.map((section) => (
-        <section key={section.heading} className={`py-16 lg:py-20 ${section.bg}`}>
-          <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="font-serif text-3xl text-center mb-12 text-gray-900">
-              {section.heading}
-            </h2>
+      {SECTIONS.map((section) => {
+        const isLandlord = section.bg === 'bg-primary-900'
+        return (
+          <section key={section.heading} className={`py-16 lg:py-20 ${section.bg}`}>
+            <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8">
+              <h2
+                className={`font-serif text-3xl text-center mb-12 ${
+                  isLandlord ? 'text-white' : 'text-gray-900'
+                }`}
+              >
+                {section.heading}
+              </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {section.steps.map((step, idx) => (
-                <div
-                  key={step.title}
-                  className="flex flex-col items-center text-center p-6 rounded-card bg-white shadow-card"
-                >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {section.steps.map((step, idx) => (
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${section.accent}`}
+                    key={step.title}
+                    className={`flex flex-col items-center text-center p-6 rounded-card ${
+                      isLandlord ? 'bg-white/5' : 'bg-white shadow-card'
+                    }`}
                   >
-                    <step.Icon className="w-6 h-6" strokeWidth={1.5} />
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${section.accent}`}
+                    >
+                      <step.Icon className="w-6 h-6" strokeWidth={1.5} />
+                    </div>
+                    <span
+                      className={`text-sm font-bold mb-2 ${
+                        isLandlord ? 'text-white/50' : 'text-gray-300'
+                      }`}
+                    >
+                      Step {idx + 1}
+                    </span>
+                    <h3
+                      className={`text-lg font-semibold mb-2 ${
+                        isLandlord ? 'text-white' : 'text-gray-900'
+                      }`}
+                    >
+                      {step.title}
+                    </h3>
+                    <p
+                      className={`text-sm leading-relaxed ${
+                        isLandlord ? 'text-white/70' : 'text-gray-600'
+                      }`}
+                    >
+                      {step.description}
+                    </p>
                   </div>
-                  <span className="text-sm font-bold mb-2 text-gray-300">
-                    Step {idx + 1}
-                  </span>
-                  <h3 className="text-lg font-semibold mb-2 text-gray-900">
-                    {step.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-gray-600">
-                    {step.description}
-                  </p>
+                ))}
+              </div>
+
+              {section.cta && (
+                <div className="mt-10 text-center">
+                  <Link
+                    href={section.cta.href}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary-700 font-semibold rounded-button hover:bg-primary-50 transition-colors text-sm"
+                  >
+                    {section.cta.label}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        </section>
-      ))}
+          </section>
+        )
+      })}
     </>
   )
 }

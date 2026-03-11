@@ -25,6 +25,8 @@ const INITIAL_BASIC: BasicInfoData = {
   latitude: '',
   longitude: '',
   room_type: '',
+  bedrooms: '1',
+  bathrooms: '1',
   rent_monthly: '',
   deposit: '',
   available_from: '',
@@ -327,8 +329,8 @@ export default function PostListingPage() {
           // === Room info ===
           room_type: basicInfo.room_type,
           title: basicInfo.title,
-          beds: '1',
-          baths: '1',
+          beds: basicInfo.bedrooms || '1',
+          baths: basicInfo.bathrooms || '1',
 
           // === Stay requirements ===
           min_stay_weeks: minStayMonths ? minStayMonths * 4 : 0,

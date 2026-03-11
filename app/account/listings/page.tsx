@@ -11,6 +11,7 @@ import {
   Eye, Heart, MessageSquare, TrendingUp,
   Plus, Star, ArrowLeft, ExternalLink, Pencil,
   Pause, Play, CheckCircle, Trash2, MoreVertical,
+  X, RotateCcw,
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
@@ -213,6 +214,11 @@ export default function ListerDashboardPage() {
 
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  const hasActiveUnfilledListing = listings.some(
+    (l) => l.status === 'approved' && !l.paused && !l.filled
+  )
 
   async function patchListing(id: string, body: Record<string, unknown>) {
     setActionLoading(id)
@@ -369,6 +375,24 @@ export default function ListerDashboardPage() {
           </div>
         )}
 
+        {/* Mark as Filled banner */}
+        {hasActiveUnfilledListing && !bannerDismissed && (
+          <div className="relative flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-card px-5 py-4 mb-6">
+            <CheckCircle className="w-5 h-5 text-primary-600 flex-shrink-0" />
+            <p className="text-sm text-primary-800">
+              <span className="font-medium">Did SubletBuff help you find someone?</span>{' '}
+              Let us know by marking your listing as filled!
+            </p>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="absolute top-3 right-3 p-1 rounded hover:bg-primary-100 text-primary-400 hover:text-primary-600 transition-colors"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Listings table */}
         <div className="bg-white rounded-card shadow-card overflow-hidden mb-6">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -411,8 +435,11 @@ export default function ListerDashboardPage() {
                     <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
                       Status
                     </th>
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Action
+                    </th>
                     <th className="px-4 py-3" />
-                  </tr>
+               </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {listings.map((listing) => {
@@ -476,6 +503,28 @@ export default function ListerDashboardPage() {
                           <span className={`text-xs font-medium px-2 py-0.5 rounded-badge ${si.color}`}>
                             {si.label}
                           </span>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {isActive && (
+                            <button
+                              onClick={() => patchListing(listing.id, { filled: true })}
+                              disabled={isDisabled}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Mark as Filled
+                            </button>
+                          )}
+                          {listing.filled && (
+                            <button
+                              onClick={() => patchListing(listing.id, { filled: false })}
+                              disabled={isDisabled}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Reopen Listing
+                            </button>
+                          )}
                         </td>
                         <td className="px-4 py-4 text-right">
                           <div className="relative inline-block">

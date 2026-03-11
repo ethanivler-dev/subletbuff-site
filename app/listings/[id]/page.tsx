@@ -354,7 +354,13 @@ export default async function ListingDetailPage({
                 {listing.is_featured && <Badge variant="featured" />}
                 {listing.is_intern_friendly && <Badge variant="intern_friendly" />}
                 {isFurnished && <Badge variant="furnished" />}
-                {listing.immediate_movein && <Badge variant="immediate" />}
+                {(() => {
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  const isImmediate = listing.immediate_movein ||
+                    (dateFrom && new Date(dateFrom) <= today)
+                  return isImmediate ? <Badge variant="immediate" /> : null
+                })()}
                 {lister?.verification_level && lister.verification_level !== 'basic' && (
                   <Badge variant={lister.verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
                 )}
@@ -388,12 +394,12 @@ export default async function ListingDetailPage({
                 </span>
                 {listing.bedrooms && (
                   <span className="flex items-center gap-1.5">
-                    <Bed className="w-4 h-4" /> {listing.bedrooms} bed{listing.bedrooms > 1 ? 's' : ''}
+                    <Bed className="w-4 h-4" /> {listing.bedrooms} bed{listing.bedrooms > 1 ? 's' : ''} <span className="text-gray-400 text-xs">(whole unit)</span>
                   </span>
                 )}
                 {listing.bathrooms && (
                   <span className="flex items-center gap-1.5">
-                    <Bath className="w-4 h-4" /> {listing.bathrooms} bath
+                    <Bath className="w-4 h-4" /> {listing.bathrooms} bath <span className="text-gray-400 text-xs">(whole unit)</span>
                   </span>
                 )}
                 <span className="flex items-center gap-1.5">
