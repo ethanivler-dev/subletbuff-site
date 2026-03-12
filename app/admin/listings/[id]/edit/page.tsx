@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import { ArrowLeft, Save, Loader2, RotateCw, RotateCcw, FlipVertical2, Crop as CropIcon } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, RotateCw, RotateCcw, FlipVertical2, Crop as CropIcon, Plus, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage } from '@/lib/image-rotate'
 import { NEIGHBORHOODS, ROOM_TYPES, AMENITIES, AMENITY_LABELS } from '@/lib/constants'
@@ -102,6 +102,7 @@ export default function AdminEditListingPage() {
   // Photos
   const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
   const [editedPhotos, setEditedPhotos] = useState<Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string }>>([])
+  const [uploading, setUploading] = useState(false)
 
   // Crop state
   const [cropPhotoIndex, setCropPhotoIndex] = useState<number | null>(null)
@@ -241,6 +242,45 @@ export default function AdminEditListingPage() {
     }
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files?.length) return
+    setUploading(true)
+
+    let currentOrder = editedPhotos.length
+    for (const file of Array.from(files)) {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      if (!res.ok) { toast('Failed to upload photo', 'error'); continue }
+      const { url, storage_path } = await res.json()
+
+      const order = currentOrder++
+      const supabase = createClient()
+      await supabase.from('listing_photos').insert({
+        listing_id: id,
+        url,
+        storage_path: storage_path ?? null,
+        display_order: order,
+        is_primary: order === 0,
+      })
+
+      setEditedPhotos(prev => [...prev, { url, storage_path, display_order: order, is_primary: order === 0 }])
+    }
+
+    setUploading(false)
+    e.target.value = ''
+    toast('Photo(s) added', 'success')
+  }
+
+  async function removePhoto(index: number) {
+    const photo = editedPhotos[index]
+    const supabase = createClient()
+    await supabase.from('listing_photos').delete().eq('listing_id', id).eq('display_order', photo.display_order)
+    setEditedPhotos(prev => prev.filter((_, i) => i !== index))
+    toast('Photo removed', 'success')
+  }
+
   const fetchListing = useCallback(async () => {
     const res = await fetch(`/api/admin/listings/${id}`)
     if (!res.ok) {
@@ -276,9 +316,25 @@ export default function AdminEditListingPage() {
     setUtilitiesIncluded(row.utilities_included ?? false)
     setUtilitiesEstimate(String(row.utilities_estimate ?? ''))
 
-    const resolvedPhotos = row.listing_photos && row.listing_photos.length > 0
+    let resolvedPhotos = row.listing_photos && row.listing_photos.length > 0
       ? [...row.listing_photos].sort((a, b) => a.display_order - b.display_order)
-      : (row.photo_urls ?? []).map((url: string, i: number) => ({ url, display_order: i, is_primary: i === 0 }))
+      : []
+
+    if (!resolvedPhotos.length && row.photo_urls?.length) {
+      const fallback = (row.photo_urls as string[]).map((url: string, i: number) => ({
+        listing_id: id,
+        url,
+        display_order: i,
+        is_primary: i === 0,
+        storage_path: extractStoragePath(url) ?? undefined,
+      }))
+      const supabase = createClient()
+      await supabase.from('listing_photos').insert(
+        fallback.map(p => ({ ...p, storage_path: p.storage_path ?? null }))
+      )
+      resolvedPhotos = fallback
+    }
+
     setEditedPhotos(resolvedPhotos)
 
     setLoading(false)
@@ -397,39 +453,52 @@ export default function AdminEditListingPage() {
           </div>
 
           {/* Photos */}
-          {photos.length > 0 && (
-            <div className="flex gap-1 overflow-x-auto p-4 bg-gray-50 border-b border-gray-200">
-              {photos.map((photo, i) => (
-                <div key={i} className="relative flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden bg-gray-200 group">
-                  <Image src={photo.url} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="128px" />
-                  {photo.is_primary && (
-                    <span className="absolute top-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">Primary</span>
-                  )}
-                  {rotatingPhoto !== i && (
-                    <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleRotatePhoto(i, -90)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Rotate counter-clockwise">
-                        <RotateCcw className="w-3 h-3" />
-                      </button>
-                      <button onClick={() => handleRotatePhoto(i, 90)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Rotate clockwise">
-                        <RotateCw className="w-3 h-3" />
-                      </button>
-                      <button onClick={() => handleRotatePhoto(i, 180)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Rotate 180 degrees">
-                        <FlipVertical2 className="w-3 h-3" />
-                      </button>
-                      <button onClick={() => openCropModal(i)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Crop photo">
-                        <CropIcon className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-                  {rotatingPhoto === i && (
-                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex gap-1 overflow-x-auto p-4 bg-gray-50 border-b border-gray-200">
+            {photos.map((photo, i) => (
+              <div key={i} className="relative flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden bg-gray-200 group">
+                <Image src={photo.url} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="128px" />
+                {photo.is_primary && (
+                  <span className="absolute top-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">Primary</span>
+                )}
+                {rotatingPhoto !== i && (
+                  <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleRotatePhoto(i, -90)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Rotate counter-clockwise">
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                    <button onClick={() => handleRotatePhoto(i, 90)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Rotate clockwise">
+                      <RotateCw className="w-3 h-3" />
+                    </button>
+                    <button onClick={() => handleRotatePhoto(i, 180)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Rotate 180 degrees">
+                      <FlipVertical2 className="w-3 h-3" />
+                    </button>
+                    <button onClick={() => openCropModal(i)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Crop photo">
+                      <CropIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                {rotatingPhoto === i && (
+                  <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                <button
+                  onClick={() => removePhoto(i)}
+                  className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove photo"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            <label className="flex-shrink-0 w-32 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 transition-colors">
+              {uploading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              ) : (
+                <Plus className="w-5 h-5 text-gray-400" />
+              )}
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
+            </label>
+          </div>
 
           <div className="p-6 flex flex-col gap-5">
             {/* Title */}

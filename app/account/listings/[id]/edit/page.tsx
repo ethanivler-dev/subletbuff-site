@@ -288,10 +288,26 @@ export default function EditListingPage() {
         immediate_movein: listing.immediate_movein ?? false,
       }
 
-      // Photos
-      const listingPhotos = listing.listing_photos?.length
+      // Photos — prefer listing_photos rows; migrate photo_urls fallback into the table
+      let listingPhotos = listing.listing_photos?.length
         ? listing.listing_photos
-        : (listing.photo_urls ?? []).map((url: string, i: number) => ({ url, display_order: i, is_primary: i === 0 }))
+        : []
+
+      if (!listingPhotos.length && listing.photo_urls?.length) {
+        const fallback = (listing.photo_urls as string[]).map((url: string, i: number) => ({
+          listing_id: id,
+          url,
+          display_order: i,
+          is_primary: i === 0,
+          storage_path: extractStoragePath(url) ?? undefined,
+        }))
+        // Persist into listing_photos so rotate/crop/add work correctly
+        await supabase.from('listing_photos').insert(
+          fallback.map(p => ({ ...p, storage_path: p.storage_path ?? null }))
+        )
+        listingPhotos = fallback
+      }
+
       setPhotos(listingPhotos.sort((a: Photo, b: Photo) => a.display_order - b.display_order))
 
       setLoading(false)
@@ -306,6 +322,7 @@ export default function EditListingPage() {
     if (!files?.length) return
     setUploading(true)
 
+    let currentOrder = photos.length
     for (const file of Array.from(files)) {
       const formData = new FormData()
       formData.append('file', file)
@@ -313,16 +330,16 @@ export default function EditListingPage() {
       if (!res.ok) continue
       const { url, storage_path } = await res.json()
 
-      const order = photos.length
+      const order = currentOrder++
       await supabase.from('listing_photos').insert({
         listing_id: id,
         url,
         storage_path: storage_path ?? null,
         display_order: order,
-        is_primary: photos.length === 0,
+        is_primary: order === 0,
       })
 
-      setPhotos(prev => [...prev, { url, storage_path, display_order: order, is_primary: prev.length === 0 }])
+      setPhotos(prev => [...prev, { url, storage_path, display_order: order, is_primary: order === 0 }])
       setPhotosChanged(true)
     }
 
@@ -330,9 +347,14 @@ export default function EditListingPage() {
     e.target.value = ''
   }
 
-  async function removePhoto(url: string) {
-    await supabase.from('listing_photos').delete().eq('listing_id', id).eq('url', url)
-    setPhotos(prev => prev.filter(p => p.url !== url))
+  async function removePhoto(index: number) {
+    if (photos.length <= 3) {
+      toast('Listings must have at least 3 photos', 'error')
+      return
+    }
+    const photo = photos[index]
+    await supabase.from('listing_photos').delete().eq('listing_id', id).eq('display_order', photo.display_order)
+    setPhotos(prev => prev.filter((_, i) => i !== index))
     setPhotosChanged(true)
   }
 
@@ -702,13 +724,15 @@ export default function EditListingPage() {
                       <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
-                  <button
-                    onClick={() => removePhoto(photo.url)}
-                    className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Remove photo"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+                  {photos.length > 3 && (
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove photo"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               ))}
               <label className="flex-shrink-0 w-28 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 transition-colors">
