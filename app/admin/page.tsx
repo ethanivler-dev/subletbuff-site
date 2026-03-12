@@ -89,13 +89,19 @@ export default function AdminDashboard() {
   const [flagNote, setFlagNote] = useState('')
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flagMenuRef = useRef<HTMLDivElement>(null)
 
   // Close flag dropdown on outside click
   useEffect(() => {
     if (!flagMenuId) return
-    const handler = () => setFlagMenuId(null)
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
+    const handler = (e: MouseEvent) => {
+      if (flagMenuRef.current && !flagMenuRef.current.contains(e.target as Node)) {
+        setFlagMenuId(null)
+        setFlagNote('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [flagMenuId])
 
   /* ---- Fetch listings ---- */
@@ -482,7 +488,7 @@ export default function AdminDashboard() {
                             ) : null
                           })()}
                           {/* Admin flag dropdown */}
-                          <div className="relative">
+                          <div className="relative" ref={flagMenuId === listing.id ? flagMenuRef : undefined}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -505,7 +511,7 @@ export default function AdminDashboard() {
                               <Flag className={`w-4 h-4 ${listing.admin_flag ? 'fill-current' : ''}`} />
                             </button>
                             {flagMenuId === listing.id && (
-                              <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-3 min-w-[220px]" onClick={(e) => e.stopPropagation()}>
+                              <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-3 min-w-[220px]">
                                 <textarea
                                   value={flagNote}
                                   onChange={(e) => setFlagNote(e.target.value)}
