@@ -102,8 +102,7 @@ export function Navbar() {
     const supabase = createClient()
     await supabase.auth.signOut()
     setDropdownOpen(false)
-    router.push('/')
-    router.refresh()
+    window.location.href = '/'
   }
 
 
