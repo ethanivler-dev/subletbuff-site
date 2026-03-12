@@ -128,13 +128,19 @@ export async function POST(request: NextRequest) {
 
   // Send email notification to lister for new conversations only
   if (!existingConvo) {
+    console.log('[conversations POST] New conversation — attempting email notification')
     try {
-      // Fetch listing title and recipient profile in parallel
       const [listingResult, senderProfile, recipientProfile] = await Promise.all([
         supabase.from('listings').select('title').eq('id', listing_id).single(),
         supabase.from('profiles').select('full_name').eq('id', user.id).single(),
         supabase.from('profiles').select('full_name, email').eq('id', recipient_id).single(),
       ])
+
+      console.log('[conversations POST] Query results:', {
+        listing: { data: listingResult.data, error: listingResult.error?.message },
+        sender: { data: senderProfile.data, error: senderProfile.error?.message },
+        recipient: { data: recipientProfile.data, error: recipientProfile.error?.message },
+      })
 
       const listingTitle = listingResult.data?.title ?? 'your listing'
       const senderName = senderProfile.data?.full_name ?? 'Someone'
@@ -142,7 +148,7 @@ export async function POST(request: NextRequest) {
       const recipientEmail = recipientProfile.data?.email
 
       if (recipientEmail) {
-        await sendNewInquiryEmail(
+        const emailResult = await sendNewInquiryEmail(
           recipientEmail,
           recipientName,
           senderName,
@@ -150,14 +156,15 @@ export async function POST(request: NextRequest) {
           message.trim().slice(0, 300),
           conversationId
         )
-        console.log('[conversations POST] Inquiry email sent to:', recipientEmail)
+        console.log('[conversations POST] Email result:', JSON.stringify(emailResult))
       } else {
         console.log('[conversations POST] No email found for recipient, skipping notification')
       }
     } catch (emailErr) {
-      // Non-blocking — message was already sent successfully
       console.error('[conversations POST] Failed to send inquiry email:', emailErr)
     }
+  } else {
+    console.log('[conversations POST] Existing conversation — skipping email')
   }
 
   console.log('[conversations POST] === SUCCESS === conversation_id:', conversationId, 'message_id:', msg.id)
