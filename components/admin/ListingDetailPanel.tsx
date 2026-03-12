@@ -53,6 +53,7 @@ interface AdminListing {
   utilities_estimate: number | null
   deposit: number | null
   pets: string | null
+  admin_flag: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }> | null
 }
 
@@ -191,6 +192,12 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3 min-w-0">
             <StatusBadge listing={listing} />
+            {listing.admin_flag === 'needs_email' && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">Needs Email</span>
+            )}
+            {listing.admin_flag === 'waiting_response' && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">Waiting</span>
+            )}
             {listing.test_listing && (
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Test</span>
             )}
@@ -310,6 +317,33 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800 hover:bg-green-200 disabled:opacity-50"
               >
                 Unpause
+              </button>
+            )}
+            {listing.admin_flag !== 'needs_email' && (
+              <button
+                onClick={() => onAction('flag_needs_email')}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-100 text-orange-800 hover:bg-orange-200 disabled:opacity-50"
+              >
+                Flag: Needs Email
+              </button>
+            )}
+            {listing.admin_flag !== 'waiting_response' && (
+              <button
+                onClick={() => onAction('flag_waiting')}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 disabled:opacity-50"
+              >
+                Flag: Waiting
+              </button>
+            )}
+            {listing.admin_flag && (
+              <button
+                onClick={() => onAction('flag_clear')}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+              >
+                Clear Flag
               </button>
             )}
             <button

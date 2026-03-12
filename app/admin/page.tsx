@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   RefreshCw, Search, Trash2, Pause, Play, Pencil,
-  Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag,
+  Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag, MessageCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
@@ -58,6 +58,7 @@ interface AdminListing {
   utilities_estimate: number | null
   deposit: number | null
   pets: string | null
+  admin_flag: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
 }
 
@@ -83,8 +84,17 @@ export default function AdminDashboard() {
   const [selectedListing, setSelectedListing] = useState<AdminListing | null>(null)
   const [contactListing, setContactListing] = useState<AdminListing | null>(null)
   const [quickEditId, setQuickEditId] = useState<string | null>(null)
+  const [flagMenuId, setFlagMenuId] = useState<string | null>(null)
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Close flag dropdown on outside click
+  useEffect(() => {
+    if (!flagMenuId) return
+    const handler = () => setFlagMenuId(null)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [flagMenuId])
 
   /* ---- Fetch listings ---- */
   const fetchListings = useCallback(async (statusFilter: Tab, searchTerm: string) => {
@@ -158,6 +168,18 @@ export default function AdminDashboard() {
       case 'unfill':
         ok = await patchListing(id, { filled: false })
         if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, filled: false } : l))
+        break
+      case 'flag_needs_email':
+        ok = await patchListing(id, { admin_flag: 'needs_email' })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'needs_email' } : l))
+        break
+      case 'flag_waiting':
+        ok = await patchListing(id, { admin_flag: 'waiting_response' })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'waiting_response' } : l))
+        break
+      case 'flag_clear':
+        ok = await patchListing(id, { admin_flag: null })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: null } : l))
         break
       case 'delete':
         if (!confirm('Permanently delete this listing? This cannot be undone.')) return
@@ -393,6 +415,16 @@ export default function AdminDashboard() {
                               Lease
                             </span>
                           )}
+                          {listing.admin_flag === 'needs_email' && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              <Mail className="w-3 h-3" /> Email
+                            </span>
+                          )}
+                          {listing.admin_flag === 'waiting_response' && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                              <Clock className="w-3 h-3" /> Waiting
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -444,6 +476,45 @@ export default function AdminDashboard() {
                               </button>
                             ) : null
                           })()}
+                          {/* Admin flag dropdown */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setFlagMenuId(flagMenuId === listing.id ? null : listing.id)}
+                              className={[
+                                'p-1.5 rounded transition-colors',
+                                listing.admin_flag
+                                  ? 'text-orange-500 hover:bg-orange-100'
+                                  : 'text-gray-400 hover:bg-gray-100',
+                              ].join(' ')}
+                              title="Flag for follow-up"
+                            >
+                              <MessageCircle className={`w-4 h-4 ${listing.admin_flag ? 'fill-current' : ''}`} />
+                            </button>
+                            {flagMenuId === listing.id && (
+                              <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]">
+                                <button
+                                  onClick={() => { handleAction(listing.id, 'flag_needs_email'); setFlagMenuId(null) }}
+                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-orange-50 text-gray-700 flex items-center gap-2"
+                                >
+                                  <Mail className="w-3 h-3 text-orange-500" /> Needs Email
+                                </button>
+                                <button
+                                  onClick={() => { handleAction(listing.id, 'flag_waiting'); setFlagMenuId(null) }}
+                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-cyan-50 text-gray-700 flex items-center gap-2"
+                                >
+                                  <Clock className="w-3 h-3 text-cyan-500" /> Waiting on Response
+                                </button>
+                                {listing.admin_flag && (
+                                  <button
+                                    onClick={() => { handleAction(listing.id, 'flag_clear'); setFlagMenuId(null) }}
+                                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-500 flex items-center gap-2 border-t border-gray-100"
+                                  >
+                                    <XCircle className="w-3 h-3" /> Clear Flag
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <Link
                             href={`/listings/${listing.id}`}
                             target="_blank"
