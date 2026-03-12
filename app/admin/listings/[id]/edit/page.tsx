@@ -118,39 +118,42 @@ export default function AdminEditListingPage() {
     setRotatingPhoto(index)
     try {
       const blob = await rotateImage(photo.url, degrees)
-      const storagePath = photo.storage_path || extractStoragePath(photo.url)
+      let storagePath = photo.storage_path || extractStoragePath(photo.url)
+      const supabase = createClient()
 
-      if (storagePath) {
-        const supabase = createClient()
-        const { error: uploadError } = await supabase.storage
-          .from('listing-photos')
-          .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
-
-        if (uploadError) {
-          toast(`Failed to rotate photo: ${uploadError.message}`, 'error')
-          setRotatingPhoto(null)
-          return
-        }
-
-        const { data: urlData } = supabase.storage
-          .from('listing-photos')
-          .getPublicUrl(storagePath)
-
-        const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
-        setEditedPhotos((prev) =>
-          prev.map((p, i) => (i === index ? { ...p, url: newUrl, storage_path: storagePath } : p))
-        )
-
-        // Update the URL and backfill storage_path in listing_photos table
-        await supabase.from('listing_photos')
-          .update({ url: newUrl, storage_path: storagePath })
-          .eq('listing_id', id)
-          .eq('display_order', photo.display_order)
-
-        toast('Photo rotated', 'success')
-      } else {
-        toast('No storage path — rotation is local only', 'error')
+      // Generate a new storage path for legacy photos with no path
+      if (!storagePath) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { toast('Not authenticated', 'error'); setRotatingPhoto(null); return }
+        storagePath = `listings/${user.id}/${Date.now()}-${crypto.randomUUID()}.jpg`
       }
+
+      const { error: uploadError } = await supabase.storage
+        .from('listing-photos')
+        .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
+
+      if (uploadError) {
+        toast(`Failed to rotate photo: ${uploadError.message}`, 'error')
+        setRotatingPhoto(null)
+        return
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('listing-photos')
+        .getPublicUrl(storagePath)
+
+      const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
+      setEditedPhotos((prev) =>
+        prev.map((p, i) => (i === index ? { ...p, url: newUrl, storage_path: storagePath } : p))
+      )
+
+      // Update the URL and backfill storage_path in listing_photos table
+      await supabase.from('listing_photos')
+        .update({ url: newUrl, storage_path: storagePath })
+        .eq('listing_id', id)
+        .eq('display_order', photo.display_order)
+
+      toast('Photo rotated', 'success')
     } catch {
       toast('Failed to rotate image', 'error')
     } finally {
@@ -199,33 +202,36 @@ export default function AdminEditListingPage() {
         )
       })
 
-      const storagePath = photo.storage_path || extractStoragePath(photo.url)
+      let storagePath = photo.storage_path || extractStoragePath(photo.url)
+      const supabase = createClient()
 
-      if (storagePath) {
-        const supabase = createClient()
-        const { error: uploadError } = await supabase.storage
-          .from('listing-photos')
-          .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
-
-        if (uploadError) {
-          toast(`Failed to upload cropped photo: ${uploadError.message}`, 'error')
-          setCroppingInProgress(false)
-          return
-        }
-
-        const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath)
-        const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
-        setEditedPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl, storage_path: storagePath } : p)))
-
-        await supabase.from('listing_photos')
-          .update({ url: newUrl, storage_path: storagePath })
-          .eq('listing_id', id)
-          .eq('display_order', photo.display_order)
-
-        toast('Photo cropped', 'success')
-      } else {
-        toast('No storage path — crop is local only', 'error')
+      // Generate a new storage path for legacy photos with no path
+      if (!storagePath) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { toast('Not authenticated', 'error'); setCroppingInProgress(false); return }
+        storagePath = `listings/${user.id}/${Date.now()}-${crypto.randomUUID()}.jpg`
       }
+
+      const { error: uploadError } = await supabase.storage
+        .from('listing-photos')
+        .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
+
+      if (uploadError) {
+        toast(`Failed to upload cropped photo: ${uploadError.message}`, 'error')
+        setCroppingInProgress(false)
+        return
+      }
+
+      const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath)
+      const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
+      setEditedPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl, storage_path: storagePath } : p)))
+
+      await supabase.from('listing_photos')
+        .update({ url: newUrl, storage_path: storagePath })
+        .eq('listing_id', id)
+        .eq('display_order', photo.display_order)
+
+      toast('Photo cropped', 'success')
 
       setCropPhotoIndex(null)
     } catch {
