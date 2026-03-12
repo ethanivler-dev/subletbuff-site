@@ -14,6 +14,7 @@ import { NEIGHBORHOODS, ROOM_TYPES, AMENITIES, AMENITY_LABELS } from '@/lib/cons
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage } from '@/lib/image-rotate'
 import { Modal } from '@/components/ui/Modal'
+import { useToast } from '@/components/ui/Toast'
 
 /* ------------------------------------------------------------------ */
 /*  Google Places loader (same as StepBasicInfo)                       */
@@ -96,6 +97,7 @@ export default function EditListingPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -340,7 +342,7 @@ export default function EditListingPage() {
           .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
 
         if (uploadError) {
-          setError(`Failed to re-upload rotated photo: ${uploadError.message}`)
+          toast(`Failed to re-upload rotated photo: ${uploadError.message}`, 'error')
           setRotatingPhoto(null)
           return
         }
@@ -354,13 +356,16 @@ export default function EditListingPage() {
           .update({ url: newUrl })
           .eq('listing_id', id)
           .eq('url', photo.url)
+
+        toast('Photo rotated successfully', 'success')
       } else {
         const newUrl = URL.createObjectURL(blob)
         setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p)))
+        toast('Photo rotated successfully', 'success')
       }
       setPhotosChanged(true)
     } catch {
-      setError('Failed to rotate image')
+      toast('Failed to rotate image', 'error')
     } finally {
       setRotatingPhoto(null)
     }
@@ -417,7 +422,7 @@ export default function EditListingPage() {
           .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
 
         if (uploadError) {
-          setError(`Failed to upload cropped photo: ${uploadError.message}`)
+          toast(`Failed to upload cropped photo: ${uploadError.message}`, 'error')
           setCroppingInProgress(false)
           return
         }
@@ -430,15 +435,18 @@ export default function EditListingPage() {
           .update({ url: newUrl })
           .eq('listing_id', id)
           .eq('url', photo.url)
+
+        toast('Photo cropped successfully', 'success')
       } else {
         const newUrl = URL.createObjectURL(blob)
         setPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl } : p)))
+        toast('Photo cropped successfully', 'success')
       }
 
       setCropPhotoIndex(null)
       setPhotosChanged(true)
     } catch {
-      setError('Failed to crop image')
+      toast('Failed to crop image', 'error')
     } finally {
       setCroppingInProgress(false)
     }

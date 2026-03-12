@@ -1,14 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Save, Loader2, RotateCw, RotateCcw, FlipVertical2 } from 'lucide-react'
+import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
+import { ArrowLeft, Save, Loader2, RotateCw, RotateCcw, FlipVertical2, Crop as CropIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage } from '@/lib/image-rotate'
 import { NEIGHBORHOODS, ROOM_TYPES, AMENITIES, AMENITY_LABELS } from '@/lib/constants'
 import { useToast } from '@/components/ui/Toast'
+import { Modal } from '@/components/ui/Modal'
 
 interface ListingData {
   id: string
@@ -91,6 +94,14 @@ export default function AdminEditListingPage() {
   const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
   const [editedPhotos, setEditedPhotos] = useState<Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string }>>([])
 
+  // Crop state
+  const [cropPhotoIndex, setCropPhotoIndex] = useState<number | null>(null)
+  const [crop, setCrop] = useState<Crop>()
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
+  const [cropAspect, setCropAspect] = useState<number | undefined>(undefined)
+  const cropImgRef = useRef<HTMLImageElement>(null)
+  const [croppingInProgress, setCroppingInProgress] = useState(false)
+
   async function handleRotatePhoto(index: number, degrees: 90 | -90 | 180) {
     const photo = editedPhotos[index]
     if (!photo || rotatingPhoto !== null) return
@@ -107,7 +118,7 @@ export default function AdminEditListingPage() {
           .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
 
         if (uploadError) {
-          setError(`Failed to re-upload rotated photo: ${uploadError.message}`)
+          toast(`Failed to rotate photo: ${uploadError.message}`, 'error')
           setRotatingPhoto(null)
           return
         }
@@ -120,16 +131,98 @@ export default function AdminEditListingPage() {
         setEditedPhotos((prev) =>
           prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
         )
+
+        // Update the URL in listing_photos table so it persists
+        await supabase.from('listing_photos')
+          .update({ url: newUrl })
+          .eq('listing_id', id)
+          .eq('url', photo.url)
+
+        toast('Photo rotated', 'success')
       } else {
-        const newUrl = URL.createObjectURL(blob)
-        setEditedPhotos((prev) =>
-          prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
-        )
+        toast('No storage path — rotation is local only', 'error')
       }
     } catch {
-      setError('Failed to rotate image')
+      toast('Failed to rotate image', 'error')
     } finally {
       setRotatingPhoto(null)
+    }
+  }
+
+  function openCropModal(index: number) {
+    setCropPhotoIndex(index)
+    setCrop(undefined)
+    setCompletedCrop(undefined)
+    setCropAspect(undefined)
+  }
+
+  async function applyCrop() {
+    if (cropPhotoIndex === null || !completedCrop || !cropImgRef.current) return
+
+    setCroppingInProgress(true)
+    const photo = editedPhotos[cropPhotoIndex]
+
+    try {
+      const image = cropImgRef.current
+      const canvas = document.createElement('canvas')
+      const scaleX = image.naturalWidth / image.width
+      const scaleY = image.naturalHeight / image.height
+
+      canvas.width = completedCrop.width * scaleX
+      canvas.height = completedCrop.height * scaleY
+
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(
+        image,
+        completedCrop.x * scaleX,
+        completedCrop.y * scaleY,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
+        0, 0,
+        canvas.width, canvas.height,
+      )
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => b ? resolve(b) : reject(new Error('Canvas toBlob returned null')),
+          'image/jpeg',
+          0.92,
+        )
+      })
+
+      const storagePath = photo.storage_path
+
+      if (storagePath) {
+        const supabase = createClient()
+        const { error: uploadError } = await supabase.storage
+          .from('listing-photos')
+          .upload(storagePath, blob, { upsert: true, contentType: 'image/jpeg' })
+
+        if (uploadError) {
+          toast(`Failed to upload cropped photo: ${uploadError.message}`, 'error')
+          setCroppingInProgress(false)
+          return
+        }
+
+        const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath)
+        const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
+        setEditedPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl } : p)))
+
+        await supabase.from('listing_photos')
+          .update({ url: newUrl })
+          .eq('listing_id', id)
+          .eq('url', photo.url)
+
+        toast('Photo cropped', 'success')
+      } else {
+        toast('No storage path — crop is local only', 'error')
+      }
+
+      setCropPhotoIndex(null)
+    } catch {
+      toast('Failed to crop image', 'error')
+    } finally {
+      setCroppingInProgress(false)
     }
   }
 
@@ -307,6 +400,9 @@ export default function AdminEditListingPage() {
                       </button>
                       <button onClick={() => handleRotatePhoto(i, 180)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Rotate 180 degrees">
                         <FlipVertical2 className="w-3 h-3" />
+                      </button>
+                      <button onClick={() => openCropModal(i)} className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1" aria-label="Crop photo">
+                        <CropIcon className="w-3 h-3" />
                       </button>
                     </div>
                   )}
@@ -523,6 +619,79 @@ export default function AdminEditListingPage() {
           </button>
         </div>
       </div>
+
+      {/* Crop Modal */}
+      <Modal
+        open={cropPhotoIndex !== null}
+        onClose={() => setCropPhotoIndex(null)}
+        title="Crop Photo"
+        className="max-w-2xl"
+      >
+        {cropPhotoIndex !== null && editedPhotos[cropPhotoIndex] && (
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-2">
+              {[
+                { label: 'Free', value: undefined },
+                { label: '4:3', value: 4 / 3 },
+                { label: '16:9', value: 16 / 9 },
+                { label: '1:1', value: 1 },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  onClick={() => {
+                    setCropAspect(preset.value)
+                    setCrop(undefined)
+                    setCompletedCrop(undefined)
+                  }}
+                  className={[
+                    'px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors',
+                    cropAspect === preset.value
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-400',
+                  ].join(' ')}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="max-h-[60vh] overflow-auto">
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={cropAspect}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={cropImgRef}
+                  src={editedPhotos[cropPhotoIndex].url}
+                  alt="Crop preview"
+                  className="max-w-full"
+                  crossOrigin="anonymous"
+                />
+              </ReactCrop>
+            </div>
+
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setCropPhotoIndex(null)}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={applyCrop}
+                disabled={!completedCrop || croppingInProgress}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2"
+              >
+                {croppingInProgress && <Loader2 className="w-4 h-4 animate-spin" />}
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
