@@ -132,11 +132,11 @@ export default function AdminEditListingPage() {
           prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
         )
 
-        // Update the URL in listing_photos table so it persists
+        // Update the URL in listing_photos table so it persists (match by storage_path)
         await supabase.from('listing_photos')
           .update({ url: newUrl })
           .eq('listing_id', id)
-          .eq('url', photo.url)
+          .eq('storage_path', storagePath)
 
         toast('Photo rotated', 'success')
       } else {
@@ -211,7 +211,7 @@ export default function AdminEditListingPage() {
         await supabase.from('listing_photos')
           .update({ url: newUrl })
           .eq('listing_id', id)
-          .eq('url', photo.url)
+          .eq('storage_path', storagePath)
 
         toast('Photo cropped', 'success')
       } else {

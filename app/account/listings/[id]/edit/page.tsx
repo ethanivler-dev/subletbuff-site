@@ -351,11 +351,11 @@ export default function EditListingPage() {
         const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
         setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p)))
 
-        // Update the URL in listing_photos table
+        // Update the URL in listing_photos table (match by storage_path, not url)
         await supabase.from('listing_photos')
           .update({ url: newUrl })
           .eq('listing_id', id)
-          .eq('url', photo.url)
+          .eq('storage_path', storagePath)
 
         toast('Photo rotated successfully', 'success')
       } else {
@@ -434,7 +434,7 @@ export default function EditListingPage() {
         await supabase.from('listing_photos')
           .update({ url: newUrl })
           .eq('listing_id', id)
-          .eq('url', photo.url)
+          .eq('storage_path', storagePath)
 
         toast('Photo cropped successfully', 'success')
       } else {
