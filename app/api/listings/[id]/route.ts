@@ -27,7 +27,7 @@ export async function GET(
       is_featured, is_intern_friendly, immediate_movein,
       created_at, lister_id, user_id, status, paused, filled, test_listing, save_count,
       original_rent_monthly, management_company,
-      listing_photos(url, display_order, is_primary, caption),
+      listing_photos(url, display_order, is_primary, caption, storage_path, photo_path),
       photo_urls
     `)
     .eq('id', id)
