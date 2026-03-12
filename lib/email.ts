@@ -16,20 +16,23 @@ function wrap(body: string): string {
 </div>`
 }
 
+const isStaging = process.env.NEXT_PUBLIC_APP_ENV === 'staging'
+
 async function send(to: string, subject: string, html: string) {
+  const taggedSubject = isStaging ? `[STAGING] ${subject}` : subject
   if (!resend) {
-    console.warn('[email] RESEND_API_KEY not set — skipping:', subject, '→', to)
+    console.warn('[email] RESEND_API_KEY not set — skipping:', taggedSubject, '→', to)
     return { success: false, reason: 'no_api_key' as const }
   }
   try {
-    const { error } = await resend.emails.send({ from: FROM, to: [to], replyTo: REPLY_TO, subject, html })
+    const { error } = await resend.emails.send({ from: FROM, to: [to], replyTo: REPLY_TO, subject: taggedSubject, html })
     if (error) {
-      console.error('[email] Resend API error:', subject, '→', to, error)
+      console.error('[email] Resend API error:', taggedSubject, '→', to, error)
       return { success: false, reason: 'api_error' as const, error }
     }
     return { success: true }
   } catch (err) {
-    console.error('[email] Failed to send:', subject, '→', to, err)
+    console.error('[email] Failed to send:', taggedSubject, '→', to, err)
     return { success: false, reason: 'exception' as const, error: err }
   }
 }
