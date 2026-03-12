@@ -54,6 +54,7 @@ interface AdminListing {
   deposit: number | null
   pets: string | null
   admin_flag: string | null
+  admin_notes: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }> | null
 }
 
@@ -193,10 +194,10 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
           <div className="flex items-center gap-3 min-w-0">
             <StatusBadge listing={listing} />
             {listing.admin_flag === 'needs_email' && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">Needs Email</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800" title={listing.admin_notes ?? undefined}>Needs Email</span>
             )}
             {listing.admin_flag === 'waiting_response' && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">Waiting</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800" title={listing.admin_notes ?? undefined}>Waiting</span>
             )}
             {listing.test_listing && (
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Test</span>
@@ -456,6 +457,12 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
             )}
             <InfoRow icon={Shield} label="Test Listing" value={listing.test_listing ? 'Yes' : 'No'} />
             <InfoRow icon={Clock} label="Created" value={listing.created_at ? formatDate(listing.created_at.split('T')[0]) : null} />
+            {listing.admin_notes && (
+              <div className="mt-2 pt-2 border-t border-amber-200">
+                <p className="text-xs font-semibold text-amber-700 mb-1">Admin Note</p>
+                <p className="text-xs text-amber-900 bg-amber-100/50 rounded px-2 py-1.5">{listing.admin_notes}</p>
+              </div>
+            )}
           </div>
 
           {/* Lister Info */}

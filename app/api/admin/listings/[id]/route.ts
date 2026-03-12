@@ -52,7 +52,7 @@ const ADMIN_EDITABLE_FIELDS = [
   'bedrooms', 'bathrooms', 'email', 'deposit',
   'house_rules', 'roommate_info', 'amenities',
   'utilities_included', 'utilities_estimate',
-  'admin_flag',
+  'admin_flag', 'admin_notes',
 ]
 
 // Legacy alias columns that must be kept in sync

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   RefreshCw, Search, Trash2, Pause, Play, Pencil,
-  Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag, MessageCircle,
+  Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag, BadgeCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
@@ -59,6 +59,7 @@ interface AdminListing {
   deposit: number | null
   pets: string | null
   admin_flag: string | null
+  admin_notes: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
 }
 
@@ -85,6 +86,7 @@ export default function AdminDashboard() {
   const [contactListing, setContactListing] = useState<AdminListing | null>(null)
   const [quickEditId, setQuickEditId] = useState<string | null>(null)
   const [flagMenuId, setFlagMenuId] = useState<string | null>(null)
+  const [flagNote, setFlagNote] = useState('')
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -170,16 +172,19 @@ export default function AdminDashboard() {
         if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, filled: false } : l))
         break
       case 'flag_needs_email':
-        ok = await patchListing(id, { admin_flag: 'needs_email' })
-        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'needs_email' } : l))
+        ok = await patchListing(id, { admin_flag: 'needs_email', admin_notes: flagNote || null })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'needs_email', admin_notes: flagNote || null } : l))
+        setFlagNote('')
         break
       case 'flag_waiting':
-        ok = await patchListing(id, { admin_flag: 'waiting_response' })
-        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'waiting_response' } : l))
+        ok = await patchListing(id, { admin_flag: 'waiting_response', admin_notes: flagNote || null })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'waiting_response', admin_notes: flagNote || null } : l))
+        setFlagNote('')
         break
       case 'flag_clear':
-        ok = await patchListing(id, { admin_flag: null })
-        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: null } : l))
+        ok = await patchListing(id, { admin_flag: null, admin_notes: null })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: null, admin_notes: null } : l))
+        setFlagNote('')
         break
       case 'delete':
         if (!confirm('Permanently delete this listing? This cannot be undone.')) return
@@ -416,12 +421,12 @@ export default function AdminDashboard() {
                             </span>
                           )}
                           {listing.admin_flag === 'needs_email' && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 cursor-default" title={listing.admin_notes ?? undefined}>
                               <Mail className="w-3 h-3" /> Email
                             </span>
                           )}
                           {listing.admin_flag === 'waiting_response' && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 cursor-default" title={listing.admin_notes ?? undefined}>
                               <Clock className="w-3 h-3" /> Waiting
                             </span>
                           )}
@@ -479,39 +484,57 @@ export default function AdminDashboard() {
                           {/* Admin flag dropdown */}
                           <div className="relative">
                             <button
-                              onClick={() => setFlagMenuId(flagMenuId === listing.id ? null : listing.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (flagMenuId === listing.id) {
+                                  setFlagMenuId(null)
+                                  setFlagNote('')
+                                } else {
+                                  setFlagMenuId(listing.id)
+                                  setFlagNote(listing.admin_notes ?? '')
+                                }
+                              }}
                               className={[
                                 'p-1.5 rounded transition-colors',
                                 listing.admin_flag
                                   ? 'text-orange-500 hover:bg-orange-100'
                                   : 'text-gray-400 hover:bg-gray-100',
                               ].join(' ')}
-                              title="Flag for follow-up"
+                              title={listing.admin_notes ? `Flag: ${listing.admin_notes}` : 'Flag for follow-up'}
                             >
-                              <MessageCircle className={`w-4 h-4 ${listing.admin_flag ? 'fill-current' : ''}`} />
+                              <Flag className={`w-4 h-4 ${listing.admin_flag ? 'fill-current' : ''}`} />
                             </button>
                             {flagMenuId === listing.id && (
-                              <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]">
-                                <button
-                                  onClick={() => { handleAction(listing.id, 'flag_needs_email'); setFlagMenuId(null) }}
-                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-orange-50 text-gray-700 flex items-center gap-2"
-                                >
-                                  <Mail className="w-3 h-3 text-orange-500" /> Needs Email
-                                </button>
-                                <button
-                                  onClick={() => { handleAction(listing.id, 'flag_waiting'); setFlagMenuId(null) }}
-                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-cyan-50 text-gray-700 flex items-center gap-2"
-                                >
-                                  <Clock className="w-3 h-3 text-cyan-500" /> Waiting on Response
-                                </button>
-                                {listing.admin_flag && (
+                              <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-3 min-w-[220px]" onClick={(e) => e.stopPropagation()}>
+                                <textarea
+                                  value={flagNote}
+                                  onChange={(e) => setFlagNote(e.target.value)}
+                                  placeholder="Add a note..."
+                                  rows={2}
+                                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 mb-2 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none"
+                                />
+                                <div className="flex flex-col gap-1">
                                   <button
-                                    onClick={() => { handleAction(listing.id, 'flag_clear'); setFlagMenuId(null) }}
-                                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-500 flex items-center gap-2 border-t border-gray-100"
+                                    onClick={() => { handleAction(listing.id, 'flag_needs_email'); setFlagMenuId(null) }}
+                                    className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-orange-50 text-gray-700 flex items-center gap-2"
                                   >
-                                    <XCircle className="w-3 h-3" /> Clear Flag
+                                    <Mail className="w-3 h-3 text-orange-500" /> Needs Email
                                   </button>
-                                )}
+                                  <button
+                                    onClick={() => { handleAction(listing.id, 'flag_waiting'); setFlagMenuId(null) }}
+                                    className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-cyan-50 text-gray-700 flex items-center gap-2"
+                                  >
+                                    <Clock className="w-3 h-3 text-cyan-500" /> Waiting on Response
+                                  </button>
+                                  {listing.admin_flag && (
+                                    <button
+                                      onClick={() => { handleAction(listing.id, 'flag_clear'); setFlagMenuId(null) }}
+                                      className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-gray-50 text-gray-500 flex items-center gap-2 border-t border-gray-100 mt-1 pt-1"
+                                    >
+                                      <XCircle className="w-3 h-3" /> Clear Flag
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -535,19 +558,19 @@ export default function AdminDashboard() {
                               <button
                                 onClick={() => handleAction(listing.id, 'unfill')}
                                 disabled={isActioning}
-                                className="p-1.5 rounded hover:bg-purple-100 text-purple-600 transition-colors disabled:opacity-50"
+                                className="p-1.5 rounded hover:bg-green-100 text-green-600 transition-colors disabled:opacity-50"
                                 title="Mark as unfilled"
                               >
-                                <Flag className="w-4 h-4 fill-current" />
+                                <BadgeCheck className="w-4 h-4" />
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleAction(listing.id, 'fill')}
                                 disabled={isActioning}
-                                className="p-1.5 rounded hover:bg-purple-100 text-gray-400 transition-colors disabled:opacity-50"
+                                className="p-1.5 rounded hover:bg-gray-100 text-gray-400 transition-colors disabled:opacity-50"
                                 title="Mark as filled"
                               >
-                                <Flag className="w-4 h-4" />
+                                <BadgeCheck className="w-4 h-4" />
                               </button>
                             )
                           )}
