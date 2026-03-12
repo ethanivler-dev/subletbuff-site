@@ -127,53 +127,37 @@ export async function POST(request: NextRequest) {
 
   console.log('[conversations POST] Update convo metadata:', updateError ? `error=${updateError.message}` : 'OK')
 
-  // Send email notification to lister for new conversations only
-  if (!existingConvo) {
-    console.log('[conversations POST] New conversation — attempting email notification')
-    try {
-      const admin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
+  // Send email notification to the recipient
+  try {
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-      const [listingResult, senderAuth, recipientAuth] = await Promise.all([
-        supabase.from('listings').select('title').eq('id', listing_id).maybeSingle(),
-        admin.auth.admin.getUserById(user.id),
-        admin.auth.admin.getUserById(recipient_id),
-      ])
+    const [listingResult, senderAuth, recipientAuth] = await Promise.all([
+      supabase.from('listings').select('title').eq('id', listing_id).maybeSingle(),
+      admin.auth.admin.getUserById(user.id),
+      admin.auth.admin.getUserById(recipient_id),
+    ])
 
-      const listingTitle = listingResult.data?.title ?? 'your listing'
-      const senderName = senderAuth.data?.user?.user_metadata?.full_name ?? user.email ?? 'Someone'
-      const recipientName = recipientAuth.data?.user?.user_metadata?.full_name ?? 'there'
-      const recipientEmail = recipientAuth.data?.user?.email
+    const listingTitle = listingResult.data?.title ?? 'your listing'
+    const senderName = senderAuth.data?.user?.user_metadata?.full_name ?? user.email ?? 'Someone'
+    const recipientName = recipientAuth.data?.user?.user_metadata?.full_name ?? 'there'
+    const recipientEmail = recipientAuth.data?.user?.email
 
-      console.log('[conversations POST] Email lookup:', {
-        listingTitle,
-        senderName,
+    if (recipientEmail) {
+      await sendNewInquiryEmail(
+        recipientEmail,
         recipientName,
-        recipientEmail: recipientEmail ? '***' : 'MISSING',
-        senderError: senderAuth.error?.message,
-        recipientError: recipientAuth.error?.message,
-      })
-
-      if (recipientEmail) {
-        const emailResult = await sendNewInquiryEmail(
-          recipientEmail,
-          recipientName,
-          senderName,
-          listingTitle,
-          message.trim().slice(0, 300),
-          conversationId
-        )
-        console.log('[conversations POST] Email result:', JSON.stringify(emailResult))
-      } else {
-        console.log('[conversations POST] No email found for recipient, skipping notification')
-      }
-    } catch (emailErr) {
-      console.error('[conversations POST] Failed to send inquiry email:', emailErr)
+        senderName,
+        listingTitle,
+        message.trim().slice(0, 300),
+        conversationId
+      )
+      console.log('[conversations POST] Email sent to:', recipientEmail)
     }
-  } else {
-    console.log('[conversations POST] Existing conversation — skipping email')
+  } catch (emailErr) {
+    console.error('[conversations POST] Failed to send inquiry email:', emailErr)
   }
 
   console.log('[conversations POST] === SUCCESS === conversation_id:', conversationId, 'message_id:', msg.id)

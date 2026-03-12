@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendNewInquiryEmail } from '@/lib/email'
 
 /**
  * GET /api/messages/conversations/[id] — Get conversation + messages, mark as read
@@ -146,6 +148,48 @@ export async function POST(
       last_message_preview: message.trim().slice(0, 200),
     })
     .eq('id', id)
+
+  // Send email notification to the other participant
+  try {
+    const recipientId = conversation.participant_a === user.id
+      ? conversation.participant_b
+      : conversation.participant_a
+
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const [convoDetail, senderAuth, recipientAuth] = await Promise.all([
+      supabase.from('conversations').select('listing_id').eq('id', id).single(),
+      admin.auth.admin.getUserById(user.id),
+      admin.auth.admin.getUserById(recipientId),
+    ])
+
+    const listingId = convoDetail.data?.listing_id
+    let listingTitle = 'your listing'
+    if (listingId) {
+      const { data: listing } = await supabase.from('listings').select('title').eq('id', listingId).maybeSingle()
+      listingTitle = listing?.title ?? listingTitle
+    }
+
+    const senderName = senderAuth.data?.user?.user_metadata?.full_name ?? user.email ?? 'Someone'
+    const recipientName = recipientAuth.data?.user?.user_metadata?.full_name ?? 'there'
+    const recipientEmail = recipientAuth.data?.user?.email
+
+    if (recipientEmail) {
+      await sendNewInquiryEmail(
+        recipientEmail,
+        recipientName,
+        senderName,
+        listingTitle,
+        message.trim().slice(0, 300),
+        id
+      )
+    }
+  } catch (emailErr) {
+    console.error('[conversations/[id] POST] Failed to send email:', emailErr)
+  }
 
   return NextResponse.json({ message: msg }, { status: 201 })
 }
