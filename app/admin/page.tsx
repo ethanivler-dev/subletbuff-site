@@ -397,7 +397,7 @@ export default function AdminDashboard() {
                             const profile = getProfile(listing)
                             return profile?.email ? (
                               <button
-                                onClick={() => { window.location.href = `mailto:${profile.email}` }}
+                                onClick={() => { window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(profile.email!)}`, '_blank') }}
                                 className="p-1.5 rounded hover:bg-blue-100 text-blue-500 transition-colors"
                                 title={`Email ${profile.full_name || profile.email}`}
                               >
