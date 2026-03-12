@@ -322,29 +322,35 @@ export default function EditListingPage() {
     if (!files?.length) return
     setUploading(true)
 
-    let currentOrder = photos.length
-    for (const file of Array.from(files)) {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      if (!res.ok) continue
-      const { url, storage_path } = await res.json()
+    try {
+      let currentOrder = photos.length
+      for (const file of Array.from(files)) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          if (!res.ok) { toast('Failed to upload a photo', 'error'); continue }
+          const { url, storage_path } = await res.json()
 
-      const order = currentOrder++
-      await supabase.from('listing_photos').insert({
-        listing_id: id,
-        url,
-        storage_path: storage_path ?? null,
-        display_order: order,
-        is_primary: order === 0,
-      })
+          const order = currentOrder++
+          await supabase.from('listing_photos').insert({
+            listing_id: id,
+            url,
+            storage_path: storage_path ?? null,
+            display_order: order,
+            is_primary: order === 0,
+          })
 
-      setPhotos(prev => [...prev, { url, storage_path, display_order: order, is_primary: order === 0 }])
-      setPhotosChanged(true)
+          setPhotos(prev => [...prev, { url, storage_path, display_order: order, is_primary: order === 0 }])
+          setPhotosChanged(true)
+        } catch {
+          toast('Failed to upload a photo', 'error')
+        }
+      }
+    } finally {
+      setUploading(false)
+      e.target.value = ''
     }
-
-    setUploading(false)
-    e.target.value = ''
   }
 
   async function removePhoto(index: number) {
@@ -724,15 +730,13 @@ export default function EditListingPage() {
                       <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
-                  {photos.length > 3 && (
-                    <button
-                      onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove photo"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove photo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
               ))}
               <label className="flex-shrink-0 w-28 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 transition-colors">
