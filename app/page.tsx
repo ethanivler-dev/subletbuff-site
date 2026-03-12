@@ -88,24 +88,7 @@ export default function HomePage() {
         <FeaturedGrid />
       </Suspense>
 
-      {/* Landlord CTA */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            Property Managers: Fill Your Summer Vacancies
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Join Boulder landlords who use SubletBuff to manage approved summer sublets.
-            Free to get started.
-          </p>
-          <a
-            href="/landlords"
-            className="inline-block bg-green-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-800 transition"
-          >
-            Learn More
-          </a>
-        </div>
-      </section>
+
     </>
   )
 }
