@@ -61,13 +61,23 @@ export async function GET(
     return NextResponse.json({ error: msgError.message }, { status: 500 })
   }
 
-  // Fetch other user's profile
+  // Fetch both participants' profiles
   const otherId = isA ? conversation.participant_b : conversation.participant_a
-  const { data: otherProfile } = await supabase
+  const { data: profiles } = await supabase
     .from('profiles')
     .select('id, full_name, email')
-    .eq('id', otherId)
-    .single()
+    .in('id', [conversation.participant_a, conversation.participant_b])
+
+  // Build participants map
+  const participants: Record<string, string> = {}
+  if (profiles) {
+    for (const p of profiles) {
+      const name = p.full_name?.trim()
+      participants[p.id] = name || (p.email ? p.email.split('@')[0] : 'Unknown')
+    }
+  }
+
+  const otherName = participants[otherId] ?? 'Unknown'
 
   // Fetch listing info
   const { data: listing } = await supabase
@@ -75,9 +85,6 @@ export async function GET(
     .select('id, title, room_type, neighborhood')
     .eq('id', conversation.listing_id)
     .single()
-
-  const profileName = otherProfile?.full_name?.trim()
-  const otherName = profileName || (otherProfile?.email ? otherProfile.email.split('@')[0] : 'Unknown')
 
   return NextResponse.json({
     conversation: {
@@ -91,6 +98,7 @@ export async function GET(
       other_user_id: otherId,
       other_user_name: otherName,
     },
+    participants,
     messages: messages ?? [],
   })
 }

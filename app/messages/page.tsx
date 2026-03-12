@@ -11,6 +11,7 @@ interface ConversationItem {
   listing_id: string
   listing_title: string
   listing_photo: string | null
+  listing_price: number | null
   other_user_id: string
   other_user_name: string
   last_message_preview: string | null
@@ -105,6 +106,10 @@ export default function MessagesPage() {
                       {timeAgo(convo.last_message_at)}
                     </span>
                   </div>
+                  <p className="text-xs text-gray-500 truncate">
+                    From: {convo.other_user_name}
+                    {convo.listing_price ? ` · $${convo.listing_price.toLocaleString()}/mo` : ''}
+                  </p>
                   <p className={`text-sm truncate mt-0.5 ${convo.unread ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
                     {convo.last_message_preview ?? 'No messages yet'}
                   </p>

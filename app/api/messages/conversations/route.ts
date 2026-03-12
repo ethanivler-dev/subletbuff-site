@@ -232,16 +232,17 @@ export async function GET(request: NextRequest) {
   // Fetch listing info (title, room_type, neighborhood + first photo)
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, title, room_type, neighborhood, listing_photos(url, display_order, is_primary)')
+    .select('id, title, room_type, neighborhood, rent_monthly, listing_photos(url, display_order, is_primary)')
     .in('id', Array.from(listingIds))
 
-  const listingMap: Record<string, { title: string; photo_url: string | null }> = {}
+  const listingMap: Record<string, { title: string; photo_url: string | null; price: number | null }> = {}
   if (listings) {
     for (const l of listings as Array<{
       id: string
       title: string | null
       room_type: string | null
       neighborhood: string | null
+      rent_monthly: number | null
       listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
     }>) {
       const photos = l.listing_photos ?? []
@@ -252,6 +253,7 @@ export async function GET(request: NextRequest) {
       listingMap[l.id] = {
         title: sanitizeListingTitle(l.title, l.room_type ?? '', l.neighborhood ?? ''),
         photo_url: primaryPhoto,
+        price: l.rent_monthly ?? null,
       }
     }
   }
@@ -287,6 +289,7 @@ export async function GET(request: NextRequest) {
       listing_id: c.listing_id,
       listing_title: listingMap[c.listing_id]?.title ?? 'Listing',
       listing_photo: listingMap[c.listing_id]?.photo_url ?? null,
+      listing_price: listingMap[c.listing_id]?.price ?? null,
       other_user_id: otherId,
       other_user_name: profileMap[otherId] ?? 'Unknown',
       last_message_preview: c.last_message_preview,

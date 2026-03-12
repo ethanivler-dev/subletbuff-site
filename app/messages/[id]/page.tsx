@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, MessageCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MessageInput } from '@/components/messages/MessageInput'
 import { sanitizeListingTitle } from '@/lib/utils'
@@ -55,10 +55,10 @@ export default async function ConversationPage({ params }: ConversationPageProps
     .eq('conversation_id', id)
     .order('created_at', { ascending: true })
 
-  // Fetch listing info with photos
+  // Fetch listing info with photos and price
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, title, room_type, neighborhood, listing_photos(url, display_order, is_primary)')
+    .select('id, title, room_type, neighborhood, rent_monthly, listing_photos(url, display_order, is_primary)')
     .eq('id', conversation.listing_id)
     .single()
 
@@ -68,15 +68,38 @@ export default async function ConversationPage({ params }: ConversationPageProps
     listing?.neighborhood ?? ''
   )
 
-  // Build sorted photos array
+  const listingPrice = (listing?.rent_monthly as number | null) ?? null
+
+  // Extract cover photo (is_primary first, then lowest display_order)
   const rawPhotos = (listing?.listing_photos as Array<{ url: string; display_order: number; is_primary: boolean }> | null) ?? []
   const sortedPhotos = [...rawPhotos].sort((a, b) => {
     if (a.is_primary && !b.is_primary) return -1
     if (!a.is_primary && b.is_primary) return 1
     return a.display_order - b.display_order
   })
-  // Show up to 4 thumbnails
-  const thumbnailPhotos = sortedPhotos.slice(0, 4)
+  const coverPhotoUrl = sortedPhotos[0]?.url ?? null
+
+  // Fetch both participants' profiles
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', [conversation.participant_a, conversation.participant_b])
+
+  const participants: Record<string, string> = {}
+  if (profiles) {
+    for (const p of profiles) {
+      const name = p.full_name?.trim()
+      participants[p.id] = name || (p.email ? p.email.split('@')[0] : 'Unknown')
+    }
+  }
+
+  const otherId = isA ? conversation.participant_b : conversation.participant_a
+  const otherName = participants[otherId] ?? 'Unknown'
+
+  // Format price for display
+  const formattedPrice = listingPrice
+    ? `$${listingPrice.toLocaleString()}/mo`
+    : null
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16 flex flex-col">
@@ -85,47 +108,45 @@ export default async function ConversationPage({ params }: ConversationPageProps
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <Link
             href="/messages"
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
 
-          {/* Listing thumbnails */}
-          {thumbnailPhotos.length > 0 && (
-            <Link
-              href={`/listings/${conversation.listing_id}`}
-              className="flex -space-x-1 flex-shrink-0"
-            >
-              {thumbnailPhotos.map((photo, i) => (
-                <div
-                  key={i}
-                  className="relative w-9 h-9 rounded-md overflow-hidden border-2 border-white shadow-sm flex-shrink-0"
-                >
-                  <Image
-                    src={photo.url}
-                    alt={i === 0 ? (listingTitle ?? 'Listing photo') : ''}
-                    fill
-                    className="object-cover"
-                    sizes="36px"
-                  />
-                </div>
-              ))}
-              {sortedPhotos.length > 4 && (
-                <div className="relative w-9 h-9 rounded-md overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-gray-100 flex items-center justify-center">
-                  <span className="text-[10px] font-medium text-gray-500">+{sortedPhotos.length - 4}</span>
-                </div>
-              )}
-            </Link>
-          )}
-
-          <div className="min-w-0">
-            <Link
-              href={`/listings/${conversation.listing_id}`}
-              className="text-sm font-semibold text-gray-900 hover:text-primary-700 truncate block transition-colors"
-            >
-              {listingTitle}
-            </Link>
+          {/* Cover photo thumbnail */}
+          <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+            {coverPhotoUrl ? (
+              <Image
+                src={coverPhotoUrl}
+                alt={listingTitle ?? 'Listing photo'}
+                fill
+                className="object-cover"
+                sizes="48px"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-gray-300" />
+              </div>
+            )}
           </div>
+
+          {/* Title + subtitle */}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {listingTitle}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              with {otherName}{formattedPrice ? ` · ${formattedPrice}` : ''}
+            </p>
+          </div>
+
+          {/* View listing button */}
+          <Link
+            href={`/listings/${conversation.listing_id}`}
+            className="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors whitespace-nowrap flex-shrink-0 border border-primary-200 rounded-button px-3 py-1.5 hover:bg-primary-50"
+          >
+            View listing
+          </Link>
         </div>
       </div>
 
@@ -135,6 +156,7 @@ export default async function ConversationPage({ params }: ConversationPageProps
           conversationId={id}
           currentUserId={user.id}
           initialMessages={messages ?? []}
+          participants={participants}
         />
       </div>
     </div>

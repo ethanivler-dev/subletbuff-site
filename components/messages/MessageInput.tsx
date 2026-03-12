@@ -15,9 +15,38 @@ interface MessageInputProps {
   conversationId: string
   currentUserId: string
   initialMessages: Message[]
+  participants: Record<string, string>
 }
 
-export function MessageInput({ conversationId, currentUserId, initialMessages }: MessageInputProps) {
+// Fixed palette of muted colors for avatar backgrounds
+const AVATAR_COLORS = [
+  'bg-slate-500',
+  'bg-blue-500',
+  'bg-emerald-500',
+  'bg-amber-500',
+  'bg-rose-500',
+  'bg-violet-500',
+  'bg-teal-500',
+  'bg-orange-500',
+]
+
+function getAvatarColor(userId: string): string {
+  let hash = 0
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash + userId.charCodeAt(i)) | 0
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  }
+  return (parts[0]?.[0] ?? '?').toUpperCase()
+}
+
+export function MessageInput({ conversationId, currentUserId, initialMessages, participants }: MessageInputProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -136,25 +165,51 @@ export function MessageInput({ conversationId, currentUserId, initialMessages }:
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.map((msg) => {
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+        {messages.map((msg, idx) => {
           const isOwn = msg.sender_id === currentUserId
+          const prevMsg = idx > 0 ? messages[idx - 1] : null
+          const isFirstInGroup = !prevMsg || prevMsg.sender_id !== msg.sender_id
+          const senderName = participants[msg.sender_id] ?? 'Unknown'
+
+          if (isOwn) {
+            return (
+              <div key={msg.id} className={`flex justify-end ${isFirstInGroup ? 'mt-3' : ''}`}>
+                <div className="max-w-[75%] px-3 py-2 rounded-2xl text-sm bg-primary-600 text-white rounded-br-md">
+                  <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                  <p className="text-[10px] mt-1 text-white/60">
+                    {timeAgo(msg.created_at)}
+                  </p>
+                </div>
+              </div>
+            )
+          }
+
           return (
-            <div
-              key={msg.id}
-              className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
-                  isOwn
-                    ? 'bg-primary-600 text-white rounded-br-md'
-                    : 'bg-gray-100 text-gray-900 rounded-bl-md'
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words">{msg.body}</p>
-                <p className={`text-[10px] mt-1 ${isOwn ? 'text-white/60' : 'text-gray-400'}`}>
-                  {timeAgo(msg.created_at)}
+            <div key={msg.id} className={isFirstInGroup ? 'mt-3' : ''}>
+              {/* Sender name above first message in group */}
+              {isFirstInGroup && (
+                <p className="text-xs font-medium text-gray-500 mb-1 ml-10">
+                  {senderName}
                 </p>
+              )}
+              <div className="flex items-start gap-2">
+                {/* Avatar on first message, spacer on subsequent */}
+                {isFirstInGroup ? (
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0 ${getAvatarColor(msg.sender_id)}`}
+                  >
+                    {getInitials(senderName)}
+                  </div>
+                ) : (
+                  <div className="w-8 flex-shrink-0" />
+                )}
+                <div className="max-w-[75%] px-3 py-2 rounded-2xl text-sm bg-gray-100 text-gray-900 rounded-bl-md">
+                  <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                  <p className="text-[10px] mt-1 text-gray-400">
+                    {timeAgo(msg.created_at)}
+                  </p>
+                </div>
               </div>
             </div>
           )
