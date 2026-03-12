@@ -225,14 +225,14 @@ export async function GET(request: NextRequest) {
   if (profiles) {
     for (const p of profiles) {
       const name = p.full_name?.trim()
-      profileMap[p.id] = name || (p.email ? p.email.split('@')[0] : 'Unknown')
+      profileMap[p.id] = name || (p.email ? p.email.split('@')[0] : 'User')
     }
   }
 
   // Fetch listing info (title, room_type, neighborhood + first photo)
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, title, room_type, neighborhood, rent_monthly, listing_photos(url, display_order, is_primary)')
+    .select('id, title, room_type, neighborhood, rent_monthly, photo_urls, listing_photos(url, display_order, is_primary)')
     .in('id', Array.from(listingIds))
 
   const listingMap: Record<string, { title: string; photo_url: string | null; price: number | null }> = {}
@@ -243,12 +243,14 @@ export async function GET(request: NextRequest) {
       room_type: string | null
       neighborhood: string | null
       rent_monthly: number | null
+      photo_urls: string[] | null
       listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
     }>) {
       const photos = l.listing_photos ?? []
       const primaryPhoto =
         photos.find((p) => p.is_primary)?.url ??
         photos.sort((a, b) => a.display_order - b.display_order)[0]?.url ??
+        (Array.isArray(l.photo_urls) ? l.photo_urls[0] : null) ??
         null
       listingMap[l.id] = {
         title: sanitizeListingTitle(l.title, l.room_type ?? '', l.neighborhood ?? ''),
@@ -291,7 +293,7 @@ export async function GET(request: NextRequest) {
       listing_photo: listingMap[c.listing_id]?.photo_url ?? null,
       listing_price: listingMap[c.listing_id]?.price ?? null,
       other_user_id: otherId,
-      other_user_name: profileMap[otherId] ?? 'Unknown',
+      other_user_name: profileMap[otherId] ?? 'User',
       last_message_preview: c.last_message_preview,
       last_message_at: c.last_message_at,
       unread: hasUnread,

@@ -58,7 +58,7 @@ export default async function ConversationPage({ params }: ConversationPageProps
   // Fetch listing info with photos and price
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, title, room_type, neighborhood, rent_monthly, listing_photos(url, display_order, is_primary)')
+    .select('id, title, room_type, neighborhood, rent_monthly, photo_urls, listing_photos(url, display_order, is_primary)')
     .eq('id', conversation.listing_id)
     .single()
 
@@ -77,7 +77,10 @@ export default async function ConversationPage({ params }: ConversationPageProps
     if (!a.is_primary && b.is_primary) return 1
     return a.display_order - b.display_order
   })
-  const coverPhotoUrl = sortedPhotos[0]?.url ?? null
+  const legacyPhotos = listing?.photo_urls as string[] | null
+  const coverPhotoUrl = sortedPhotos[0]?.url
+    ?? (Array.isArray(legacyPhotos) ? legacyPhotos[0] : null)
+    ?? null
 
   // Fetch both participants' profiles
   const { data: profiles } = await supabase
@@ -89,12 +92,12 @@ export default async function ConversationPage({ params }: ConversationPageProps
   if (profiles) {
     for (const p of profiles) {
       const name = p.full_name?.trim()
-      participants[p.id] = name || (p.email ? p.email.split('@')[0] : 'Unknown')
+      participants[p.id] = name || (p.email ? p.email.split('@')[0] : 'User')
     }
   }
 
   const otherId = isA ? conversation.participant_b : conversation.participant_a
-  const otherName = participants[otherId] ?? 'Unknown'
+  const otherName = participants[otherId] ?? 'User'
 
   // Format price for display
   const formattedPrice = listingPrice

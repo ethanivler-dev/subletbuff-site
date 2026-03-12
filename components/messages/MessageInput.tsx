@@ -170,7 +170,7 @@ export function MessageInput({ conversationId, currentUserId, initialMessages, p
           const isOwn = msg.sender_id === currentUserId
           const prevMsg = idx > 0 ? messages[idx - 1] : null
           const isFirstInGroup = !prevMsg || prevMsg.sender_id !== msg.sender_id
-          const senderName = participants[msg.sender_id] ?? 'Unknown'
+          const senderName = participants[msg.sender_id] ?? 'User'
 
           if (isOwn) {
             return (

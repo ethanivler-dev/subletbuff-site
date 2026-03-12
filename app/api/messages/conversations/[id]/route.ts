@@ -73,11 +73,11 @@ export async function GET(
   if (profiles) {
     for (const p of profiles) {
       const name = p.full_name?.trim()
-      participants[p.id] = name || (p.email ? p.email.split('@')[0] : 'Unknown')
+      participants[p.id] = name || (p.email ? p.email.split('@')[0] : 'User')
     }
   }
 
-  const otherName = participants[otherId] ?? 'Unknown'
+  const otherName = participants[otherId] ?? 'User'
 
   // Fetch listing info
   const { data: listing } = await supabase
