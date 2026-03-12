@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://doehqqwqwjebhfgdvyum.supabase.co'
+const supabaseHost = new URL(supabaseUrl).host
+
 const nextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'doehqqwqwjebhfgdvyum.supabase.co',
+        hostname: supabaseHost,
         pathname: '/storage/v1/object/public/**',
       },
       {
@@ -38,9 +41,9 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com https://accounts.google.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
-              "img-src 'self' data: blob: https://doehqqwqwjebhfgdvyum.supabase.co https://api.subletbuff.com https://maps.googleapis.com https://maps.gstatic.com https://images.unsplash.com",
+              `img-src 'self' data: blob: https://${supabaseHost} https://api.subletbuff.com https://maps.googleapis.com https://maps.gstatic.com https://images.unsplash.com`,
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://doehqqwqwjebhfgdvyum.supabase.co https://api.subletbuff.com https://maps.googleapis.com https://www.google-analytics.com https://va.vercel-scripts.com https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com",
+              `connect-src 'self' https://${supabaseHost} https://api.subletbuff.com https://maps.googleapis.com https://www.google-analytics.com https://va.vercel-scripts.com https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com`,
               "frame-src 'self' https://maps.googleapis.com https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",
