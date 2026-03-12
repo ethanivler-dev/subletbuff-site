@@ -313,7 +313,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
             ].join(' ')}
           />
           {errors.rent_monthly && <p className="text-xs text-error">{errors.rent_monthly}</p>}
-          <p className="text-xs text-gray-400 mt-1">This is the amount you'll charge your subtenant per month.</p>
+          <p className="text-xs text-gray-400 mt-1">This is the amount you&apos;ll charge your subtenant per month.</p>
         </div>
         <Input
           label="Security Deposit ($)"
