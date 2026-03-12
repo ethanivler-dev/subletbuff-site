@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Menu, User, ChevronDown, LogOut, Shield, MessageCircle } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { createClient } from '@/lib/supabase/client'
@@ -12,6 +12,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
   // Transparent on homepage only; solid on all other pages
   const transparent = pathname === '/'
   const [menuOpen, setMenuOpen] = useState(false)
@@ -101,6 +102,8 @@ export function Navbar() {
     const supabase = createClient()
     await supabase.auth.signOut()
     setDropdownOpen(false)
+    router.push('/')
+    router.refresh()
   }
 
 
