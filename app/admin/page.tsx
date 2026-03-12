@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   RefreshCw, Search, Trash2, Pause, Play, Pencil,
-  Clock, ExternalLink, CheckCircle, XCircle,
+  Clock, ExternalLink, CheckCircle, XCircle, Mail,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
@@ -393,6 +393,18 @@ export default function AdminDashboard() {
                               </button>
                             </>
                           )}
+                          {(() => {
+                            const profile = getProfile(listing)
+                            return profile?.email ? (
+                              <a
+                                href={`mailto:${profile.email}`}
+                                className="p-1.5 rounded hover:bg-blue-100 text-blue-500 transition-colors"
+                                title={`Email ${profile.full_name || profile.email}`}
+                              >
+                                <Mail className="w-4 h-4" />
+                              </a>
+                            ) : null
+                          })()}
                           <Link
                             href={`/listings/${listing.id}`}
                             target="_blank"
