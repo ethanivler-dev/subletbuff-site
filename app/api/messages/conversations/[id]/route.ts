@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { sendNewInquiryEmail } from '@/lib/email'
+import { sendMessageReplyEmail } from '@/lib/email'
 
 /**
  * GET /api/messages/conversations/[id] — Get conversation + messages, mark as read
@@ -178,7 +178,7 @@ export async function POST(
     const recipientEmail = recipientAuth.data?.user?.email
 
     if (recipientEmail) {
-      await sendNewInquiryEmail(
+      await sendMessageReplyEmail(
         recipientEmail,
         recipientName,
         senderName,

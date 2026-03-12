@@ -132,6 +132,21 @@ export function sendNewInquiryEmail(email: string, listerName: string, senderNam
   return send(email, `${senderName} is interested in "${listingTitle}"`, html)
 }
 
+export function sendMessageReplyEmail(email: string, recipientName: string, senderName: string, listingTitle: string, messagePreview: string, conversationId: string) {
+  const url = `https://subletbuff.com/messages/${conversationId}`
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">You have a new reply!</h2>
+    <p>Hi ${recipientName},</p>
+    <p><strong>${senderName}</strong> replied to your conversation about <strong>&ldquo;${listingTitle}&rdquo;</strong>:</p>
+    <div style="background:#f9f9f6;border-left:3px solid #B8922A;padding:12px 16px;margin:16px 0;font-size:0.95rem">
+      ${messagePreview.replace(/\n/g, '<br />')}
+    </div>
+    <p><a href="${url}" style="display:inline-block;background:#B8922A;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600">View conversation &rarr;</a></p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  return send(email, `${senderName} replied about "${listingTitle}"`, html)
+}
+
 export function sendLeaseApprovedEmail(email: string, name: string, title: string, listingId: string) {
   const url = `https://subletbuff.com/listings/${listingId}`
   const html = wrap(`
