@@ -99,13 +99,12 @@ export default function MessagesPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className={`text-sm truncate ${convo.unread ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                      {convo.other_user_name}
+                      {convo.listing_title}
                     </h3>
                     <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
                       {timeAgo(convo.last_message_at)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">{convo.listing_title}</p>
                   <p className={`text-sm truncate mt-0.5 ${convo.unread ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
                     {convo.last_message_preview ?? 'No messages yet'}
                   </p>

@@ -55,14 +55,6 @@ export default async function ConversationPage({ params }: ConversationPageProps
     .eq('conversation_id', id)
     .order('created_at', { ascending: true })
 
-  // Fetch other user's profile
-  const otherId = isA ? conversation.participant_b : conversation.participant_a
-  const { data: otherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', otherId)
-    .single()
-
   // Fetch listing info with photos
   const { data: listing } = await supabase
     .from('listings')
@@ -70,8 +62,6 @@ export default async function ConversationPage({ params }: ConversationPageProps
     .eq('id', conversation.listing_id)
     .single()
 
-  const profileName = otherProfile?.full_name?.trim()
-  const otherName = profileName || 'Unknown'
   const listingTitle = sanitizeListingTitle(
     listing?.title ?? null,
     listing?.room_type ?? '',
@@ -129,10 +119,9 @@ export default async function ConversationPage({ params }: ConversationPageProps
           )}
 
           <div className="min-w-0">
-            <h1 className="text-sm font-semibold text-gray-900 truncate">{otherName}</h1>
             <Link
               href={`/listings/${conversation.listing_id}`}
-              className="text-xs text-primary-600 hover:text-primary-700 truncate block"
+              className="text-sm font-semibold text-gray-900 hover:text-primary-700 truncate block transition-colors"
             >
               {listingTitle}
             </Link>
