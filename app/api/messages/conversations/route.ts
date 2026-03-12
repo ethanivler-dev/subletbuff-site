@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { sendNewInquiryEmail } from '@/lib/email'
@@ -130,22 +131,30 @@ export async function POST(request: NextRequest) {
   if (!existingConvo) {
     console.log('[conversations POST] New conversation — attempting email notification')
     try {
-      const [listingResult, senderProfile, recipientProfile] = await Promise.all([
-        supabase.from('listings').select('title').eq('id', listing_id).single(),
-        supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-        supabase.from('profiles').select('full_name, email').eq('id', recipient_id).single(),
+      const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+
+      const [listingResult, senderAuth, recipientAuth] = await Promise.all([
+        supabase.from('listings').select('title').eq('id', listing_id).maybeSingle(),
+        admin.auth.admin.getUserById(user.id),
+        admin.auth.admin.getUserById(recipient_id),
       ])
 
-      console.log('[conversations POST] Query results:', {
-        listing: { data: listingResult.data, error: listingResult.error?.message },
-        sender: { data: senderProfile.data, error: senderProfile.error?.message },
-        recipient: { data: recipientProfile.data, error: recipientProfile.error?.message },
-      })
-
       const listingTitle = listingResult.data?.title ?? 'your listing'
-      const senderName = senderProfile.data?.full_name ?? 'Someone'
-      const recipientName = recipientProfile.data?.full_name ?? 'there'
-      const recipientEmail = recipientProfile.data?.email
+      const senderName = senderAuth.data?.user?.user_metadata?.full_name ?? user.email ?? 'Someone'
+      const recipientName = recipientAuth.data?.user?.user_metadata?.full_name ?? 'there'
+      const recipientEmail = recipientAuth.data?.user?.email
+
+      console.log('[conversations POST] Email lookup:', {
+        listingTitle,
+        senderName,
+        recipientName,
+        recipientEmail: recipientEmail ? '***' : 'MISSING',
+        senderError: senderAuth.error?.message,
+        recipientError: recipientAuth.error?.message,
+      })
 
       if (recipientEmail) {
         const emailResult = await sendNewInquiryEmail(
