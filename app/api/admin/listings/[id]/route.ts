@@ -33,7 +33,7 @@ export async function GET(
       house_rules, roommate_info, amenities,
       utilities_included, utilities_estimate,
       photo_urls, email, first_name, last_name,
-      listing_photos(url, display_order, is_primary, storage_path, photo_path)
+      listing_photos(url, display_order, is_primary, storage_path)
     `)
     .eq('id', id)
     .single()

@@ -43,7 +43,7 @@ interface ListingData {
   utilities_estimate: number | null
   email: string | null
   photo_urls: string[] | null
-  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }> | null
+  listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string }> | null
   first_name: string | null
   last_name: string | null
 }
@@ -89,7 +89,7 @@ export default function AdminEditListingPage() {
 
   // Photos
   const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
-  const [editedPhotos, setEditedPhotos] = useState<Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }>>([])
+  const [editedPhotos, setEditedPhotos] = useState<Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string }>>([])
 
   async function handleRotatePhoto(index: number, degrees: 90 | -90 | 180) {
     const photo = editedPhotos[index]
@@ -98,7 +98,7 @@ export default function AdminEditListingPage() {
     setRotatingPhoto(index)
     try {
       const blob = await rotateImage(photo.url, degrees)
-      const storagePath = photo.storage_path || photo.photo_path
+      const storagePath = photo.storage_path
 
       if (storagePath) {
         const supabase = createClient()

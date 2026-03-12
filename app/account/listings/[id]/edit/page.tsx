@@ -50,7 +50,6 @@ interface Photo {
   display_order: number
   is_primary: boolean
   storage_path?: string
-  photo_path?: string
 }
 
 interface OriginalValues {
@@ -333,7 +332,7 @@ export default function EditListingPage() {
     setRotatingPhoto(index)
     try {
       const blob = await rotateImage(photo.url, degrees)
-      const storagePath = photo.storage_path || photo.photo_path
+      const storagePath = photo.storage_path
 
       if (storagePath) {
         const { error: uploadError } = await supabase.storage
@@ -410,7 +409,7 @@ export default function EditListingPage() {
         )
       })
 
-      const storagePath = photo.storage_path || photo.photo_path
+      const storagePath = photo.storage_path
 
       if (storagePath) {
         const { error: uploadError } = await supabase.storage
