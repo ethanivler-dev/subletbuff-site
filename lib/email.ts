@@ -116,6 +116,22 @@ export function sendAdminContactEmail(email: string, name: string, title: string
   return send(email, `${subject}: "${title}"`, html)
 }
 
+export function sendNewInquiryEmail(email: string, listerName: string, senderName: string, listingTitle: string, messagePreview: string, conversationId: string) {
+  const url = `https://subletbuff.com/messages/${conversationId}`
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Someone&rsquo;s interested in your place!</h2>
+    <p>Hi ${listerName},</p>
+    <p><strong>${senderName}</strong> is interested in your property <strong>&ldquo;${listingTitle}&rdquo;</strong> and sent you a message:</p>
+    <div style="background:#f9f9f6;border-left:3px solid #B8922A;padding:12px 16px;margin:16px 0;font-size:0.95rem">
+      ${messagePreview.replace(/\n/g, '<br />')}
+    </div>
+    <p><a href="${url}" style="display:inline-block;background:#B8922A;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600">Reply on SubletBuff &rarr;</a></p>
+    <p style="font-size:0.85rem;color:#666">Respond quickly &mdash; fast replies lead to more successful sublets!</p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  send(email, `${senderName} is interested in "${listingTitle}"`, html).catch(() => {})
+}
+
 export function sendLeaseApprovedEmail(email: string, name: string, title: string, listingId: string) {
   const url = `https://subletbuff.com/listings/${listingId}`
   const html = wrap(`

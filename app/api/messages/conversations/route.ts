@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rate-limit'
+import { sendNewInquiryEmail } from '@/lib/email'
 
 /**
  * POST /api/messages/conversations — Create or get a conversation and send the first message
@@ -124,6 +125,41 @@ export async function POST(request: NextRequest) {
     .eq('id', conversationId)
 
   console.log('[conversations POST] Update convo metadata:', updateError ? `error=${updateError.message}` : 'OK')
+
+  // Send email notification to lister for new conversations only
+  if (!existingConvo) {
+    try {
+      // Fetch listing title and recipient profile in parallel
+      const [listingResult, senderProfile, recipientProfile] = await Promise.all([
+        supabase.from('listings').select('title').eq('id', listing_id).single(),
+        supabase.from('profiles').select('full_name').eq('id', user.id).single(),
+        supabase.from('profiles').select('full_name, email').eq('id', recipient_id).single(),
+      ])
+
+      const listingTitle = listingResult.data?.title ?? 'your listing'
+      const senderName = senderProfile.data?.full_name ?? 'Someone'
+      const recipientName = recipientProfile.data?.full_name ?? 'there'
+      const recipientEmail = recipientProfile.data?.email
+
+      if (recipientEmail) {
+        sendNewInquiryEmail(
+          recipientEmail,
+          recipientName,
+          senderName,
+          listingTitle,
+          message.trim().slice(0, 300),
+          conversationId
+        )
+        console.log('[conversations POST] Inquiry email queued to:', recipientEmail)
+      } else {
+        console.log('[conversations POST] No email found for recipient, skipping notification')
+      }
+    } catch (emailErr) {
+      // Non-blocking — message was already sent successfully
+      console.error('[conversations POST] Failed to send inquiry email:', emailErr)
+    }
+  }
+
   console.log('[conversations POST] === SUCCESS === conversation_id:', conversationId, 'message_id:', msg.id)
 
   return NextResponse.json({ conversation_id: conversationId, message_id: msg.id }, { status: 201 })
