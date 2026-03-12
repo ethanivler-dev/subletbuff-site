@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   RefreshCw, Search, Trash2, Pause, Play, Pencil,
-  Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag, BadgeCheck,
+  Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag, BadgeCheck, FileText, AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
@@ -185,6 +185,16 @@ export default function AdminDashboard() {
       case 'flag_waiting':
         ok = await patchListing(id, { admin_flag: 'waiting_response', admin_notes: flagNote || null })
         if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'waiting_response', admin_notes: flagNote || null } : l))
+        setFlagNote('')
+        break
+      case 'flag_note':
+        ok = await patchListing(id, { admin_flag: 'note', admin_notes: flagNote || null })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'note', admin_notes: flagNote || null } : l))
+        setFlagNote('')
+        break
+      case 'flag_urgent':
+        ok = await patchListing(id, { admin_flag: 'urgent', admin_notes: flagNote || null })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, admin_flag: 'urgent', admin_notes: flagNote || null } : l))
         setFlagNote('')
         break
       case 'flag_clear':
@@ -436,6 +446,16 @@ export default function AdminDashboard() {
                               <Clock className="w-3 h-3" /> Waiting
                             </span>
                           )}
+                          {listing.admin_flag === 'note' && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 cursor-default" title={listing.admin_notes ?? undefined}>
+                              <FileText className="w-3 h-3" /> Note
+                            </span>
+                          )}
+                          {listing.admin_flag === 'urgent' && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 cursor-default" title={listing.admin_notes ?? undefined}>
+                              <Flag className="w-3 h-3" /> Urgent
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -531,6 +551,18 @@ export default function AdminDashboard() {
                                     className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-cyan-50 text-gray-700 flex items-center gap-2"
                                   >
                                     <Clock className="w-3 h-3 text-cyan-500" /> Waiting on Response
+                                  </button>
+                                  <button
+                                    onClick={() => { handleAction(listing.id, 'flag_note'); setFlagMenuId(null) }}
+                                    className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-indigo-50 text-gray-700 flex items-center gap-2"
+                                  >
+                                    <FileText className="w-3 h-3 text-indigo-500" /> Note
+                                  </button>
+                                  <button
+                                    onClick={() => { handleAction(listing.id, 'flag_urgent'); setFlagMenuId(null) }}
+                                    className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-red-50 text-gray-700 flex items-center gap-2"
+                                  >
+                                    <AlertTriangle className="w-3 h-3 text-red-500" /> Urgent
                                   </button>
                                   {listing.admin_flag && (
                                     <button

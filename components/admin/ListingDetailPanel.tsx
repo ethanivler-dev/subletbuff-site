@@ -199,6 +199,12 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
             {listing.admin_flag === 'waiting_response' && (
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800" title={listing.admin_notes ?? undefined}>Waiting</span>
             )}
+            {listing.admin_flag === 'note' && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" title={listing.admin_notes ?? undefined}>Note</span>
+            )}
+            {listing.admin_flag === 'urgent' && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" title={listing.admin_notes ?? undefined}>Urgent</span>
+            )}
             {listing.test_listing && (
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Test</span>
             )}
@@ -336,6 +342,24 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 disabled:opacity-50"
               >
                 Flag: Waiting
+              </button>
+            )}
+            {listing.admin_flag !== 'note' && (
+              <button
+                onClick={() => onAction('flag_note')}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-100 text-indigo-800 hover:bg-indigo-200 disabled:opacity-50"
+              >
+                Flag: Note
+              </button>
+            )}
+            {listing.admin_flag !== 'urgent' && (
+              <button
+                onClick={() => onAction('flag_urgent')}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 hover:bg-red-200 disabled:opacity-50"
+              >
+                Flag: Urgent
               </button>
             )}
             {listing.admin_flag && (
