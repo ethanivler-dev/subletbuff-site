@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -216,7 +216,23 @@ export default function ListerDashboardPage() {
 
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
+  const menuBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  function toggleMenu(listingId: string) {
+    if (openMenu === listingId) {
+      setOpenMenu(null)
+      setMenuPos(null)
+    } else {
+      const btn = menuBtnRefs.current[listingId]
+      if (btn) {
+        const rect = btn.getBoundingClientRect()
+        setMenuPos({ top: rect.bottom + 4, left: rect.right - 176 }) // 176 = w-44
+      }
+      setOpenMenu(listingId)
+    }
+  }
 
   const hasActiveUnfilledListing = listings.some(
     (l) => l.status === 'approved' && !l.paused && !l.filled
@@ -542,74 +558,76 @@ export default function ListerDashboardPage() {
                           )}
                         </td>
                         <td className="px-4 py-4 text-right">
-                          <div className="relative inline-block">
-                            <button
-                              onClick={() => setOpenMenu(openMenu === listing.id ? null : listing.id)}
-                              disabled={isDisabled}
-                              className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50"
-                              aria-label="Actions"
-                            >
-                              {isDisabled ? (
-                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <MoreVertical className="w-4 h-4" />
-                              )}
-                            </button>
-                            {openMenu === listing.id && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />
-                                <div className="absolute right-0 mt-1 w-44 bg-white rounded-card shadow-card-hover border border-gray-100 py-1 z-50">
+                          <button
+                            ref={(el) => { menuBtnRefs.current[listing.id] = el }}
+                            onClick={() => toggleMenu(listing.id)}
+                            disabled={isDisabled}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50"
+                            aria-label="Actions"
+                          >
+                            {isDisabled ? (
+                              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <MoreVertical className="w-4 h-4" />
+                            )}
+                          </button>
+                          {openMenu === listing.id && menuPos && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => { setOpenMenu(null); setMenuPos(null) }} />
+                              <div
+                                className="fixed w-44 bg-white rounded-card shadow-card-hover border border-gray-100 py-1 z-50"
+                                style={{ top: menuPos.top, left: menuPos.left }}
+                              >
+                                <Link
+                                  href={`/listings/${listing.id}`}
+                                  onClick={() => { setOpenMenu(null); setMenuPos(null) }}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  View Listing
+                                </Link>
+                                {!listing.filled && (
                                   <Link
-                                    href={`/listings/${listing.id}`}
-                                    onClick={() => setOpenMenu(null)}
+                                    href={`/account/listings/${listing.id}/edit`}
+                                    onClick={() => { setOpenMenu(null); setMenuPos(null) }}
                                     className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                   >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                    View Listing
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    Edit Listing
                                   </Link>
-                                  {(listing.status === 'pending' || listing.status === 'approved') && !listing.filled && (
-                                    <Link
-                                      href={`/account/listings/${listing.id}/edit`}
-                                      onClick={() => setOpenMenu(null)}
-                                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                      Edit Listing
-                                    </Link>
-                                  )}
-                                  {listing.status === 'approved' && !listing.filled && (
-                                    <button
-                                      onClick={() => patchListing(listing.id, { paused: !listing.paused })}
-                                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                      {listing.paused ? (
-                                        <><Play className="w-3.5 h-3.5" /> Unpause</>
-                                      ) : (
-                                        <><Pause className="w-3.5 h-3.5" /> Pause Listing</>
-                                      )}
-                                    </button>
-                                  )}
-                                  {listing.status === 'approved' && !listing.paused && (
-                                    <button
-                                      onClick={() => patchListing(listing.id, { filled: !listing.filled })}
-                                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                      <CheckCircle className="w-3.5 h-3.5" />
-                                      {listing.filled ? 'Reopen Listing' : 'Mark as Filled'}
-                                    </button>
-                                  )}
-                                  <div className="border-t border-gray-100 my-1" />
+                                )}
+                                {listing.status === 'approved' && !listing.filled && (
                                   <button
-                                    onClick={() => deleteListing(listing.id)}
-                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    onClick={() => patchListing(listing.id, { paused: !listing.paused })}
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    Delete Listing
+                                    {listing.paused ? (
+                                      <><Play className="w-3.5 h-3.5" /> Unpause</>
+                                    ) : (
+                                      <><Pause className="w-3.5 h-3.5" /> Pause Listing</>
+                                    )}
                                   </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
+                                )}
+                                {listing.status === 'approved' && !listing.paused && (
+                                  <button
+                                    onClick={() => patchListing(listing.id, { filled: !listing.filled })}
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    {listing.filled ? 'Reopen Listing' : 'Mark as Filled'}
+                                  </button>
+                                )}
+                                <div className="border-t border-gray-100 my-1" />
+                                <button
+                                  onClick={() => deleteListing(listing.id)}
+                                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Delete Listing
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </td>
                       </tr>
                     )
