@@ -396,13 +396,13 @@ export default function AdminDashboard() {
                           {(() => {
                             const profile = getProfile(listing)
                             return profile?.email ? (
-                              <a
-                                href={`mailto:${profile.email}`}
+                              <button
+                                onClick={() => { window.location.href = `mailto:${profile.email}` }}
                                 className="p-1.5 rounded hover:bg-blue-100 text-blue-500 transition-colors"
                                 title={`Email ${profile.full_name || profile.email}`}
                               >
                                 <Mail className="w-4 h-4" />
-                              </a>
+                              </button>
                             ) : null
                           })()}
                           <Link
