@@ -27,9 +27,7 @@ export function formatRoomType(type: string): string {
   const map: Record<string, string> = {
     private_room: 'Private Room',
     shared_room: 'Shared Room',
-    full_apartment: 'Full Apartment',
     studio: 'Studio',
-    house: 'House',
   }
   return map[type] ?? type
 }

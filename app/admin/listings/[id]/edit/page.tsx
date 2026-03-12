@@ -557,7 +557,11 @@ export default function AdminEditListingPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <label className={labelClass}>Bathrooms</label>
-                <input type="number" value={bathroomsVal} onChange={(e) => setBathroomsVal(e.target.value)} className={inputClass} min={0} max={10} step="0.5" />
+                <select value={bathroomsVal} onChange={(e) => setBathroomsVal(e.target.value)} className={inputClass}>
+                  {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((n) => (
+                    <option key={n} value={String(n)}>{n}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

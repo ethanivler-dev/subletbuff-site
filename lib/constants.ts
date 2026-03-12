@@ -43,9 +43,7 @@ export const QUICK_FILTERS = [
 export const ROOM_TYPES = [
   { value: 'private_room', label: 'Private Room' },
   { value: 'shared_room', label: 'Shared Room' },
-  { value: 'full_apartment', label: 'Full Apartment' },
   { value: 'studio', label: 'Studio' },
-  { value: 'house', label: 'House' },
 ]
 
 export const AMENITIES = [
@@ -56,7 +54,6 @@ export const AMENITIES = [
   'ac',
   'pets_allowed',
   'kitchen_access',
-  'private_bathroom',
   'bike_storage',
   'gym',
   'pool',

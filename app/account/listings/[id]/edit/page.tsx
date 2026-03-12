@@ -556,8 +556,10 @@ export default function EditListingPage() {
     for (const [key, val] of Object.entries(changed)) {
       if (key === 'rent_monthly' || key === 'deposit') {
         updates[key] = parseInt(val as string) || 0
-      } else if (key === 'bedrooms' || key === 'bathrooms') {
+      } else if (key === 'bedrooms') {
         updates[key] = parseInt(val as string) || 0
+      } else if (key === 'bathrooms') {
+        updates[key] = parseFloat(val as string) || 0
       } else if (key === 'utilities_estimate') {
         updates[key] = (val as string) ? parseInt(val as string) : null
       } else if (key === 'auto_reduce_amount' || key === 'auto_reduce_interval_days' || key === 'auto_reduce_max_times') {
@@ -933,7 +935,11 @@ export default function EditListingPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <label className={labelClass}>Bathrooms (whole unit)</label>
-                <input type="number" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} className={inputClass} min={1} max={10} step="0.5" />
+                <select value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} className={inputClass}>
+                  {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((n) => (
+                    <option key={n} value={String(n)}>{n}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

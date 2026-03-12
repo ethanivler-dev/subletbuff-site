@@ -36,6 +36,7 @@ const INITIAL_BASIC: BasicInfoData = {
   auto_reduce_amount: '',
   auto_reduce_interval_days: '14',
   auto_reduce_max_times: '3',
+  private_bathroom: false,
   management_company: 'None / Self-managed',
   management_company_custom: '',
 }
@@ -341,7 +342,9 @@ export default function PostListingPage() {
           furnished: details.furnished
             ? (details.furnished_details ? `Yes - ${details.furnished_details}` : 'Yes')
             : 'No',
-          amenities: details.amenities,
+          amenities: basicInfo.private_bathroom
+            ? [...details.amenities.filter(a => a !== 'private_bathroom'), 'private_bathroom']
+            : details.amenities.filter(a => a !== 'private_bathroom'),
           utilities_included: details.utilities_included,
           utilities_estimate: details.utilities_estimate ? parseInt(details.utilities_estimate) : null,
           house_rules: details.house_rules || null,

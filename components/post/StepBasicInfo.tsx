@@ -56,6 +56,7 @@ export interface BasicInfoData {
   auto_reduce_amount: string
   auto_reduce_interval_days: string
   auto_reduce_max_times: string
+  private_bathroom: boolean
   management_company: string
   management_company_custom: string
 }
@@ -263,7 +264,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
             onChange={(e) => update('bathrooms', e.target.value)}
             className="w-full px-3 py-2 text-sm rounded-button border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent hover:border-gray-400 transition-colors"
           >
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((n) => (
               <option key={n} value={String(n)}>{n}</option>
             ))}
           </select>
@@ -272,6 +273,26 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
       <p className="text-sm text-gray-500 -mt-3">
         These refer to the entire unit, not just the room you&apos;re subletting.
       </p>
+
+      {/* Private Bathroom toggle */}
+      <label className="flex items-center gap-3 cursor-pointer">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={data.private_bathroom}
+          onClick={() => update('private_bathroom', !data.private_bathroom)}
+          className={[
+            'relative inline-flex h-6 w-11 rounded-full transition-colors',
+            data.private_bathroom ? 'bg-primary-600' : 'bg-gray-300',
+          ].join(' ')}
+        >
+          <span className={[
+            'inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform mt-0.5',
+            data.private_bathroom ? 'translate-x-[22px]' : 'translate-x-0.5',
+          ].join(' ')} />
+        </button>
+        <span className="text-sm text-gray-700">Private Bathroom</span>
+      </label>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
@@ -292,6 +313,7 @@ export function StepBasicInfo({ data, onChange, errors }: StepBasicInfoProps) {
             ].join(' ')}
           />
           {errors.rent_monthly && <p className="text-xs text-error">{errors.rent_monthly}</p>}
+          <p className="text-xs text-gray-400 mt-1">This is the amount you'll charge your subtenant per month.</p>
         </div>
         <Input
           label="Security Deposit ($)"

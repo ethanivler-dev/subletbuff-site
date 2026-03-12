@@ -67,6 +67,8 @@ export function StepReview({ basicInfo, details, photos, leaseDocPath, onEdit, o
           <Dd>{basicInfo.deposit ? `$${basicInfo.deposit}` : 'None'}</Dd>
           <Dt>Dates</Dt>
           <Dd>{basicInfo.available_from} → {basicInfo.available_to}</Dd>
+          <Dt>Private Bathroom</Dt>
+          <Dd>{basicInfo.private_bathroom ? 'Yes' : 'No'}</Dd>
         </dl>
       </ReviewSection>
 

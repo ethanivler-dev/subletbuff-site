@@ -218,6 +218,25 @@ export default function AdminDashboard() {
     { key: 'rejected', label: 'Rejected' },
   ]
 
+  /* ---- Stat counts ---- */
+  const statCounts = {
+    all: listings.length,
+    live: listings.filter((l) => l.status === 'approved' && !l.paused && !l.filled).length,
+    pending: listings.filter((l) => l.status === 'pending').length,
+    paused: listings.filter((l) => l.paused).length,
+    rejected: listings.filter((l) => l.status === 'rejected').length,
+    fulfilled: listings.filter((l) => l.filled).length,
+  }
+
+  const stats: { label: string; value: number; color: string }[] = [
+    { label: 'All', value: statCounts.all, color: 'bg-gray-50 text-gray-900' },
+    { label: 'Live', value: statCounts.live, color: 'bg-green-50 text-green-800' },
+    { label: 'Pending', value: statCounts.pending, color: 'bg-blue-50 text-blue-800' },
+    { label: 'Paused', value: statCounts.paused, color: 'bg-yellow-50 text-yellow-800' },
+    { label: 'Rejected', value: statCounts.rejected, color: 'bg-red-50 text-red-800' },
+    { label: 'Fulfilled', value: statCounts.fulfilled, color: 'bg-purple-50 text-purple-800' },
+  ]
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -235,6 +254,18 @@ export default function AdminDashboard() {
           Refresh
         </Button>
       </div>
+
+      {/* Stat cards */}
+      {!loading && (
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
+          {stats.map((s) => (
+            <div key={s.label} className={`rounded-card px-4 py-3 ${s.color} border border-gray-200`}>
+              <p className="text-xs font-medium opacity-70">{s.label}</p>
+              <p className="text-xl font-semibold">{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Tabs + Search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
