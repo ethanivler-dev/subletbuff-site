@@ -59,7 +59,7 @@ export async function GET(
     const { data: privateData } = await supabase
       .from('listings')
       .select(`
-        address, latitude, longitude,
+        address, latitude, longitude, email,
         auto_reduce_enabled, auto_reduce_amount,
         auto_reduce_interval_days, auto_reduce_max_times
       `)
@@ -124,7 +124,39 @@ export async function GET(
 /**
  * PATCH /api/listings/[id] — update a listing
  * Auth required. Only the lister can update their own listing.
+ *
+ * Two-tier permission model:
+ *   Tier 1 — always editable, no re-review
+ *   Tier 2 — editable, but triggers status → 'pending'
+ *   System fields are always stripped from student requests.
  */
+
+const TIER_1_FIELDS = [
+  'description', 'email', 'house_rules', 'roommate_info',
+  'amenities', 'furnished', 'utilities_included', 'utilities_estimate',
+  'auto_reduce_enabled', 'auto_reduce_amount',
+  'auto_reduce_interval_days', 'auto_reduce_max_times',
+]
+
+const TIER_2_FIELDS = [
+  'title', 'rent_monthly', 'deposit', 'bedrooms', 'bathrooms',
+  'neighborhood', 'available_from', 'available_to', 'room_type',
+  'is_intern_friendly', 'immediate_movein',
+  'address', 'latitude', 'longitude', 'public_latitude', 'public_longitude',
+]
+
+const ALLOWED_FIELDS = [...TIER_1_FIELDS, ...TIER_2_FIELDS]
+
+// Legacy alias columns that must be kept in sync
+const LEGACY_ALIASES: Record<string, string> = {
+  rent_monthly: 'monthly_rent',
+  deposit: 'security_deposit',
+  bedrooms: 'beds',
+  bathrooms: 'baths',
+  available_from: 'start_date',
+  available_to: 'end_date',
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -155,19 +187,7 @@ export async function PATCH(
 
   const body = await request.json()
 
-  const ALLOWED_FIELDS = [
-    'title', 'description', 'neighborhood', 'room_type',
-    'rent_monthly', 'deposit', 'available_from', 'available_to',
-    'min_stay_weeks', 'flexible_dates', 'furnished', 'amenities',
-    'utilities_included', 'utilities_estimate', 'house_rules',
-    'roommate_info', 'is_intern_friendly', 'immediate_movein',
-    'paused', 'filled',
-    'auto_reduce_enabled', 'auto_reduce_amount',
-    'auto_reduce_interval_days', 'auto_reduce_max_times',
-    'address', 'latitude', 'longitude',
-    'public_latitude', 'public_longitude',
-  ]
-
+  // Filter to allowed fields only (system fields are stripped)
   const updates: Record<string, unknown> = Object.fromEntries(
     Object.entries(body).filter(([key]) => ALLOWED_FIELDS.includes(key))
   )
@@ -176,10 +196,21 @@ export async function PATCH(
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
   }
 
-  // Re-review: if address or photos changed on an approved listing, send back to pending
-  const RE_REVIEW_FIELDS = ['address', 'latitude', 'longitude']
-  const needsReReview = RE_REVIEW_FIELDS.some((f) => f in updates) || body._photos_changed
-  if (needsReReview && listing.status === 'approved') {
+  // Write legacy alias columns to keep them in sync
+  for (const [modern, legacy] of Object.entries(LEGACY_ALIASES)) {
+    if (modern in updates) {
+      updates[legacy] = updates[modern]
+    }
+  }
+
+  // Determine if any Tier 2 field is being updated
+  const tier2Changed = TIER_2_FIELDS.some((f) => f in updates)
+
+  // Status logic:
+  // - If listing is rejected → always set pending (resubmission)
+  // - If any Tier 2 field changed → set pending
+  // - If only Tier 1 fields → status unchanged
+  if (listing.status === 'rejected' || (tier2Changed && listing.status === 'approved')) {
     updates.status = 'pending'
     updates.reviewed_by = null
     updates.reviewed_at = null
@@ -196,7 +227,7 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ id: updated.id, status: updated.status })
+  return NextResponse.json({ id: updated.id, status: updated.status, tier2_changed: tier2Changed })
 }
 
 /**

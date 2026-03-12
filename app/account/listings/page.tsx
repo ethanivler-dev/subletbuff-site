@@ -17,6 +17,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend,
 } from 'recharts'
+import { useToast } from '@/components/ui/Toast'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
 /* ------------------------------------------------------------------ */
@@ -71,6 +72,7 @@ function statusInfo(listing: UserListing): { label: string; color: string } {
 
 export default function ListerDashboardPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [listings, setListings] = useState<UserListing[]>([])
@@ -273,6 +275,19 @@ export default function ListerDashboardPage() {
     }
     init()
   }, [router, fetchData])
+
+  /* ---- Toast from edit redirect ---- */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const toastParam = params.get('toast')
+    if (toastParam === 'updated') {
+      toast('Listing updated.', 'success')
+      window.history.replaceState({}, '', '/account/listings')
+    } else if (toastParam === 'resubmitted') {
+      toast('Listing updated and resubmitted for review.', 'success')
+      window.history.replaceState({}, '', '/account/listings')
+    }
+  }, [toast])
 
   /* ---- Loading ---- */
   if (loading) {

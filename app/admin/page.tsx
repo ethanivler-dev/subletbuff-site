@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
 import { ListingDetailPanel } from '@/components/admin/ListingDetailPanel'
 import { ContactListerModal } from '@/components/admin/ContactListerModal'
+import { AdminEditModal } from '@/components/admin/AdminEditModal'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -81,6 +82,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('')
   const [selectedListing, setSelectedListing] = useState<AdminListing | null>(null)
   const [contactListing, setContactListing] = useState<AdminListing | null>(null)
+  const [quickEditId, setQuickEditId] = useState<string | null>(null)
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -457,6 +459,7 @@ export default function AdminDashboard() {
           }}
           onAction={(action) => handleAction(selectedListing.id, action)}
           actionLoading={actionLoading === selectedListing.id}
+          onQuickEdit={() => setQuickEditId(selectedListing.id)}
         />
       )}
 
@@ -471,6 +474,14 @@ export default function AdminDashboard() {
           listerName={getProfile(contactListing)?.full_name || 'Lister'}
         />
       )}
+
+      {/* Quick edit modal */}
+      <AdminEditModal
+        open={!!quickEditId}
+        onClose={() => setQuickEditId(null)}
+        listingId={quickEditId}
+        onSaved={() => fetchListings(tab, search)}
+      />
     </div>
   )
 }

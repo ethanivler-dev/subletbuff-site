@@ -69,6 +69,7 @@ interface Props {
   onContactLister: () => void
   onAction: (action: string) => void
   actionLoading: boolean
+  onQuickEdit?: () => void
 }
 
 function StatusBadge({ listing }: { listing: AdminListing }) {
@@ -101,7 +102,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ cla
   )
 }
 
-export function ListingDetailPanel({ listing, profile, onClose, onContactLister, onAction, actionLoading }: Props) {
+export function ListingDetailPanel({ listing, profile, onClose, onContactLister, onAction, actionLoading, onQuickEdit }: Props) {
   const sortedPhotos = [...(listing.listing_photos ?? [])].sort((a, b) => {
     if (a.is_primary && !b.is_primary) return -1
     if (!a.is_primary && b.is_primary) return 1
@@ -300,11 +301,19 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
             >
               Delete
             </button>
+            {onQuickEdit && (
+              <button
+                onClick={onQuickEdit}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+              >
+                <Pencil className="w-3 h-3" /> Quick Edit
+              </button>
+            )}
             <Link
               href={`/admin/listings/${listing.id}/edit`}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100"
             >
-              <Pencil className="w-3 h-3" /> Edit
+              <Pencil className="w-3 h-3" /> Full Edit
             </Link>
             <Link
               href={`/listings/${listing.id}`}

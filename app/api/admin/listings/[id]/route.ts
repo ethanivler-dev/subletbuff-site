@@ -28,6 +28,10 @@ export async function GET(
       rent_monthly, monthly_rent, available_from, available_to,
       start_date, end_date, status, paused, filled, test_listing,
       verified, furnished, is_intern_friendly, immediate_movein,
+      bedrooms, bathrooms, beds, baths,
+      deposit, security_deposit,
+      house_rules, roommate_info, amenities,
+      utilities_included, utilities_estimate,
       photo_urls, email, first_name, last_name,
       listing_photos(url, display_order, is_primary, storage_path, photo_path)
     `)
@@ -45,7 +49,20 @@ const ADMIN_EDITABLE_FIELDS = [
   'title', 'description', 'rent_monthly', 'neighborhood', 'room_type',
   'available_from', 'available_to', 'status', 'paused', 'filled', 'test_listing',
   'furnished', 'is_intern_friendly', 'immediate_movein', 'verified', 'lease_status',
+  'bedrooms', 'bathrooms', 'email', 'deposit',
+  'house_rules', 'roommate_info', 'amenities',
+  'utilities_included', 'utilities_estimate',
 ]
+
+// Legacy alias columns that must be kept in sync
+const ADMIN_LEGACY_ALIASES: Record<string, string> = {
+  rent_monthly: 'monthly_rent',
+  deposit: 'security_deposit',
+  bedrooms: 'beds',
+  bathrooms: 'baths',
+  available_from: 'start_date',
+  available_to: 'end_date',
+}
 
 /**
  * PATCH /api/admin/listings/[id] — admin edit a listing
@@ -70,6 +87,13 @@ export async function PATCH(
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+  }
+
+  // Write legacy alias columns to keep them in sync
+  for (const [modern, legacy] of Object.entries(ADMIN_LEGACY_ALIASES)) {
+    if (modern in updates) {
+      updates[legacy] = updates[modern]
+    }
   }
 
   // Track who reviewed and when for status changes
