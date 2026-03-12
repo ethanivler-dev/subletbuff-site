@@ -6,6 +6,41 @@ import {
   sendLeaseApprovedEmail, sendLeaseRejectedEmail,
 } from '@/lib/email'
 
+/**
+ * GET /api/admin/listings/[id] — fetch a single listing for admin edit
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user || !(await isAdminServer(supabase, user.id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { data, error } = await supabase
+    .from('listings')
+    .select(`
+      id, title, description, neighborhood, room_type,
+      rent_monthly, monthly_rent, available_from, available_to,
+      start_date, end_date, status, paused, filled, test_listing,
+      verified, furnished, is_intern_friendly, immediate_movein,
+      photo_urls, email, first_name, last_name,
+      listing_photos(url, display_order, is_primary, storage_path, photo_path)
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error || !data) {
+    return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+  }
+
+  return NextResponse.json(data)
+}
+
 const ADMIN_EDITABLE_FIELDS = [
   'title', 'description', 'rent_monthly', 'neighborhood', 'room_type',
   'available_from', 'available_to', 'status', 'paused', 'filled', 'test_listing',

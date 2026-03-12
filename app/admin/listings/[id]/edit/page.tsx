@@ -113,27 +113,14 @@ export default function AdminEditListingPage() {
   }
 
   const fetchListing = useCallback(async () => {
-    const supabase = createClient()
-    const { data, error: fetchError } = await supabase
-      .from('listings')
-      .select(`
-        id, title, description, neighborhood, room_type,
-        rent_monthly, monthly_rent, available_from, available_to,
-        start_date, end_date, status, paused, filled, test_listing,
-        verified, furnished, is_intern_friendly, immediate_movein,
-        photo_urls, email, first_name, last_name,
-        listing_photos(url, display_order, is_primary, storage_path, photo_path)
-      `)
-      .eq('id', id)
-      .single()
-
-    if (fetchError || !data) {
+    const res = await fetch(`/api/admin/listings/${id}`)
+    if (!res.ok) {
       setError('Listing not found')
       setLoading(false)
       return
     }
 
-    const row = data as unknown as ListingData
+    const row = (await res.json()) as ListingData
     setListing(row)
     setTitle(row.title ?? '')
     setDescription(row.description ?? '')
