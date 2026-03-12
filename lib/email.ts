@@ -129,7 +129,7 @@ export function sendNewInquiryEmail(email: string, listerName: string, senderNam
     <p style="font-size:0.85rem;color:#666">Respond quickly &mdash; fast replies lead to more successful sublets!</p>
     <p>&mdash; The SubletBuff Team</p>
   `)
-  send(email, `${senderName} is interested in "${listingTitle}"`, html).catch(() => {})
+  return send(email, `${senderName} is interested in "${listingTitle}"`, html)
 }
 
 export function sendLeaseApprovedEmail(email: string, name: string, title: string, listingId: string) {

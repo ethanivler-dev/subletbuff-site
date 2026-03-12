@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       const recipientEmail = recipientProfile.data?.email
 
       if (recipientEmail) {
-        sendNewInquiryEmail(
+        await sendNewInquiryEmail(
           recipientEmail,
           recipientName,
           senderName,
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
           message.trim().slice(0, 300),
           conversationId
         )
-        console.log('[conversations POST] Inquiry email queued to:', recipientEmail)
+        console.log('[conversations POST] Inquiry email sent to:', recipientEmail)
       } else {
         console.log('[conversations POST] No email found for recipient, skipping notification')
       }
