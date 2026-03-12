@@ -21,16 +21,39 @@ export function MessageInput({ conversationId, currentUserId, initialMessages }:
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const didInitialScroll = useRef(false)
+  const shouldAutoScroll = useRef(true)
 
-  const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  // Check if the user is scrolled near the bottom of the chat container
+  const isNearBottom = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return true
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 100
   }, [])
 
-  // Scroll to bottom on initial load and new messages
+  // Scroll the chat container (not the page) to the bottom
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+  }, [])
+
+  // Scroll to bottom on initial load (instant, no animation)
   useEffect(() => {
-    scrollToBottom()
+    if (!didInitialScroll.current && messages.length > 0) {
+      scrollToBottom('instant' as ScrollBehavior)
+      didInitialScroll.current = true
+    }
+  }, [messages.length, scrollToBottom])
+
+  // When shouldAutoScroll is flagged (user sent a message), scroll to bottom
+  useEffect(() => {
+    if (shouldAutoScroll.current && didInitialScroll.current) {
+      scrollToBottom('smooth')
+      shouldAutoScroll.current = false
+    }
   }, [messages.length, scrollToBottom])
 
   // Poll for new messages every 15s — clean up on unmount
@@ -41,10 +64,15 @@ export function MessageInput({ conversationId, currentUserId, initialMessages }:
         if (res.ok) {
           const data = await res.json()
           const fetched = data.messages as Message[]
+          // Only auto-scroll for polled messages if user is already near bottom
+          const wasNearBottom = isNearBottom()
           setMessages((prev) => {
             // Merge: keep existing + add any new ones by ID
             const existingIds = new Set(prev.map((m) => m.id))
             const newMsgs = fetched.filter((m) => !existingIds.has(m.id))
+            if (newMsgs.length > 0 && wasNearBottom) {
+              shouldAutoScroll.current = true
+            }
             return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev
           })
         }
@@ -60,7 +88,7 @@ export function MessageInput({ conversationId, currentUserId, initialMessages }:
         intervalRef.current = null
       }
     }
-  }, [conversationId])
+  }, [conversationId, isNearBottom])
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
@@ -78,6 +106,7 @@ export function MessageInput({ conversationId, currentUserId, initialMessages }:
       body,
       created_at: new Date().toISOString(),
     }
+    shouldAutoScroll.current = true
     setMessages((prev) => [...prev, optimisticMsg])
 
     try {
@@ -107,7 +136,7 @@ export function MessageInput({ conversationId, currentUserId, initialMessages }:
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg) => {
           const isOwn = msg.sender_id === currentUserId
           return (
@@ -130,7 +159,6 @@ export function MessageInput({ conversationId, currentUserId, initialMessages }:
             </div>
           )
         })}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}

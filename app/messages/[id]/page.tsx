@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MessageInput } from '@/components/messages/MessageInput'
+import { sanitizeListingTitle } from '@/lib/utils'
 
 export const revalidate = 0 // Always fresh
 
@@ -61,15 +63,30 @@ export default async function ConversationPage({ params }: ConversationPageProps
     .eq('id', otherId)
     .single()
 
-  // Fetch listing info
+  // Fetch listing info with photos
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, title')
+    .select('id, title, room_type, neighborhood, listing_photos(url, display_order, is_primary)')
     .eq('id', conversation.listing_id)
     .single()
 
-  const otherName = otherProfile?.full_name ?? 'Unknown'
-  const listingTitle = listing?.title ?? 'Listing'
+  const profileName = otherProfile?.full_name?.trim()
+  const otherName = profileName || 'Unknown'
+  const listingTitle = sanitizeListingTitle(
+    listing?.title ?? null,
+    listing?.room_type ?? '',
+    listing?.neighborhood ?? ''
+  )
+
+  // Build sorted photos array
+  const rawPhotos = (listing?.listing_photos as Array<{ url: string; display_order: number; is_primary: boolean }> | null) ?? []
+  const sortedPhotos = [...rawPhotos].sort((a, b) => {
+    if (a.is_primary && !b.is_primary) return -1
+    if (!a.is_primary && b.is_primary) return 1
+    return a.display_order - b.display_order
+  })
+  // Show up to 4 thumbnails
+  const thumbnailPhotos = sortedPhotos.slice(0, 4)
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16 flex flex-col">
@@ -82,6 +99,35 @@ export default async function ConversationPage({ params }: ConversationPageProps
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
+
+          {/* Listing thumbnails */}
+          {thumbnailPhotos.length > 0 && (
+            <Link
+              href={`/listings/${conversation.listing_id}`}
+              className="flex -space-x-1 flex-shrink-0"
+            >
+              {thumbnailPhotos.map((photo, i) => (
+                <div
+                  key={i}
+                  className="relative w-9 h-9 rounded-md overflow-hidden border-2 border-white shadow-sm flex-shrink-0"
+                >
+                  <Image
+                    src={photo.url}
+                    alt={i === 0 ? (listingTitle ?? 'Listing photo') : ''}
+                    fill
+                    className="object-cover"
+                    sizes="36px"
+                  />
+                </div>
+              ))}
+              {sortedPhotos.length > 4 && (
+                <div className="relative w-9 h-9 rounded-md overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                  <span className="text-[10px] font-medium text-gray-500">+{sortedPhotos.length - 4}</span>
+                </div>
+              )}
+            </Link>
+          )}
+
           <div className="min-w-0">
             <h1 className="text-sm font-semibold text-gray-900 truncate">{otherName}</h1>
             <Link

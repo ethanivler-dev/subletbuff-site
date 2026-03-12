@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { sendNewInquiryEmail } from '@/lib/email'
+import { sanitizeListingTitle } from '@/lib/utils'
 
 /**
  * POST /api/messages/conversations — Create or get a conversation and send the first message
@@ -214,23 +215,24 @@ export async function GET(request: NextRequest) {
     listingIds.add(c.listing_id)
   }
 
-  // Fetch profiles
+  // Fetch profiles — use full_name, fall back to email prefix
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, email')
     .in('id', Array.from(otherUserIds))
 
   const profileMap: Record<string, string> = {}
   if (profiles) {
     for (const p of profiles) {
-      profileMap[p.id] = p.full_name ?? 'Unknown'
+      const name = p.full_name?.trim()
+      profileMap[p.id] = name || (p.email ? p.email.split('@')[0] : 'Unknown')
     }
   }
 
-  // Fetch listing info (title + first photo)
+  // Fetch listing info (title, room_type, neighborhood + first photo)
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, title, listing_photos(url, display_order, is_primary)')
+    .select('id, title, room_type, neighborhood, listing_photos(url, display_order, is_primary)')
     .in('id', Array.from(listingIds))
 
   const listingMap: Record<string, { title: string; photo_url: string | null }> = {}
@@ -238,6 +240,8 @@ export async function GET(request: NextRequest) {
     for (const l of listings as Array<{
       id: string
       title: string | null
+      room_type: string | null
+      neighborhood: string | null
       listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
     }>) {
       const photos = l.listing_photos ?? []
@@ -245,7 +249,10 @@ export async function GET(request: NextRequest) {
         photos.find((p) => p.is_primary)?.url ??
         photos.sort((a, b) => a.display_order - b.display_order)[0]?.url ??
         null
-      listingMap[l.id] = { title: l.title ?? 'Listing', photo_url: primaryPhoto }
+      listingMap[l.id] = {
+        title: sanitizeListingTitle(l.title, l.room_type ?? '', l.neighborhood ?? ''),
+        photo_url: primaryPhoto,
+      }
     }
   }
 

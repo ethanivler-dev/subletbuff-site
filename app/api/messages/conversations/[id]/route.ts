@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendMessageReplyEmail } from '@/lib/email'
+import { sanitizeListingTitle } from '@/lib/utils'
 
 /**
  * GET /api/messages/conversations/[id] — Get conversation + messages, mark as read
@@ -64,24 +65,31 @@ export async function GET(
   const otherId = isA ? conversation.participant_b : conversation.participant_a
   const { data: otherProfile } = await supabase
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, email')
     .eq('id', otherId)
     .single()
 
   // Fetch listing info
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, title')
+    .select('id, title, room_type, neighborhood')
     .eq('id', conversation.listing_id)
     .single()
+
+  const profileName = otherProfile?.full_name?.trim()
+  const otherName = profileName || (otherProfile?.email ? otherProfile.email.split('@')[0] : 'Unknown')
 
   return NextResponse.json({
     conversation: {
       id: conversation.id,
       listing_id: conversation.listing_id,
-      listing_title: listing?.title ?? 'Listing',
+      listing_title: sanitizeListingTitle(
+        listing?.title ?? null,
+        listing?.room_type ?? '',
+        listing?.neighborhood ?? ''
+      ),
       other_user_id: otherId,
-      other_user_name: otherProfile?.full_name ?? 'Unknown',
+      other_user_name: otherName,
     },
     messages: messages ?? [],
   })
