@@ -142,6 +142,7 @@ export default function EditListingPage() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [uploading, setUploading] = useState(false)
   const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
+  const [photosChanged, setPhotosChanged] = useState(false)
 
   // Crop state
   const [cropPhotoIndex, setCropPhotoIndex] = useState<number | null>(null)
@@ -312,6 +313,7 @@ export default function EditListingPage() {
       })
 
       setPhotos(prev => [...prev, { url, storage_path, display_order: order, is_primary: prev.length === 0 }])
+      setPhotosChanged(true)
     }
 
     setUploading(false)
@@ -321,6 +323,7 @@ export default function EditListingPage() {
   async function removePhoto(url: string) {
     await supabase.from('listing_photos').delete().eq('listing_id', id).eq('url', url)
     setPhotos(prev => prev.filter(p => p.url !== url))
+    setPhotosChanged(true)
   }
 
   async function handleRotatePhoto(index: number, degrees: 90 | -90) {
@@ -356,6 +359,7 @@ export default function EditListingPage() {
         const newUrl = URL.createObjectURL(blob)
         setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p)))
       }
+      setPhotosChanged(true)
     } catch {
       setError('Failed to rotate image')
     } finally {
@@ -433,6 +437,7 @@ export default function EditListingPage() {
       }
 
       setCropPhotoIndex(null)
+      setPhotosChanged(true)
     } catch {
       setError('Failed to crop image')
     } finally {
@@ -545,8 +550,16 @@ export default function EditListingPage() {
     setError(null)
 
     const changed = getChangedFields()
-    if (Object.keys(changed).length === 0) {
+    const hasFieldChanges = Object.keys(changed).length > 0
+
+    if (!hasFieldChanges && !photosChanged) {
       setError('No changes to save')
+      return
+    }
+
+    // If only photos changed (already persisted), redirect back
+    if (!hasFieldChanges && photosChanged) {
+      router.push('/account/listings?toast=updated')
       return
     }
 
