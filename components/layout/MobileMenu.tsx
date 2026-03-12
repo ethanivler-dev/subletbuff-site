@@ -3,17 +3,18 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { X, User, LogOut, Shield, MessageCircle } from 'lucide-react'
-import { ADMIN_USER_ID } from '@/lib/admin'
+// admin check passed via prop from Navbar
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
   user: SupabaseUser | null
+  isAdminUser?: boolean
   onSignOut: () => void
 }
 
-export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose, user, isAdminUser = false, onSignOut }: MobileMenuProps) {
   const [unreadCount, setUnreadCount] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -149,7 +150,7 @@ export function MobileMenu({ isOpen, onClose, user, onSignOut }: MobileMenuProps
               >
                 My Listings
               </Link>
-              {user.id === ADMIN_USER_ID && (
+              {isAdminUser && (
                 <Link
                   href="/admin"
                   onClick={onClose}

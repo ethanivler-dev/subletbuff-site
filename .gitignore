@@ -7,3 +7,5 @@ node_modules/
 .ai/
 tsconfig.tsbuildinfo
 delete-test-listings-cli.js
+schema.sql
+public_schema.sql

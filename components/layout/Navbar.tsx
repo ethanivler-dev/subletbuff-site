@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { Menu, User, ChevronDown, LogOut, Shield, MessageCircle } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { createClient } from '@/lib/supabase/client'
-import { ADMIN_USER_ID } from '@/lib/admin'
+import { ADMIN_USER_ID, isAdmin } from '@/lib/admin'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export function Navbar() {
@@ -17,6 +17,7 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [isAdminUser, setIsAdminUser] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -30,10 +31,24 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [transparent])
 
-  // Load current user
+  // Load current user + check admin status
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user)
+      if (data.user) {
+        if (isAdmin(data.user.id)) {
+          setIsAdminUser(true)
+        } else {
+          const { data: row } = await supabase
+            .from('admins')
+            .select('id')
+            .eq('id', data.user.id)
+            .maybeSingle()
+          setIsAdminUser(!!row)
+        }
+      }
+    })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
     })
@@ -213,7 +228,7 @@ export function Navbar() {
                       >
                         My Listings
                       </Link>
-                      {user.id === ADMIN_USER_ID && (
+                      {isAdminUser && (
                         <Link
                           href="/admin"
                           onClick={() => setDropdownOpen(false)}
@@ -263,7 +278,7 @@ export function Navbar() {
         </div>
       </header>
 
-      <MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} user={user} onSignOut={handleSignOut} />
+      <MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} user={user} isAdminUser={isAdminUser} onSignOut={handleSignOut} />
     </>
   )
 }
