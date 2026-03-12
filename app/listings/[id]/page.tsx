@@ -322,11 +322,11 @@ export default async function ListingDetailPage({
       )}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <Link
-          href="/listings"
+          href={user && isAdmin(user.id) ? '/admin' : '/listings'}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Listings
+          {user && isAdmin(user.id) ? 'Back to Admin' : 'Back to Listings'}
         </Link>
       </div>
 

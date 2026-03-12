@@ -285,6 +285,7 @@ export default function AdminDashboard() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500 hidden lg:table-cell">Dates</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 hidden lg:table-cell">Lister</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 hidden xl:table-cell">Submitted</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Actions</th>
                 </tr>
               </thead>
@@ -357,6 +358,14 @@ export default function AdminDashboard() {
                       {/* Lister */}
                       <td className="px-4 py-3 hidden lg:table-cell text-gray-600 max-w-[120px] truncate">
                         {getOwner(listing)}
+                      </td>
+
+                      {/* Submitted */}
+                      <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap text-gray-500 text-xs">
+                        {listing.created_at
+                          ? new Date(listing.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            + ', ' + new Date(listing.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                          : '—'}
                       </td>
 
                       {/* Actions */}
