@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { DM_Serif_Display, Plus_Jakarta_Sans } from 'next/font/google'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
+import { Providers } from '@/components/Providers'
 import './globals.css'
 
 const serif = DM_Serif_Display({
@@ -55,9 +56,11 @@ export default function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-button focus:text-sm focus:font-medium">
           Skip to content
         </a>
-        <Navbar />
-        <main id="main-content">{children}</main>
-        <Footer />
+        <Providers>
+          <Navbar />
+          <main id="main-content">{children}</main>
+          <Footer />
+        </Providers>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18002091746"
           strategy="afterInteractive"
