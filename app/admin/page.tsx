@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   RefreshCw, Search, Trash2, Pause, Play, Pencil,
-  Clock, ExternalLink, CheckCircle, XCircle, Mail,
+  Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
@@ -150,6 +150,14 @@ export default function AdminDashboard() {
       case 'unpause':
         ok = await patchListing(id, { paused: false })
         if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, paused: false } : l))
+        break
+      case 'fill':
+        ok = await patchListing(id, { filled: true })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, filled: true } : l))
+        break
+      case 'unfill':
+        ok = await patchListing(id, { filled: false })
+        if (ok) setListings((prev) => prev.map((l) => l.id === id ? { ...l, filled: false } : l))
         break
       case 'delete':
         if (!confirm('Permanently delete this listing? This cannot be undone.')) return
@@ -451,6 +459,27 @@ export default function AdminDashboard() {
                           >
                             <Pencil className="w-4 h-4" />
                           </Link>
+                          {listing.status === 'approved' && (
+                            listing.filled ? (
+                              <button
+                                onClick={() => handleAction(listing.id, 'unfill')}
+                                disabled={isActioning}
+                                className="p-1.5 rounded hover:bg-purple-100 text-purple-600 transition-colors disabled:opacity-50"
+                                title="Mark as unfilled"
+                              >
+                                <Flag className="w-4 h-4 fill-current" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleAction(listing.id, 'fill')}
+                                disabled={isActioning}
+                                className="p-1.5 rounded hover:bg-purple-100 text-gray-400 transition-colors disabled:opacity-50"
+                                title="Mark as filled"
+                              >
+                                <Flag className="w-4 h-4" />
+                              </button>
+                            )
+                          )}
                           {listing.status === 'approved' && (
                             listing.paused ? (
                               <button

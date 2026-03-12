@@ -276,6 +276,24 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
                 </button>
               </>
             )}
+            {isApproved && !listing.filled && (
+              <button
+                onClick={() => onAction('fill')}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-800 hover:bg-purple-200 disabled:opacity-50"
+              >
+                Mark Filled
+              </button>
+            )}
+            {isApproved && listing.filled && (
+              <button
+                onClick={() => onAction('unfill')}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+              >
+                Unmark Filled
+              </button>
+            )}
             {isApproved && !listing.paused && (
               <button
                 onClick={() => onAction('pause')}
