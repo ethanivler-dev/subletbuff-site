@@ -88,6 +88,15 @@ const TIER_2_KEYS: (keyof OriginalValues)[] = [
   'is_intern_friendly', 'immediate_movein', 'address',
 ]
 
+/** Extract storage path from a Supabase storage URL when storage_path is missing */
+function extractStoragePath(url: string): string | null {
+  const marker = '/listing-photos/'
+  const idx = url.indexOf(marker)
+  if (idx === -1) return null
+  const path = url.substring(idx + marker.length).split('?')[0]
+  return path || null
+}
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -334,7 +343,7 @@ export default function EditListingPage() {
     setRotatingPhoto(index)
     try {
       const blob = await rotateImage(photo.url, degrees)
-      const storagePath = photo.storage_path
+      const storagePath = photo.storage_path || extractStoragePath(photo.url)
 
       if (storagePath) {
         const { error: uploadError } = await supabase.storage
@@ -349,19 +358,19 @@ export default function EditListingPage() {
 
         const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath)
         const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
-        setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p)))
+        setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, url: newUrl, storage_path: storagePath } : p)))
 
-        // Update the URL in listing_photos table (match by storage_path, not url)
+        // Update the URL and backfill storage_path in listing_photos table
         await supabase.from('listing_photos')
-          .update({ url: newUrl })
+          .update({ url: newUrl, storage_path: storagePath })
           .eq('listing_id', id)
-          .eq('storage_path', storagePath)
+          .eq('display_order', photo.display_order)
 
         toast('Photo rotated successfully', 'success')
       } else {
-        const newUrl = URL.createObjectURL(blob)
-        setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p)))
-        toast('Photo rotated successfully', 'success')
+        toast('Unable to save rotation — photo has no storage path', 'error')
+        setRotatingPhoto(null)
+        return
       }
       setPhotosChanged(true)
     } catch {
@@ -414,7 +423,7 @@ export default function EditListingPage() {
         )
       })
 
-      const storagePath = photo.storage_path
+      const storagePath = photo.storage_path || extractStoragePath(photo.url)
 
       if (storagePath) {
         const { error: uploadError } = await supabase.storage
@@ -429,18 +438,18 @@ export default function EditListingPage() {
 
         const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath)
         const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
-        setPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl } : p)))
+        setPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl, storage_path: storagePath } : p)))
 
         await supabase.from('listing_photos')
-          .update({ url: newUrl })
+          .update({ url: newUrl, storage_path: storagePath })
           .eq('listing_id', id)
-          .eq('storage_path', storagePath)
+          .eq('display_order', photo.display_order)
 
         toast('Photo cropped successfully', 'success')
       } else {
-        const newUrl = URL.createObjectURL(blob)
-        setPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl } : p)))
-        toast('Photo cropped successfully', 'success')
+        toast('Unable to save crop — photo has no storage path', 'error')
+        setCroppingInProgress(false)
+        return
       }
 
       setCropPhotoIndex(null)

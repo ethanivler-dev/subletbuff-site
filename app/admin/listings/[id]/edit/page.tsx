@@ -13,6 +13,15 @@ import { NEIGHBORHOODS, ROOM_TYPES, AMENITIES, AMENITY_LABELS } from '@/lib/cons
 import { useToast } from '@/components/ui/Toast'
 import { Modal } from '@/components/ui/Modal'
 
+/** Extract storage path from a Supabase storage URL when storage_path is missing */
+function extractStoragePath(url: string): string | null {
+  const marker = '/listing-photos/'
+  const idx = url.indexOf(marker)
+  if (idx === -1) return null
+  const path = url.substring(idx + marker.length).split('?')[0]
+  return path || null
+}
+
 interface ListingData {
   id: string
   title: string | null
@@ -109,7 +118,7 @@ export default function AdminEditListingPage() {
     setRotatingPhoto(index)
     try {
       const blob = await rotateImage(photo.url, degrees)
-      const storagePath = photo.storage_path
+      const storagePath = photo.storage_path || extractStoragePath(photo.url)
 
       if (storagePath) {
         const supabase = createClient()
@@ -129,14 +138,14 @@ export default function AdminEditListingPage() {
 
         const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
         setEditedPhotos((prev) =>
-          prev.map((p, i) => (i === index ? { ...p, url: newUrl } : p))
+          prev.map((p, i) => (i === index ? { ...p, url: newUrl, storage_path: storagePath } : p))
         )
 
-        // Update the URL in listing_photos table so it persists (match by storage_path)
+        // Update the URL and backfill storage_path in listing_photos table
         await supabase.from('listing_photos')
-          .update({ url: newUrl })
+          .update({ url: newUrl, storage_path: storagePath })
           .eq('listing_id', id)
-          .eq('storage_path', storagePath)
+          .eq('display_order', photo.display_order)
 
         toast('Photo rotated', 'success')
       } else {
@@ -190,7 +199,7 @@ export default function AdminEditListingPage() {
         )
       })
 
-      const storagePath = photo.storage_path
+      const storagePath = photo.storage_path || extractStoragePath(photo.url)
 
       if (storagePath) {
         const supabase = createClient()
@@ -206,12 +215,12 @@ export default function AdminEditListingPage() {
 
         const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(storagePath)
         const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
-        setEditedPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl } : p)))
+        setEditedPhotos(prev => prev.map((p, i) => (i === cropPhotoIndex ? { ...p, url: newUrl, storage_path: storagePath } : p)))
 
         await supabase.from('listing_photos')
-          .update({ url: newUrl })
+          .update({ url: newUrl, storage_path: storagePath })
           .eq('listing_id', id)
-          .eq('storage_path', storagePath)
+          .eq('display_order', photo.display_order)
 
         toast('Photo cropped', 'success')
       } else {
