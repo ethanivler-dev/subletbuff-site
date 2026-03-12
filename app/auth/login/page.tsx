@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -25,6 +25,16 @@ function LoginForm() {
   const [resetSent, setResetSent] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const isInAppBrowser = useInAppBrowser()
+
+  // If user already has a session, redirect instead of showing login
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        router.replace(next)
+      }
+    })
+  }, [next, router])
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()

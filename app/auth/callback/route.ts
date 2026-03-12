@@ -2,9 +2,25 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
+
+  // Use forwarded host (browser-facing URL) instead of request.url
+  // which can be an internal Vercel hostname on preview deployments
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : new URL(request.url).origin
+
+  console.log('[auth/callback]', {
+    requestUrl: request.url,
+    forwardedHost,
+    computedOrigin: origin,
+    hasCode: !!code,
+    next,
+  })
 
   if (code) {
     const response = NextResponse.redirect(`${origin}${next}`)
@@ -27,6 +43,7 @@ export async function GET(request: NextRequest) {
     )
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+    console.log('[auth/callback] exchangeResult', { error: error?.message ?? null })
     if (!error) return response
   }
 
