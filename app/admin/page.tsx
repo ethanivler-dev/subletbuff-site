@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   RefreshCw, Search, Trash2, Pause, Play, Pencil,
   Clock, ExternalLink, CheckCircle, XCircle, Mail, Flag, BadgeCheck, FileText, AlertTriangle,
+  Smartphone, Monitor,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
@@ -61,6 +62,8 @@ interface AdminListing {
   pets: string | null
   admin_flag: string | null
   admin_notes: string | null
+  auto_price_reduction: boolean | null
+  created_device: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
 }
 
@@ -71,6 +74,8 @@ interface ListerProfile {
 }
 
 type Tab = 'all' | 'approved' | 'paused' | 'pending' | 'rejected'
+type FlagFilter = 'all' | 'flagged' | 'needs_email' | 'waiting_response' | 'note' | 'urgent' | 'unflagged'
+type SortOption = 'created_at' | 'flagged_first' | 'flag_type'
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -89,6 +94,8 @@ export default function AdminDashboard() {
   const [flagMenuId, setFlagMenuId] = useState<string | null>(null)
   const [flagNote, setFlagNote] = useState('')
   const [confirmFillId, setConfirmFillId] = useState<string | null>(null)
+  const [flagFilter, setFlagFilter] = useState<FlagFilter>('all')
+  const [sortOption, setSortOption] = useState<SortOption>('created_at')
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const flagMenuRef = useRef<HTMLDivElement>(null)
@@ -281,6 +288,10 @@ export default function AdminDashboard() {
     fulfilled: listings.filter((l) => l.filled).length,
   }
 
+  const statCounts2 = {
+    flagged: listings.filter((l) => !!l.admin_flag).length,
+  }
+
   const stats: { label: string; value: number; color: string }[] = [
     { label: 'All', value: statCounts.all, color: 'bg-gray-50 text-gray-900' },
     { label: 'Live', value: statCounts.live, color: 'bg-green-50 text-green-800' },
@@ -288,7 +299,48 @@ export default function AdminDashboard() {
     { label: 'Paused', value: statCounts.paused, color: 'bg-yellow-50 text-yellow-800' },
     { label: 'Rejected', value: statCounts.rejected, color: 'bg-red-50 text-red-800' },
     { label: 'Fulfilled', value: statCounts.fulfilled, color: 'bg-purple-50 text-purple-800' },
+    { label: 'Flagged', value: statCounts2.flagged, color: 'bg-orange-50 text-orange-800' },
   ]
+
+  /* ---- Flag filtering + sorting ---- */
+  const FLAG_TYPE_ORDER: Record<string, number> = { urgent: 0, needs_email: 1, waiting_response: 2, note: 3 }
+
+  const displayListings = (() => {
+    // 1. Apply flag filter
+    let result = listings
+    if (flagFilter === 'flagged') {
+      result = result.filter((l) => !!l.admin_flag)
+    } else if (flagFilter === 'unflagged') {
+      result = result.filter((l) => !l.admin_flag)
+    } else if (flagFilter !== 'all') {
+      result = result.filter((l) => l.admin_flag === flagFilter)
+    }
+
+    // 2. Apply sort
+    if (sortOption === 'flagged_first') {
+      result = [...result].sort((a, b) => {
+        const aFlagged = a.admin_flag ? 0 : 1
+        const bFlagged = b.admin_flag ? 0 : 1
+        if (aFlagged !== bFlagged) return aFlagged - bFlagged
+        // Secondary: urgent first among flagged
+        const aOrder = a.admin_flag ? (FLAG_TYPE_ORDER[a.admin_flag] ?? 99) : 99
+        const bOrder = b.admin_flag ? (FLAG_TYPE_ORDER[b.admin_flag] ?? 99) : 99
+        if (aOrder !== bOrder) return aOrder - bOrder
+        // Tertiary: created_at desc
+        return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+      })
+    } else if (sortOption === 'flag_type') {
+      result = [...result].sort((a, b) => {
+        const aOrder = a.admin_flag ? (FLAG_TYPE_ORDER[a.admin_flag] ?? 99) : 100
+        const bOrder = b.admin_flag ? (FLAG_TYPE_ORDER[b.admin_flag] ?? 99) : 100
+        if (aOrder !== bOrder) return aOrder - bOrder
+        return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+      })
+    }
+    // sortOption === 'created_at' keeps server default order
+
+    return result
+  })()
 
   return (
     <div className="p-6">
@@ -310,7 +362,7 @@ export default function AdminDashboard() {
 
       {/* Stat cards */}
       {!loading && (
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
+        <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-6">
           {stats.map((s) => (
             <div key={s.label} className={`rounded-card px-4 py-3 ${s.color} border border-gray-200`}>
               <p className="text-xs font-medium opacity-70">{s.label}</p>
@@ -346,19 +398,43 @@ export default function AdminDashboard() {
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-button focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           />
         </div>
+        {/* Flag filter */}
+        <select
+          value={flagFilter}
+          onChange={(e) => setFlagFilter(e.target.value as FlagFilter)}
+          className="px-3 py-2 text-sm border border-gray-200 rounded-button bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="all">All Flags</option>
+          <option value="flagged">Flagged Only</option>
+          <option value="unflagged">Unflagged Only</option>
+          <option value="needs_email">Needs Email</option>
+          <option value="waiting_response">Waiting Response</option>
+          <option value="note">Note</option>
+          <option value="urgent">Urgent</option>
+        </select>
+        {/* Sort */}
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value as SortOption)}
+          className="px-3 py-2 text-sm border border-gray-200 rounded-button bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="created_at">Sort: Newest First</option>
+          <option value="flagged_first">Sort: Flagged First</option>
+          <option value="flag_type">Sort: Flag Type</option>
+        </select>
       </div>
 
       {/* Empty state */}
-      {!loading && listings.length === 0 && (
+      {!loading && displayListings.length === 0 && (
         <div className="bg-white rounded-card shadow-card p-12 text-center">
           <Search className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <h2 className="text-lg font-semibold text-gray-900 mb-1">No listings found</h2>
-          <p className="text-sm text-gray-500">Try changing the tab or search query.</p>
+          <p className="text-sm text-gray-500">Try changing the tab, search query, or flag filter.</p>
         </div>
       )}
 
       {/* Listing table */}
-      {listings.length > 0 && (
+      {displayListings.length > 0 && (
         <div className="bg-white rounded-card shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -372,11 +448,12 @@ export default function AdminDashboard() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 hidden lg:table-cell">Lister</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 hidden xl:table-cell">Submitted</th>
+                  <th className="text-center px-2 py-3 font-medium text-gray-500 hidden xl:table-cell w-10" title="Created on device">Dev</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {listings.map((listing) => {
+                {displayListings.map((listing) => {
                   const coverUrl = getCoverUrl(listing)
                   const status = getStatus(listing)
                   const isActioning = actionLoading === listing.id
@@ -458,6 +535,11 @@ export default function AdminDashboard() {
                               <Flag className="w-3 h-3" /> Urgent
                             </span>
                           )}
+                          {listing.auto_price_reduction && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                              Auto-reduce
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -472,6 +554,17 @@ export default function AdminDashboard() {
                           ? new Date(listing.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                             + ', ' + new Date(listing.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
                           : '—'}
+                      </td>
+
+                      {/* Device */}
+                      <td className="px-2 py-3 hidden xl:table-cell text-center">
+                        {listing.created_device === 'mobile' ? (
+                          <Smartphone className="w-4 h-4 text-gray-400 mx-auto" title="Created on mobile" />
+                        ) : listing.created_device === 'desktop' ? (
+                          <Monitor className="w-4 h-4 text-gray-400 mx-auto" title="Created on desktop" />
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
                       </td>
 
                       {/* Actions */}

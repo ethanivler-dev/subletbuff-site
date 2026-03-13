@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   X, ExternalLink, Pencil, MapPin, Calendar, Home, DollarSign,
   FileText, Shield, Mail, Clock, RotateCw, RotateCcw, FlipVertical2,
+  Smartphone, Monitor,
 } from 'lucide-react'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
@@ -56,6 +57,8 @@ interface AdminListing {
   pets: string | null
   admin_flag: string | null
   admin_notes: string | null
+  auto_price_reduction: boolean | null
+  created_device: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }> | null
 }
 
@@ -482,6 +485,12 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
               <InfoRow icon={FileText} label="Rejection Reason" value={listing.rejection_reason} />
             )}
             <InfoRow icon={Shield} label="Test Listing" value={listing.test_listing ? 'Yes' : 'No'} />
+            <InfoRow
+              icon={listing.created_device === 'mobile' ? Smartphone : Monitor}
+              label="Created On"
+              value={listing.created_device === 'mobile' ? 'Mobile' : listing.created_device === 'desktop' ? 'Desktop' : null}
+            />
+            <InfoRow icon={DollarSign} label="Auto Price Reduction" value={listing.auto_price_reduction ? 'Enabled' : 'Disabled'} />
             <InfoRow icon={Clock} label="Created" value={listing.created_at ? formatDate(listing.created_at.split('T')[0]) : null} />
             {listing.admin_notes && (
               <div className="mt-2 pt-2 border-t border-amber-200">

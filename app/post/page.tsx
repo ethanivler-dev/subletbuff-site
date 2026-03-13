@@ -109,6 +109,13 @@ export default function PostListingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
 
+  // Detect device type (mobile vs desktop)
+  const [createdDevice, setCreatedDevice] = useState<'mobile' | 'desktop'>('desktop')
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768
+    setCreatedDevice(isMobile ? 'mobile' : 'desktop')
+  }, [])
+
   // Auth check + fetch edu_email
   useEffect(() => {
     const supabase = createClient()
@@ -370,6 +377,9 @@ export default function PostListingPage() {
           // === Lease verification ===
           lease_document_path: leaseDocPath || null,
           lease_status: leaseDocPath ? 'pending' : 'none',
+
+          // === Device tracking ===
+          created_device: createdDevice,
 
           // === Photos + status ===
           photo_urls: uploadedPhotos.map((p) => p.url),

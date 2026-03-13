@@ -270,6 +270,7 @@ export async function POST(request: NextRequest) {
       // Lease verification — server-side enforcement: never trust client-sent lease_status
       lease_document_path: body.lease_document_path || null,
       lease_status: body.lease_document_path ? 'pending' : 'none',
+      created_device: body.created_device === 'mobile' ? 'mobile' : 'desktop',
 
       photo_urls: body.photo_urls ?? [],
       test_listing: isStaging,
