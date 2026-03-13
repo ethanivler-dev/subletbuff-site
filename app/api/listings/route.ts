@@ -202,8 +202,8 @@ export async function POST(request: NextRequest) {
   // Jitter coordinates for privacy
   const baseLat = body.latitude ?? 40.0150
   const baseLng = body.longitude ?? -105.2705
-  const jitterLat = baseLat + (Math.random() - 0.5) * 0.004
-  const jitterLng = baseLng + (Math.random() - 0.5) * 0.004
+  const jitterLat = baseLat + (Math.random() - 0.5) * 0.001
+  const jitterLng = baseLng + (Math.random() - 0.5) * 0.001
 
   const rentNum = parseInt(body.rent_monthly) || 0
   const depositNum = body.deposit ? parseInt(body.deposit) : null

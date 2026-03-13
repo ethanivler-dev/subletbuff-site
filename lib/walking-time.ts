@@ -80,8 +80,8 @@ export async function fetchWalkingTimesToCU(
         if (minutes > 60) return
         results[chunk[i].index] = minutes < 1 ? '1 min' : `${minutes} min`
       })
-    } catch {
-      // Silently fail for this chunk
+    } catch (err) {
+      console.error('[walking-time] OSRM table request failed for chunk:', err)
     }
   }
 

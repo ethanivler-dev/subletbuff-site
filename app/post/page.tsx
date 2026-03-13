@@ -282,8 +282,8 @@ export default function PostListingPage() {
 
       const baseLat = basicInfo.latitude ? parseFloat(basicInfo.latitude) : 40.0150
       const baseLng = basicInfo.longitude ? parseFloat(basicInfo.longitude) : -105.2705
-      const jitterLat = baseLat + (Math.random() - 0.5) * 0.004
-      const jitterLng = baseLng + (Math.random() - 0.5) * 0.004
+      const jitterLat = baseLat + (Math.random() - 0.5) * 0.001
+      const jitterLng = baseLng + (Math.random() - 0.5) * 0.001
 
       const uploadedPhotos = photos.filter((p) => !p.uploading)
       const isStaging = isStagingEnvironment()

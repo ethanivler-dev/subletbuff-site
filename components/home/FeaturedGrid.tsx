@@ -17,7 +17,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
-      save_count, photo_urls, user_id, public_latitude, public_longitude,
+      save_count, photo_urls, user_id, latitude, longitude, public_latitude, public_longitude,
       listing_photos(url, display_order, is_primary)
     `)
     .eq('status', 'approved')
@@ -91,7 +91,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
 
   // Batch-fetch routed walking times to CU
   const walkingTimes = await fetchWalkingTimesToCU(
-    listings.map((l) => ({ lat: l.public_latitude, lng: l.public_longitude })),
+    listings.map((l) => ({ lat: l.latitude ?? l.public_latitude, lng: l.longitude ?? l.public_longitude })),
   )
   listings.forEach((l, i) => { l.walking_time = walkingTimes[i] })
 

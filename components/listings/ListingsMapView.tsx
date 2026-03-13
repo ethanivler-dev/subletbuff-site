@@ -160,16 +160,12 @@ export function ListingsMapView({ listings, total, params, page, totalPages }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Clicking a price pin scrolls to the corresponding card and highlights it
+  // Clicking a price pin navigates to the listing detail page
   const handlePinClick = useCallback(
     (id: string) => {
-      setHoveredId(id)
-      const card = cardRefs.current[id]
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
+      router.push(`/listings/${id}`)
     },
-    [],
+    [router],
   )
 
   const handlePinHoverStart = useCallback(

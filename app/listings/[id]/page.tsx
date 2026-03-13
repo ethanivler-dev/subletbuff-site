@@ -134,7 +134,7 @@ async function getListing(id: string) {
   const dateFrom = row.available_from ?? (row.start_date as string | null)
   const dateTo = row.available_to ?? (row.end_date as string | null)
 
-  const walkingTime = await fetchWalkingTimeToCU(row.public_latitude, row.public_longitude)
+  const walkingTime = await fetchWalkingTimeToCU(row.latitude, row.longitude)
 
   const isPreview = !isPublic
   return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo, isPreview, walkingTime }
