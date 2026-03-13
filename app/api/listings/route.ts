@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { isStagingEnvironment, shouldHideTestListings } from '@/lib/appEnv'
 import { rateLimit } from '@/lib/rate-limit'
-import { sendListingSubmittedEmail } from '@/lib/email'
+import { sendListingSubmittedEmail, sendAdminNewListingEmail } from '@/lib/email'
 
 function escapeLikePattern(str: string): string {
   return str.replace(/[%_\\]/g, '\\$&')
@@ -335,22 +335,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Notify admins about new listing (fire-and-forget)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (supabaseUrl) {
-    fetch(`${supabaseUrl}/functions/v1/notify-admin-new-listing`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({
-        title: body.title,
-        listerName: `${body.first_name || ''} ${body.last_name || ''}`.trim() || user.email,
-        listerEmail: user.email,
-        listingId: listing.id,
-      }),
-    }).catch(err => console.error('[notify-admin] Failed:', err))
-  }
+  const submitterName = `${body.first_name || ''} ${body.last_name || ''}`.trim() || user.email || 'Unknown'
+  sendAdminNewListingEmail(submitterName, user.email ?? 'N/A', body.title ?? 'Untitled listing', listing.id)
 
   return NextResponse.json({ id: listing.id }, { status: 201 })
 }

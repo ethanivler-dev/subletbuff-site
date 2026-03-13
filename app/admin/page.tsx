@@ -12,6 +12,7 @@ import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
 import { ListingDetailPanel } from '@/components/admin/ListingDetailPanel'
 import { ContactListerModal } from '@/components/admin/ContactListerModal'
 import { AdminEditModal } from '@/components/admin/AdminEditModal'
+import { Modal } from '@/components/ui/Modal'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -87,6 +88,7 @@ export default function AdminDashboard() {
   const [quickEditId, setQuickEditId] = useState<string | null>(null)
   const [flagMenuId, setFlagMenuId] = useState<string | null>(null)
   const [flagNote, setFlagNote] = useState('')
+  const [confirmFillId, setConfirmFillId] = useState<string | null>(null)
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const flagMenuRef = useRef<HTMLDivElement>(null)
@@ -603,7 +605,7 @@ export default function AdminDashboard() {
                               </button>
                             ) : (
                               <button
-                                onClick={() => handleAction(listing.id, 'fill')}
+                                onClick={() => setConfirmFillId(listing.id)}
                                 disabled={isActioning}
                                 className="p-1.5 rounded hover:bg-gray-100 text-gray-400 transition-colors disabled:opacity-50"
                                 title="Mark as filled"
@@ -686,6 +688,14 @@ export default function AdminDashboard() {
         listingId={quickEditId}
         onSaved={() => fetchListings(tab, search)}
       />
+
+      <Modal open={!!confirmFillId} onClose={() => setConfirmFillId(null)} title="Mark as Filled">
+        <p className="text-sm text-gray-600 mb-6">Are you sure you want to mark this listing as filled?</p>
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={() => setConfirmFillId(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-button hover:bg-gray-200 transition-colors">Cancel</button>
+          <button onClick={() => { if (confirmFillId) { handleAction(confirmFillId, 'fill'); setConfirmFillId(null) } }} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-button hover:bg-green-700 transition-colors">Confirm</button>
+        </div>
+      </Modal>
     </div>
   )
 }

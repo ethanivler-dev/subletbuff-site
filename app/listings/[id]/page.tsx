@@ -1,11 +1,12 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag, Footprints } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { shouldHideTestListings } from '@/lib/appEnv'
 import { isAdmin } from '@/lib/admin'
-import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle, walkingTimeToCU } from '@/lib/utils'
+import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
+import { fetchWalkingTimeToCU } from '@/lib/walking-time'
 import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
 import { ListingGallery } from '@/components/listings/ListingGallery'
@@ -133,8 +134,10 @@ async function getListing(id: string) {
   const dateFrom = row.available_from ?? (row.start_date as string | null)
   const dateTo = row.available_to ?? (row.end_date as string | null)
 
+  const walkingTime = await fetchWalkingTimeToCU(row.public_latitude, row.public_longitude)
+
   const isPreview = !isPublic
-  return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo, isPreview }
+  return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo, isPreview, walkingTime }
 }
 
 async function getCurrentUser() {
@@ -183,6 +186,7 @@ export async function generateMetadata({
     description,
     alternates: { canonical: `/listings/${id}` },
     openGraph: {
+      type: 'article',
       title: metaTitle,
       description,
       ...(ogImage ? { images: [{ url: ogImage, width: 800, height: 600 }] } : {}),
@@ -206,7 +210,7 @@ export default async function ListingDetailPage({
 
   if (!result) notFound()
 
-  const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo, isPreview } = result
+  const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo, isPreview, walkingTime } = result
 
   // Parallel: check saved status + fetch all map listings
   const supabase = await createClient()
@@ -394,10 +398,12 @@ export default async function ListingDetailPage({
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4" /> {neighborhood}
-                  {walkingTimeToCU(listing.public_latitude, listing.public_longitude) && (
-                    <span className="text-gray-400">· ~{walkingTimeToCU(listing.public_latitude, listing.public_longitude)} walk to CU</span>
-                  )}
                 </span>
+                {walkingTime && (
+                  <span className="flex items-center gap-1.5 text-primary-600 font-medium">
+                    <Footprints className="w-4 h-4" /> ~{walkingTime} walk to CU
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5">
                   <Home className="w-4 h-4" /> {formatRoomType(roomType)}
                 </span>

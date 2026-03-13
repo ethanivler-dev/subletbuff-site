@@ -35,13 +35,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'SubletBuff',
+    locale: 'en_US',
     title: siteTitle,
     description: siteDescription,
+    url: '/',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'SubletBuff — Short-Term Housing in Boulder',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: siteTitle,
     description: siteDescription,
+    images: ['/opengraph-image'],
   },
 }
 

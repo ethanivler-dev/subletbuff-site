@@ -451,8 +451,11 @@ export default function PostListingPage() {
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
           <h1 className="font-serif text-2xl text-gray-900 mb-2">Listing Submitted!</h1>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-sm text-gray-500 mb-2">
             Your listing has been submitted for review. We&apos;ll approve it within 24 hours, and it&apos;ll go live on the site.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            You&apos;ll get an email when approved.
           </p>
           <div className="flex flex-col gap-3 items-center">
             {submittedId && (

@@ -159,6 +159,26 @@ export function sendLeaseApprovedEmail(email: string, name: string, title: strin
   send(email, 'Lease verified!', html).catch(() => {})
 }
 
+export function sendAdminNewListingEmail(submitterName: string, submitterEmail: string, title: string, listingId: string) {
+  const emails = (process.env.ADMIN_NOTIFICATION_EMAILS ?? process.env.ADMIN_EMAIL ?? '').split(',').map(e => e.trim()).filter(Boolean)
+  if (!emails.length) return
+  const adminUrl = `https://subletbuff.com/admin`
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">New listing submitted for review</h2>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr><td style="padding:6px 12px;font-weight:600;color:#374151">Listing</td><td style="padding:6px 12px">${title}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:600;color:#374151">Submitter</td><td style="padding:6px 12px">${submitterName}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:600;color:#374151">Email</td><td style="padding:6px 12px">${submitterEmail}</td></tr>
+    </table>
+    <p style="text-align:center;margin:24px 0">
+      <a href="${adminUrl}" style="background:#B8922A;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">Review in Admin Panel &rarr;</a>
+    </p>
+  `)
+  for (const addr of emails) {
+    send(addr, `New listing: ${title}`, html).catch(() => {})
+  }
+}
+
 export function sendLeaseRejectedEmail(email: string, name: string, title: string) {
   const html = wrap(`
     <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Lease document update</h2>

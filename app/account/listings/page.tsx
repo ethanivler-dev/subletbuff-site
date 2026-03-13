@@ -18,6 +18,7 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from 'recharts'
 import { useToast } from '@/components/ui/Toast'
+import { Modal } from '@/components/ui/Modal'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
 /* ------------------------------------------------------------------ */
@@ -78,6 +79,7 @@ export default function ListerDashboardPage() {
   const [listings, setListings] = useState<UserListing[]>([])
   const [recentInquiries, setRecentInquiries] = useState<RecentInquiry[]>([])
   const [chartData, setChartData] = useState<Array<{ date: string; views: number; inquiries: number }>>([])
+  const [confirmFillId, setConfirmFillId] = useState<string | null>(null)
 
   const totalViews = listings.reduce((s, l) => s + l.views, 0)
   const totalInquiries = listings.reduce((s, l) => s + l.inquiries, 0)
@@ -538,7 +540,7 @@ export default function ListerDashboardPage() {
                         <td className="px-4 py-4 text-center">
                           {isActive && (
                             <button
-                              onClick={() => patchListing(listing.id, { filled: true })}
+                              onClick={() => setConfirmFillId(listing.id)}
                               disabled={isDisabled}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
                             >
@@ -610,7 +612,7 @@ export default function ListerDashboardPage() {
                                 )}
                                 {listing.status === 'approved' && !listing.paused && (
                                   <button
-                                    onClick={() => patchListing(listing.id, { filled: !listing.filled })}
+                                    onClick={() => { if (listing.filled) { patchListing(listing.id, { filled: false }) } else { setOpenMenu(null); setMenuPos(null); setConfirmFillId(listing.id) } }}
                                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                   >
                                     <CheckCircle className="w-3.5 h-3.5" />
@@ -712,6 +714,14 @@ export default function ListerDashboardPage() {
         </div>
 
       </div>
+
+      <Modal open={!!confirmFillId} onClose={() => setConfirmFillId(null)} title="Mark as Filled">
+        <p className="text-sm text-gray-600 mb-6">Are you sure you want to mark this listing as filled?</p>
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={() => setConfirmFillId(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-button hover:bg-gray-200 transition-colors">Cancel</button>
+          <button onClick={() => { if (confirmFillId) { patchListing(confirmFillId, { filled: true }); setConfirmFillId(null) } }} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-button hover:bg-green-700 transition-colors">Confirm</button>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -8,6 +8,7 @@ import {
   FileText, Shield, Mail, Clock, RotateCw, RotateCcw, FlipVertical2,
 } from 'lucide-react'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
+import { Modal } from '@/components/ui/Modal'
 import { rotateImage } from '@/lib/image-rotate'
 import { createClient } from '@/lib/supabase/client'
 import { AMENITY_LABELS } from '@/lib/constants'
@@ -113,6 +114,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
 
   const [photos, setPhotos] = useState(sortedPhotos)
   const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
+  const [confirmFill, setConfirmFill] = useState(false)
 
   // Reset photos when listing changes
   useEffect(() => {
@@ -292,7 +294,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
             )}
             {isApproved && !listing.filled && (
               <button
-                onClick={() => onAction('fill')}
+                onClick={() => setConfirmFill(true)}
                 disabled={actionLoading}
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-800 hover:bg-purple-200 disabled:opacity-50"
               >
@@ -516,6 +518,13 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
           </div>
         </div>
       </div>
+      <Modal open={confirmFill} onClose={() => setConfirmFill(false)} title="Mark as Filled">
+        <p className="text-sm text-gray-600 mb-6">Are you sure you want to mark this listing as filled?</p>
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={() => setConfirmFill(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-button hover:bg-gray-200 transition-colors">Cancel</button>
+          <button onClick={() => { onAction('fill'); setConfirmFill(false) }} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-button hover:bg-green-700 transition-colors">Confirm</button>
+        </div>
+      </Modal>
     </>
   )
 }

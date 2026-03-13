@@ -79,7 +79,7 @@ function PriceMarker({
           'rounded-full font-bold whitespace-nowrap shadow-md border transition-all duration-150',
           isActive
             ? 'bg-gray-900 text-white border-gray-900 shadow-lg text-sm px-3 py-1.5 scale-110'
-            : 'bg-red-500 text-white border-red-500 hover:bg-red-600 hover:shadow-lg text-xs px-2.5 py-1',
+            : 'bg-rose-400 text-white border-rose-400 hover:bg-rose-500 hover:shadow-lg text-xs px-2.5 py-1',
         ].join(' ')}
       >
         {formatPrice(price)}
