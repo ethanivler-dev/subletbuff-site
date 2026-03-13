@@ -170,3 +170,54 @@ export function sendLeaseRejectedEmail(email: string, name: string, title: strin
   `)
   send(email, 'Lease document update', html).catch(() => {})
 }
+
+export function sendTransferRequestReceivedEmail(landlordEmail: string, landlordName: string, applicantName: string, listingTitle: string, requestId: string) {
+  const domain = isStaging ? 'staging.subletbuff.com' : 'subletbuff.com'
+  const url = `https://${domain}/landlords/portal/transfer-requests`
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">New lease transfer request</h2>
+    <p>Hi ${landlordName},</p>
+    <p><strong>${applicantName}</strong> has submitted a request to take over the lease at <strong>&ldquo;${listingTitle}&rdquo;</strong>.</p>
+    <p>Review the request in your landlord portal to approve or deny it.</p>
+    <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#B8922A;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600">Review Request &rarr;</a></p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  return send(landlordEmail, `${applicantName} wants to take over your lease at "${listingTitle}"`, html)
+}
+
+export function sendTransferRequestSubmittedEmail(applicantEmail: string, applicantName: string, listingTitle: string) {
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Transfer request submitted</h2>
+    <p>Hi ${applicantName},</p>
+    <p>Your transfer request for <strong>&ldquo;${listingTitle}&rdquo;</strong> has been submitted successfully.</p>
+    <p>The landlord will review your request and get back to you. You&rsquo;ll receive an email once they&rsquo;ve made a decision &mdash; no action is needed from you right now.</p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  return send(applicantEmail, `Transfer request submitted for "${listingTitle}"`, html)
+}
+
+export function sendTransferRequestApprovedEmail(applicantEmail: string, applicantName: string, listingTitle: string) {
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Your transfer request was approved!</h2>
+    <p>Hi ${applicantName},</p>
+    <p>Great news &mdash; your transfer request for <strong>&ldquo;${listingTitle}&rdquo;</strong> has been approved by the landlord!</p>
+    <p>Next steps: the landlord will reach out to you to finalize the lease transfer details. Keep an eye on your inbox.</p>
+    <p>Congratulations, and welcome to your new place!</p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  return send(applicantEmail, 'Great news — your transfer request was approved!', html)
+}
+
+export function sendTransferRequestDeniedEmail(applicantEmail: string, applicantName: string, listingTitle: string) {
+  const domain = isStaging ? 'staging.subletbuff.com' : 'subletbuff.com'
+  const browseUrl = `https://${domain}/listings`
+  const html = wrap(`
+    <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Update on your transfer request</h2>
+    <p>Hi ${applicantName},</p>
+    <p>Unfortunately, the landlord was unable to approve your transfer request for <strong>&ldquo;${listingTitle}&rdquo;</strong> at this time.</p>
+    <p>Don&rsquo;t be discouraged &mdash; there are plenty of other great places available on SubletBuff.</p>
+    <p style="margin:24px 0"><a href="${browseUrl}" style="display:inline-block;background:#B8922A;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600">Browse Listings &rarr;</a></p>
+    <p>&mdash; The SubletBuff Team</p>
+  `)
+  return send(applicantEmail, `Update on your transfer request for "${listingTitle}"`, html)
+}

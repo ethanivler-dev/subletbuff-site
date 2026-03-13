@@ -63,6 +63,14 @@ const neighborhoods = [
     image: '/neighborhoods/north-boulder.jpg',
   },
   {
+    slug: 'east-boulder',
+    dbName: 'East Boulder',
+    name: 'East Boulder',
+    vibe: 'Family-Friendly & Green',
+    description: 'A quiet, park-filled area east of campus along Arapahoe and Baseline. Close to tech offices, bike paths, and open space. Lower rents than central Boulder with easy bus access to CU. Great for interns, grad students, and anyone who wants space without the college-town energy.',
+    image: '/neighborhoods/east-boulder.jpg',
+  },
+  {
     slug: 'south-boulder',
     dbName: 'South Boulder',
     name: 'South Boulder',

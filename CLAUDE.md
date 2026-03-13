@@ -1,10 +1,14 @@
-# SubletBuff — Overnight Session: Landlord Dashboard
+# SubletBuff — Session: Full Tenant-to-Landlord Transfer Request Pipeline
 
 ## Task
-Build the landlord dashboard portal starting at `/app/landlords/portal/page.tsx`.
-This is a brand new feature, fully isolated from all existing functionality.
-It is gated behind an environment variable and must never be visible in production
-until Ethan manually flips the flag in Vercel.
+Build the complete end-to-end transfer request flow:
+1. Tenant submits a transfer request from a listing page
+2. Landlord gets an email notification via Resend
+3. Landlord approves or denies in the portal
+4. Tenant gets an email back with the decision
+
+When this session is complete, the entire transfer request lifecycle should
+work from start to finish with no manual steps.
 
 ---
 
@@ -13,153 +17,193 @@ until Ethan manually flips the flag in Vercel.
 - **NEVER** run `git push`, `git merge`, `git push origin main`, or any command that touches `main`
 - **NEVER** run any Vercel CLI deploy commands (`vercel --prod`, `vercel deploy`, etc.)
 - **NEVER** modify `vercel.json`, `.env.production`, or any deployment config
-- **NEVER** modify files outside `/app/landlords/`, `/components/landlord/`, and `/supabase/migrations/`
-- **NEVER** touch existing auth logic in `/app/auth/`
-- **NEVER** modify existing listings logic in `/app/listings/`
-- **NEVER** modify existing database tables — only CREATE new ones
 - All work stays on the `staging` branch only
 - If any action could affect production, STOP and add it to Needs Human Review
 - **Never ask Ethan for permission or confirmation** — make your best judgment call, document it in Needs Human Review, and keep moving
 
 ---
 
-## Feature Flag
+## Existing Schema — Read This Carefully
 
-This entire feature is gated behind:
+### profiles table
+```sql
+id UUID PRIMARY KEY REFERENCES auth.users(id)
+email TEXT
+full_name TEXT
+role TEXT DEFAULT 'student' -- 'student' | 'landlord' | 'admin'
+phone TEXT
+landlord_details JSONB
 ```
-NEXT_PUBLIC_LANDLORD_PORTAL=true
+
+### transfer_requests table (already exists)
+```sql
+id UUID PRIMARY KEY
+listing_id UUID REFERENCES listings(id)
+landlord_id UUID REFERENCES auth.users(id)
+applicant_name TEXT
+applicant_email TEXT
+unit TEXT
+status TEXT DEFAULT 'pending' -- 'pending' | 'approved' | 'denied'
+created_at TIMESTAMPTZ
 ```
 
-This flag is set to `true` in Vercel's Preview environment only. Production stays `false`.
-Every new page and route must redirect to `/` if the flag is not `true`.
+### listings table (relevant columns)
+```sql
+id UUID
+title TEXT
+lister_id UUID REFERENCES auth.users(id)
+rent_monthly INTEGER
+room_type TEXT
+neighborhood TEXT
+status TEXT -- 'approved' means active/live
+```
 
-```tsx
-if (process.env.NEXT_PUBLIC_LANDLORD_PORTAL !== 'true') {
-  redirect('/')
+---
+
+## Email System — Read This Carefully
+
+All emails live in `lib/email.ts`. The pattern is:
+
+```ts
+// 1. Build HTML using wrap()
+const html = wrap(`
+  <h2 style="font-family:Georgia,serif;color:#B8922A;margin-top:0">Title here</h2>
+  <p>Body content</p>
+`)
+
+// 2. Export a named function that calls send()
+export function sendSomeEmail(email: string, name: string, ...) {
+  return send(email, 'Subject line', html)
 }
 ```
 
----
-
-## Stack & Patterns
-
-- **Framework**: Next.js 14 App Router
-- **Database**: Supabase — use the existing client in `/lib/supabase.ts`
-- **Styling**: Tailwind CSS only — no new npm packages without flagging in Needs Human Review
-- **Email**: Resend — do not touch existing email logic
-- **Auth**: Use existing session/auth patterns — do not rewrite or modify auth
-- **Reference pattern for data fetching**: follow `/app/listings/page.tsx`
-- **Reference pattern for components**: follow existing component conventions in `/components/`
-
----
-
-## Visual Reference
-
-Fetch and read these URLs fully before writing any UI code.
-
-- **https://www.buildium.com/features/** — primary layout reference
-  - Left sidebar navigation
-  - KPI stat cards in a row at the top of the main content area
-  - Data tables below the stat cards
-  - Professional, data-dense but readable
-
-- **https://www.avail.co/landlords** — applicant review flow reference
-  - Clean applicant cards
-  - Clear approve/deny action buttons on each row
-  - Simple status indicators
-
-### Design Direction
-- Professional and data-rich like Buildium — not minimal, not a toy
-- Approachable approve/deny flow like Avail
-- Left sidebar nav, stat cards row, data table below — in that order
-- SubletBuff's existing Tailwind color scheme throughout
-- Fully mobile responsive — sidebar collapses on mobile
-
----
-
-## Phase 1 — Core Dashboard
-
-Work through these in order. Check each box as you complete it by changing `[ ]` to `[x]`.
-
-### Database
-- [x] Create migration file: `supabase/migrations/[timestamp]_create_transfer_requests.sql`
-- [x] Table `transfer_requests` with columns: `id`, `listing_id`, `landlord_id`, `applicant_name`, `applicant_email`, `unit`, `status` (enum: pending/approved/denied), `created_at`
-- [x] RLS enabled on `transfer_requests` — landlords can only see rows where `landlord_id` matches their user id
-- [x] Migration written but NOT auto-applied — add to Needs Human Review
-
-### Feature Flag Gate
-- [x] Every new page redirects to `/` if `NEXT_PUBLIC_LANDLORD_PORTAL !== 'true'`
-
-### Layout & Sidebar
-- [x] `/app/landlords/portal/layout.tsx` — sidebar + main content wrapper
-- [x] `/components/landlord/Sidebar.tsx` — nav links: Dashboard, Listings, Transfer Requests, Settings
-- [x] Active link is visually highlighted
-- [x] Sidebar collapses to bottom nav or hamburger on mobile
-
-### Stat Cards
-- [x] `/components/landlord/StatCard.tsx` — reusable KPI card component
-- [x] Three cards at top of dashboard: Active Listings, Pending Transfer Requests, Occupancy Rate
-- [x] Each card shows label, value, and a subtle supporting detail
-- [x] Occupancy Rate = active listings with tenant / total active listings
-
-### Transfer Requests Table
-- [x] `/components/landlord/TransferTable.tsx`
-- [x] Columns: Applicant Name, Email, Unit, Date Submitted, Status, Actions
-- [x] Status badge: yellow = pending, green = approved, red = denied
-- [x] Approve button updates `status` to `approved` in Supabase
-- [x] Deny button updates `status` to `denied` in Supabase
-- [x] Optimistic UI update — no full page reload
-- [x] `/components/landlord/EmptyState.tsx` — shown when no requests exist
-
-### Main Page
-- [x] `/app/landlords/portal/page.tsx` — assembles layout, stat cards, and transfer table
-- [x] Pulls real data from Supabase
-- [x] Loading state handled gracefully
-
----
-
-## Phase 2 — Additional Pages
-
-Only start after every Phase 1 box is checked.
-
-- [x] `/app/landlords/portal/listings/page.tsx` — table of landlord's active listings with Edit button per row (Edit is a placeholder)
-- [x] `/app/landlords/portal/settings/page.tsx` — landlord name, email display, notification preference toggles (UI only, no backend yet)
-- [x] Add loading skeleton components to all data-fetching components
-- [x] Audit every component for mobile responsiveness — fix any issues
-- [x] `/components/landlord/README.md` — document every component: name, props, what it does, usage example
-
----
-
-## Phase 3 — Transfer Requests Deep Dive
-
-Only start after every Phase 2 box is checked.
-
-- [x] `/app/landlords/portal/transfer-requests/page.tsx` — full page with filter tabs: All, Pending, Approved, Denied
-- [x] Filter tabs update table without page reload
-- [x] Search input filters by applicant name
-- [x] Clicking a row expands inline to show full applicant detail
-- [x] `/LANDLORD_FEATURE_NOTES.md` in project root — summarizes what was built, what is stubbed, what needs review before launch
+- FROM address is already set in the file — do not change it
+- `wrap()` handles the outer email shell — always use it
+- `isStaging` prefix on subject is handled automatically by `send()`
+- Match the existing visual style: gold headings (`#B8922A`), clean body text, gold CTA buttons
+- **Only ADD new functions to `lib/email.ts` — never modify existing ones**
 
 ---
 
 ## Allowed File Paths
 
 ```
-/app/landlords/portal/page.tsx
-/app/landlords/portal/layout.tsx
-/app/landlords/portal/listings/page.tsx
-/app/landlords/portal/settings/page.tsx
-/app/landlords/portal/transfer-requests/page.tsx
-/components/landlord/Sidebar.tsx
-/components/landlord/StatCard.tsx
-/components/landlord/TransferTable.tsx
-/components/landlord/EmptyState.tsx
-/components/landlord/README.md
-/supabase/migrations/[timestamp]_create_transfer_requests.sql
-/LANDLORD_FEATURE_NOTES.md
+lib/email.ts                                          ← ADD new functions only
+app/api/transfer-requests/route.ts                    ← new API route
+app/api/transfer-requests/[id]/approve/route.ts       ← approve endpoint
+app/api/transfer-requests/[id]/deny/route.ts          ← deny endpoint
+app/listings/[id]/RequestTransferButton.tsx           ← new client component
+app/listings/[id]/TransferRequestModal.tsx            ← new modal component
+components/landlord/TransferTable.tsx                 ← modify approve/deny to call API
 ```
 
-Do not create files outside these paths without noting the deviation in Needs Human Review.
+Do not modify any other files without adding the deviation to Needs Human Review.
+
+---
+
+## Phase 1 — Email Functions
+
+Add these four functions to `lib/email.ts`. Follow the exact same pattern
+as existing functions. Never modify existing functions.
+
+- [ ] `sendTransferRequestReceivedEmail(landlordEmail, landlordName, applicantName, listingTitle, requestId)` 
+  — sent to landlord when a new request comes in
+  - Subject: `"${applicantName} wants to take over your lease at "${listingTitle}""`
+  - Body: applicant name, listing title, gold CTA button "Review Request →" linking to `https://subletbuff.com/landlords/portal/transfer-requests`
+  - Staging uses `staging.subletbuff.com` in links
+
+- [ ] `sendTransferRequestSubmittedEmail(applicantEmail, applicantName, listingTitle)`
+  — sent to tenant confirming their request was submitted
+  - Subject: `"Transfer request submitted for "${listingTitle}""`
+  - Body: confirmation message, set expectations (landlord will review), no action needed
+
+- [ ] `sendTransferRequestApprovedEmail(applicantEmail, applicantName, listingTitle)`
+  — sent to tenant when landlord approves
+  - Subject: `"Great news — your transfer request was approved!"`
+  - Body: congratulations, next steps (contact landlord to finalize), warm tone
+
+- [ ] `sendTransferRequestDeniedEmail(applicantEmail, applicantName, listingTitle)`
+  — sent to tenant when landlord denies
+  - Subject: `"Update on your transfer request for "${listingTitle}""`
+  - Body: respectful decline message, encourage them to browse other listings, link to browse page
+
+---
+
+## Phase 2 — API Routes
+
+### POST `/api/transfer-requests` — Submit a new request
+- [ ] Create `app/api/transfer-requests/route.ts`
+- [ ] Accepts: `{ listing_id, applicant_name, applicant_email, message (optional) }`
+- [ ] Validates: user must be logged in, listing must exist and be active (status = 'approved')
+- [ ] Looks up the listing's `lister_id` to get the landlord
+- [ ] Looks up landlord's profile to get their email and name
+- [ ] Inserts row into `transfer_requests` with `status = 'pending'`
+- [ ] Calls `sendTransferRequestReceivedEmail` to notify landlord
+- [ ] Calls `sendTransferRequestSubmittedEmail` to confirm to applicant
+- [ ] Returns `{ success: true, requestId }` or error
+- [ ] Force `status = 'pending'` server-side — never trust client input for status
+
+### POST `/api/transfer-requests/[id]/approve` — Landlord approves
+- [ ] Create `app/api/transfer-requests/[id]/approve/route.ts`
+- [ ] Auth check: user must be logged in and must be the landlord for this request
+- [ ] Updates `transfer_requests` set `status = 'approved'` where id matches and landlord_id matches auth.uid()
+- [ ] Looks up applicant email and name from the request row
+- [ ] Calls `sendTransferRequestApprovedEmail` to notify applicant
+- [ ] Returns `{ success: true }` or error
+
+### POST `/api/transfer-requests/[id]/deny` — Landlord denies
+- [ ] Create `app/api/transfer-requests/[id]/deny/route.ts`
+- [ ] Auth check: same as approve — must be the landlord for this request
+- [ ] Updates `transfer_requests` set `status = 'denied'`
+- [ ] Calls `sendTransferRequestDeniedEmail` to notify applicant
+- [ ] Returns `{ success: true }` or error
+
+---
+
+## Phase 3 — Tenant-Side UI
+
+### Request Transfer Button
+- [ ] Create `app/listings/[id]/RequestTransferButton.tsx` — client component
+- [ ] Shows on the listing detail page (find the existing listing detail page and add it)
+- [ ] Only visible when user is logged in and is NOT the lister
+- [ ] Button label: "Request Lease Transfer"
+- [ ] Opens `TransferRequestModal` on click
+
+### Transfer Request Modal
+- [ ] Create `app/listings/[id]/TransferRequestModal.tsx` — client component
+- [ ] Fields:
+  - Full name (pre-filled from profile if available)
+  - Email (pre-filled from profile if available)
+  - Message to landlord (optional textarea, max 500 chars)
+- [ ] On submit: POST to `/api/transfer-requests`
+- [ ] Loading state on submit button
+- [ ] Success state: close modal, show inline success message "Request sent! The landlord will be in touch."
+- [ ] Error state: show error message inline, don't close modal
+- [ ] Match existing modal/dialog patterns in the codebase if any exist
+
+---
+
+## Phase 4 — Wire Approve/Deny in Landlord Portal
+
+The landlord portal's `TransferTable` currently has approve/deny buttons
+but they update Supabase directly from the client. Update them to call
+the new API routes instead so emails get sent.
+
+- [ ] Modify `components/landlord/TransferTable.tsx`
+- [ ] Approve button: POST to `/api/transfer-requests/[id]/approve`
+- [ ] Deny button: POST to `/api/transfer-requests/[id]/deny`
+- [ ] Keep optimistic UI update on success
+- [ ] Show error toast/message if API call fails
+- [ ] Remove direct Supabase client update — server handles it now
+
+---
+
+## Phase 5 — Seed Data for Testing (if time allows)
+
+- [ ] Write a seed SQL snippet (NOT a migration — just a comment block in LANDLORD_FEATURE_NOTES.md)
+  that Ethan can paste into Supabase SQL editor to create 2-3 test transfer requests
+  so the landlord portal table is not empty during demo
+- [ ] Seed should use real listing IDs from the listings table (query the first 3 approved listings)
 
 ---
 
@@ -167,8 +211,7 @@ Do not create files outside these paths without noting the deviation in Needs Hu
 
 1. Complete everything else on the checklist first
 2. Add the blocker to Needs Human Review
-3. Keep making progress on other items
-4. Never stop and wait — there is always something else to work on
+3. Keep making progress — never stop and wait
 
 ---
 
@@ -177,7 +220,7 @@ Do not create files outside these paths without noting the deviation in Needs Hu
 When Ethan types "give me the rundown" respond in exactly this format:
 
 ### Current Checklist State
-Reprint all three phases with current checkbox states.
+Reprint all phases with current checkbox states.
 
 ### Files Created
 Every new file — full path and one line describing what it does.
@@ -186,8 +229,7 @@ Every new file — full path and one line describing what it does.
 Every modified file — full path, what changed, and why.
 
 ### Database
-Every migration created and what it does.
-Reminder: all migrations need manual review before applying.
+Any new migrations. If none: "None — existing transfer_requests table used."
 
 ### Packages Added
 Any new npm packages. If none: "None added."
@@ -199,4 +241,4 @@ Any judgment calls that deviate from this file.
 Anything not completed and why.
 
 ### Needs Human Review
-Everything Ethan must look at before testing on staging or flipping the production flag.
+Everything Ethan must look at before testing on staging or merging to main.

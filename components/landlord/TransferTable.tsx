@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { EmptyState } from './EmptyState'
 
@@ -42,8 +41,11 @@ export function TransferTable({ initialRequests }: TransferTableProps) {
     return <EmptyState />
   }
 
+  const [errorId, setErrorId] = useState<string | null>(null)
+
   async function updateStatus(id: string, newStatus: 'approved' | 'denied') {
     setUpdatingId(id)
+    setErrorId(null)
 
     // Optimistic update
     const previous = requests
@@ -51,15 +53,20 @@ export function TransferTable({ initialRequests }: TransferTableProps) {
       prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
     )
 
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('transfer_requests')
-      .update({ status: newStatus })
-      .eq('id', id)
+    try {
+      const action = newStatus === 'approved' ? 'approve' : 'deny'
+      const res = await fetch(`/api/transfer-requests/${id}/${action}`, {
+        method: 'POST',
+      })
 
-    if (error) {
-      // Revert on failure
+      if (!res.ok) {
+        // Revert on failure
+        setRequests(previous)
+        setErrorId(id)
+      }
+    } catch {
       setRequests(previous)
+      setErrorId(id)
     }
 
     setUpdatingId(null)
@@ -102,26 +109,31 @@ export function TransferTable({ initialRequests }: TransferTableProps) {
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   {req.status === 'pending' ? (
-                    <div className="flex items-center justify-end gap-2">
-                      {updatingId === req.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => updateStatus(req.id, 'approved')}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-button bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => updateStatus(req.id, 'denied')}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-button bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                            Deny
-                          </button>
-                        </>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-2">
+                        {updatingId === req.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => updateStatus(req.id, 'approved')}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-button bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => updateStatus(req.id, 'denied')}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-button bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Deny
+                            </button>
+                          </>
+                        )}
+                      </div>
+                      {errorId === req.id && (
+                        <span className="text-xs text-red-600">Action failed — try again</span>
                       )}
                     </div>
                   ) : (
@@ -156,26 +168,31 @@ export function TransferTable({ initialRequests }: TransferTableProps) {
               </span>
             </div>
             {req.status === 'pending' && (
-              <div className="flex items-center gap-2 pt-1">
-                {updatingId === req.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                ) : (
-                  <>
-                    <button
-                      onClick={() => updateStatus(req.id, 'approved')}
-                      className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium rounded-button bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => updateStatus(req.id, 'denied')}
-                      className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium rounded-button bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      Deny
-                    </button>
-                  </>
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex items-center gap-2">
+                  {updatingId === req.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => updateStatus(req.id, 'approved')}
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium rounded-button bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => updateStatus(req.id, 'denied')}
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium rounded-button bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Deny
+                      </button>
+                    </>
+                  )}
+                </div>
+                {errorId === req.id && (
+                  <span className="text-xs text-red-600">Action failed — try again</span>
                 )}
               </div>
             )}

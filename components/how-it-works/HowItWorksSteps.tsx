@@ -43,7 +43,7 @@ const SECTIONS: Section[] = [
         Icon: Home,
         title: 'Move In',
         description:
-          'Confirm dates, sign the sublease agreement, and move in with confidence.',
+          'Confirm dates, sign the lease transfer agreement, and move in with confidence.',
       },
     ],
   },
@@ -66,9 +66,9 @@ const SECTIONS: Section[] = [
       },
       {
         Icon: UserCheck,
-        title: 'Choose Your Subletter',
+        title: 'Choose Your Replacement',
         description:
-          'Review requests, message applicants, and pick the best fit for your place.',
+          'Review transfer requests, message applicants, and pick the best fit for your place.',
       },
     ],
   },
@@ -85,15 +85,15 @@ const SECTIONS: Section[] = [
       },
       {
         Icon: ShieldCheck,
-        title: 'Approve Subtenants',
+        title: 'Approve Transfers',
         description:
-          'Review and approve every subletter from your dashboard. One-click approve or reject.',
+          'Review and approve every transfer applicant from your dashboard. One-click approve or reject.',
       },
       {
         Icon: FileText,
         title: 'Stay in Control',
         description:
-          "Auto-generated sublease agreements with your rules built in. Full visibility, zero surprises.",
+          "Auto-generated lease transfer agreements with your rules built in. Full visibility, zero surprises.",
       },
     ],
     cta: { label: 'Learn More', href: '/landlords' },

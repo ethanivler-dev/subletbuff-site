@@ -217,7 +217,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
         <div className="flex items-center gap-1 text-gray-400 text-xs">
           <Bed className="w-3.5 h-3.5 flex-shrink-0" />
           <span>{formatRoomType(room_type)}</span>
-          <span className="text-gray-300">(whole unit)</span>
           <span>·</span>
           <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
           <span className="truncate">{formatDateRange(available_from, available_to)}</span>

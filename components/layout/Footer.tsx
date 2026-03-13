@@ -19,8 +19,8 @@ export function Footer() {
               />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Boulder&apos;s short-term housing marketplace. Verified sublets for interns,
-              seasonal workers, and researchers.
+              Boulder&apos;s landlord-approved lease transfer marketplace. Verified listings for students,
+              interns, and seasonal workers.
             </p>
           </div>
 

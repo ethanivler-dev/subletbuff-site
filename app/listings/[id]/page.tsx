@@ -12,6 +12,7 @@ import { ListingGallery } from '@/components/listings/ListingGallery'
 import { AmenityGrid } from '@/components/listings/AmenityGrid'
 import { ListerProfile } from '@/components/listings/ListerProfile'
 import { MessageListerForm } from '@/components/listings/MessageListerForm'
+import { RequestTransferButton } from './RequestTransferButton'
 import { SimilarListings } from '@/components/listings/SimilarListings'
 import { ListingDetailMap, type MapListing } from '@/components/listings/ListingDetailMap'
 import type { Metadata } from 'next'
@@ -139,7 +140,15 @@ async function getListing(id: string) {
 async function getCurrentUser() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  return user ? { id: user.id, email: user.email ?? '' } : null
+  if (!user) return null
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single()
+
+  return { id: user.id, email: user.email ?? '', fullName: profile?.full_name ?? '' }
 }
 
 export async function generateMetadata({
@@ -394,12 +403,12 @@ export default async function ListingDetailPage({
                 </span>
                 {listing.bedrooms && (
                   <span className="flex items-center gap-1.5">
-                    <Bed className="w-4 h-4" /> {listing.bedrooms} bed{listing.bedrooms > 1 ? 's' : ''} <span className="text-gray-400 text-xs">(whole unit)</span>
+                    <Bed className="w-4 h-4" /> {listing.bedrooms} bed{listing.bedrooms > 1 ? 's' : ''}
                   </span>
                 )}
                 {listing.bathrooms && (
                   <span className="flex items-center gap-1.5">
-                    <Bath className="w-4 h-4" /> {listing.bathrooms} bath <span className="text-gray-400 text-xs">(whole unit)</span>
+                    <Bath className="w-4 h-4" /> {listing.bathrooms} bath
                   </span>
                 )}
                 <span className="flex items-center gap-1.5">
@@ -414,7 +423,7 @@ export default async function ListingDetailPage({
             {/* About / Description */}
             {listing.description && (
               <section>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">About This Sublet</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">About This Listing</h2>
                 <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
                   {listing.description}
                 </div>
@@ -534,6 +543,16 @@ export default async function ListingDetailPage({
               listerName={displayListerName}
               user={user}
             />
+
+            {/* Transfer request button — only for logged-in users who aren't the lister */}
+            {user && user.id !== ownerId && (
+              <RequestTransferButton
+                listingId={listing.id}
+                userId={user.id}
+                userEmail={user.email}
+                userName={user.fullName}
+              />
+            )}
 
             {/* Fee breakdown */}
             <div className="rounded-card border border-gray-200 bg-white p-5">

@@ -25,6 +25,7 @@ export function formatDateRange(from: string, to: string): string {
 /** Format room type enum → human label */
 export function formatRoomType(type: string): string {
   const map: Record<string, string> = {
+    full_apartment: 'Full Apartment',
     private_room: 'Private Room',
     shared_room: 'Shared Room',
     studio: 'Studio',

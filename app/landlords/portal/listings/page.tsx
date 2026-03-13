@@ -11,6 +11,7 @@ interface LandlordListing {
   room_type: string
   status: string
   filled: boolean
+  paused: boolean
   created_at: string
 }
 
@@ -28,7 +29,7 @@ export default async function LandlordListingsPage() {
 
   const { data } = await supabase
     .from('listings')
-    .select('id, title, neighborhood, rent_monthly, room_type, status, filled, created_at')
+    .select('id, title, neighborhood, rent_monthly, room_type, status, filled, paused, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -77,13 +78,15 @@ export default async function LandlordListingsPage() {
                         'inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-badge capitalize',
                         listing.filled
                           ? 'bg-blue-100 text-blue-800'
-                          : listing.status === 'approved'
-                            ? 'bg-green-100 text-green-800'
-                            : listing.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800',
+                          : listing.paused
+                            ? 'bg-orange-100 text-orange-800'
+                            : listing.status === 'approved'
+                              ? 'bg-green-100 text-green-800'
+                              : listing.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800',
                       ].join(' ')}>
-                        {listing.filled ? 'Filled' : listing.status}
+                        {listing.filled ? 'Filled' : listing.paused ? 'Paused' : listing.status}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
@@ -111,11 +114,13 @@ export default async function LandlordListingsPage() {
                     'inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-badge capitalize shrink-0',
                     listing.filled
                       ? 'bg-blue-100 text-blue-800'
-                      : listing.status === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800',
+                      : listing.paused
+                        ? 'bg-orange-100 text-orange-800'
+                        : listing.status === 'approved'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800',
                   ].join(' ')}>
-                    {listing.filled ? 'Filled' : listing.status}
+                    {listing.filled ? 'Filled' : listing.paused ? 'Paused' : listing.status}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500">

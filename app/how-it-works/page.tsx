@@ -20,7 +20,7 @@ export default function HowItWorksPage() {
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             SubletBuff connects CU Boulder students and interns looking for short-term housing
-            with people who have a space to share — no fees, no middlemen.
+            with people who have a space to share — simple, safe, and landlord-approved.
           </p>
         </div>
       </section>
@@ -49,7 +49,7 @@ export default function HowItWorksPage() {
               href="/post"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent-500 text-gray-900 font-semibold rounded-button hover:bg-accent-400 transition-colors text-sm"
             >
-              Post a Sublet
+              Post a Listing
             </Link>
           </div>
         </div>

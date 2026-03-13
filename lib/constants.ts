@@ -5,6 +5,7 @@ export const NEIGHBORHOODS = [
   'Chautauqua',
   'Martin Acres',
   'North Boulder',
+  'East Boulder',
   'South Boulder',
   'Downtown',
 ]
@@ -21,6 +22,8 @@ export const NEIGHBORHOOD_ALIASES: Record<string, string> = {
   'Downtown Boulder': 'Downtown',
   'Flatirons': 'Chautauqua',
   'South Boulder Creek': 'South Boulder',
+  'East Boulder': 'East Boulder',
+  'Arapahoe Ridge': 'East Boulder',
   'Baseline': 'Baseline Sub',
   'Table Mesa': 'South Boulder',
   'Pearl Street': 'Downtown',
@@ -41,6 +44,7 @@ export const QUICK_FILTERS = [
 ]
 
 export const ROOM_TYPES = [
+  { value: 'full_apartment', label: 'Full Apartment' },
   { value: 'private_room', label: 'Private Room' },
   { value: 'shared_room', label: 'Shared Room' },
   { value: 'studio', label: 'Studio' },

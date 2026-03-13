@@ -47,7 +47,7 @@ export function HeroSearch() {
         transition={{ duration: 0.4 }}
         className="font-serif text-4xl sm:text-5xl lg:text-6xl text-white text-center leading-tight drop-shadow-sm"
       >
-        Find the Perfect<br />Sublet in Boulder
+        Find Your Next Lease<br />in Boulder
       </motion.h1>
 
       {/* Search bar */}

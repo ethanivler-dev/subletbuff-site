@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/landlord/Sidebar'
+import { RoleGuard } from '@/components/landlord/RoleGuard'
 
-export default function LandlordPortalLayout({
+export default async function LandlordPortalLayout({
   children,
 }: {
   children: React.ReactNode
@@ -11,13 +12,15 @@ export default function LandlordPortalLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 min-w-0">
-          {children}
-        </main>
+    <RoleGuard>
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="flex">
+          <Sidebar />
+          <main className="flex-1 min-w-0 pt-10 lg:pt-0">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   )
 }

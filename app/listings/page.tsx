@@ -10,7 +10,7 @@ import { sanitizeListingTitle } from '@/lib/utils'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Summer Sublets in Boulder CO | Browse Verified Listings | SubletBuff',
+  title: 'Summer Sublets in Boulder CO | Browse Verified Listings',
   description: 'Browse verified summer sublets in Boulder near CU. Filter by neighborhood, price, dates, and amenities. Furnished rooms, apartments, and houses. Free to browse.',
   alternates: { canonical: '/listings' },
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, User, ChevronDown, LogOut, Shield, MessageCircle } from 'lucide-react'
+import { Menu, User, ChevronDown, LogOut, Shield, MessageCircle, Building2 } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_USER_ID, isAdmin } from '@/lib/admin'
@@ -19,6 +19,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [isAdminUser, setIsAdminUser] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -48,6 +49,13 @@ export function Navbar() {
             .maybeSingle()
           setIsAdminUser(!!row)
         }
+        // Fetch user role for landlord portal link
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+        if (profile) setUserRole(profile.role)
       }
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -230,6 +238,16 @@ export function Navbar() {
                       >
                         My Listings
                       </Link>
+                      {process.env.NEXT_PUBLIC_LANDLORD_PORTAL === 'true' && (
+                        <Link
+                          href={userRole === 'landlord' ? '/landlords/portal' : '/landlords/onboard'}
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          <Building2 className="w-4 h-4" />
+                          Landlord Portal
+                        </Link>
+                      )}
                       {isAdminUser && (
                         <Link
                           href="/admin"
