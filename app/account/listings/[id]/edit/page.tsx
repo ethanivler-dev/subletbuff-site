@@ -13,6 +13,7 @@ import {
 import { NEIGHBORHOODS, ROOM_TYPES, AMENITIES, AMENITY_LABELS } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage } from '@/lib/image-rotate'
+import { convertHeicToJpeg, isHeic } from '@/components/post/StepPhotos'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 
@@ -324,8 +325,11 @@ export default function EditListingPage() {
 
     try {
       let currentOrder = photos.length
-      for (const file of Array.from(files)) {
+      for (let file of Array.from(files)) {
         try {
+          if (isHeic(file)) {
+            try { file = await convertHeicToJpeg(file) } catch { toast('Failed to convert HEIC image', 'error'); continue }
+          }
           const formData = new FormData()
           formData.append('file', file)
           const res = await fetch('/api/upload', { method: 'POST', body: formData })

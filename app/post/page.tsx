@@ -520,6 +520,7 @@ export default function PostListingPage() {
             leaseDocPath={leaseDocPath || undefined}
             eduEmail={eduEmail}
             onLeaseUpload={setLeaseDocPath}
+            onLeaseRemove={() => setLeaseDocPath('')}
             onEduVerified={setEduEmail}
             onSkip={nextStep}
           />

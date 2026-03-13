@@ -2,8 +2,11 @@
 
 import { useCallback, useState, useRef } from 'react'
 import Image from 'next/image'
-import { Upload, X, GripVertical, AlertCircle, RotateCw, RotateCcw, FlipVertical2 } from 'lucide-react'
+import { Upload, X, GripVertical, AlertCircle, RotateCw, RotateCcw, FlipVertical2, Crop as CropIcon, Loader2 } from 'lucide-react'
+import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
 import { rotateImage } from '@/lib/image-rotate'
+import { Modal } from '@/components/ui/Modal'
 
 export interface PhotoItem {
   file?: File
@@ -22,7 +25,7 @@ interface StepPhotosProps {
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 
-function isHeic(file: File): boolean {
+export function isHeic(file: File): boolean {
   return (
     file.type === 'image/heic' ||
     file.type === 'image/heif' ||
@@ -32,7 +35,7 @@ function isHeic(file: File): boolean {
 
 type Heic2AnyFn = (opts: { blob: Blob; toType: string; quality: number }) => Promise<Blob | Blob[]>
 
-async function convertHeicToJpeg(file: File): Promise<File> {
+export async function convertHeicToJpeg(file: File): Promise<File> {
   try {
     const mod = await import('heic2any')
     // heic2any may be the function directly (CJS) or under .default (ESM)
@@ -56,6 +59,13 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
   const [rotatingIndex, setRotatingIndex] = useState<number | null>(null)
   const dragIndexRef = useRef<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  // Crop state
+  const [cropPhotoIndex, setCropPhotoIndex] = useState<number | null>(null)
+  const [crop, setCrop] = useState<Crop>()
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
+  const [cropAspect, setCropAspect] = useState<number | undefined>(undefined)
+  const cropImgRef = useRef<HTMLImageElement>(null)
+  const [croppingInProgress, setCroppingInProgress] = useState(false)
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     setUploadError('')
@@ -189,6 +199,67 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
       setUploadError('Failed to rotate image')
     } finally {
       setRotatingIndex(null)
+    }
+  }
+
+  function openCrop(index: number) {
+    const photo = photos[index]
+    if (!photo || photo.uploading) return
+    setCropPhotoIndex(index)
+    setCrop(undefined)
+    setCompletedCrop(undefined)
+    setCropAspect(undefined)
+  }
+
+  async function applyCrop() {
+    if (cropPhotoIndex === null || !completedCrop || !cropImgRef.current) return
+    setCroppingInProgress(true)
+    const photo = photos[cropPhotoIndex]
+    try {
+      const image = cropImgRef.current
+      const canvas = document.createElement('canvas')
+      const scaleX = image.naturalWidth / image.width
+      const scaleY = image.naturalHeight / image.height
+      canvas.width = completedCrop.width * scaleX
+      canvas.height = completedCrop.height * scaleY
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(image,
+        completedCrop.x * scaleX, completedCrop.y * scaleY,
+        completedCrop.width * scaleX, completedCrop.height * scaleY,
+        0, 0, canvas.width, canvas.height)
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.92)
+      })
+      if (photo.url.startsWith('blob:')) URL.revokeObjectURL(photo.url)
+      const newUrl = URL.createObjectURL(blob)
+      const newFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' })
+      let updatedPhoto: PhotoItem = { ...photo, url: newUrl, file: newFile }
+      if (photo.storagePath) {
+        updatedPhoto = { ...updatedPhoto, uploading: true }
+        onChange(photos.map((p, i) => (i === cropPhotoIndex ? updatedPhoto : p)))
+        const formData = new FormData()
+        formData.append('file', newFile)
+        formData.append('storagePath', photo.storagePath)
+        try {
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (res.ok) {
+            updatedPhoto = { ...updatedPhoto, url: data.url, storagePath: data.storage_path, uploading: false }
+          } else {
+            updatedPhoto = { ...updatedPhoto, uploading: false }
+            setUploadError(`Re-upload failed: ${data.error || res.statusText}`)
+          }
+        } catch {
+          updatedPhoto = { ...updatedPhoto, uploading: false }
+          setUploadError('Re-upload failed: network error')
+        }
+      }
+      onChange(photos.map((p, i) => (i === cropPhotoIndex ? updatedPhoto : p)))
+      setCropPhotoIndex(null)
+    } catch {
+      setUploadError('Failed to crop image')
+    } finally {
+      setCroppingInProgress(false)
     }
   }
 
@@ -327,9 +398,16 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
-                {/* Rotate buttons */}
+                {/* Crop & Rotate buttons */}
                 {!photo.uploading && rotatingIndex !== i && (
                   <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openCrop(i) }}
+                      className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                      aria-label="Crop photo"
+                    >
+                      <CropIcon className="w-3 h-3" />
+                    </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleRotate(i, -90) }}
                       className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
@@ -385,6 +463,41 @@ export function StepPhotos({ photos, onChange, error }: StepPhotosProps) {
         {photos.length} of 3 minimum photos uploaded
         {photos.length >= 3 && ' ✓'}
       </p>
+
+      <Modal open={cropPhotoIndex !== null} onClose={() => setCropPhotoIndex(null)} title="Crop Photo">
+        {cropPhotoIndex !== null && photos[cropPhotoIndex] && (
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-2">
+              {[
+                { label: 'Free', value: undefined },
+                { label: '4:3', value: 4 / 3 },
+                { label: '16:9', value: 16 / 9 },
+                { label: '1:1', value: 1 },
+              ].map((preset) => (
+                <button key={preset.label} onClick={() => { setCropAspect(preset.value); setCrop(undefined); setCompletedCrop(undefined) }}
+                  className={['px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors',
+                    cropAspect === preset.value ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-gray-400'].join(' ')}>
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <div className="max-h-[60vh] overflow-auto">
+              <ReactCrop crop={crop} onChange={(c) => setCrop(c)} onComplete={(c) => setCompletedCrop(c)} aspect={cropAspect}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img ref={cropImgRef} src={photos[cropPhotoIndex].url} alt="Crop preview" className="max-w-full" crossOrigin="anonymous" />
+              </ReactCrop>
+            </div>
+            <div className="flex items-center gap-3 justify-end">
+              <button onClick={() => setCropPhotoIndex(null)} className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+              <button onClick={applyCrop} disabled={!completedCrop || croppingInProgress}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2">
+                {croppingInProgress && <Loader2 className="w-4 h-4 animate-spin" />}
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
