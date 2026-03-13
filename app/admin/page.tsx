@@ -62,7 +62,7 @@ interface AdminListing {
   pets: string | null
   admin_flag: string | null
   admin_notes: string | null
-  auto_price_reduction: boolean | null
+  auto_reduce_enabled: boolean | null
   created_device: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean }> | null
 }
@@ -535,7 +535,7 @@ export default function AdminDashboard() {
                               <Flag className="w-3 h-3" /> Urgent
                             </span>
                           )}
-                          {listing.auto_price_reduction && (
+                          {listing.auto_reduce_enabled && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
                               Auto-reduce
                             </span>
