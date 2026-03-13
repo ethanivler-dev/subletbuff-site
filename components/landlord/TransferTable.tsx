@@ -36,12 +36,11 @@ function StatusBadge({ status }: { status: TransferRequest['status'] }) {
 export function TransferTable({ initialRequests }: TransferTableProps) {
   const [requests, setRequests] = useState(initialRequests)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [errorId, setErrorId] = useState<string | null>(null)
 
   if (requests.length === 0) {
     return <EmptyState />
   }
-
-  const [errorId, setErrorId] = useState<string | null>(null)
 
   async function updateStatus(id: string, newStatus: 'approved' | 'denied') {
     setUpdatingId(id)
