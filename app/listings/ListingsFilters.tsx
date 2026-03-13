@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { ChevronDown, ChevronUp, Bell, Check } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp, Bell, Check } from 'lucide-react'
 import { ROOM_TYPES, NEIGHBORHOODS } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/client'
 
@@ -35,17 +35,24 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [showMore, setShowMore] = useState(false)
+  const [searchQuery, setSearchQuery] = useState(params.q ?? '')
   const [priceRange, setPriceRange] = useState<[number, number]>([
     params.price_min ? parseInt(params.price_min) : PRICE_MIN,
     params.price_max ? parseInt(params.price_max) : PRICE_MAX,
   ])
   const priceDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'login'>('idle')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setIsLoggedIn(!!data.user))
   }, [])
+
+  // Keep local search query in sync when URL params change externally
+  useEffect(() => {
+    setSearchQuery(params.q ?? '')
+  }, [params.q])
 
   function update(key: string, value: string | null) {
     const sp = new URLSearchParams()
@@ -85,13 +92,63 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
       ? '(any)'
       : `$${priceRange[0].toLocaleString()} – ${priceRange[1] >= PRICE_MAX ? '$3k+' : '$' + priceRange[1].toLocaleString()}`
 
+  function handleSearchChange(value: string) {
+    setSearchQuery(value)
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    searchDebounce.current = setTimeout(() => {
+      const sp = new URLSearchParams()
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined) sp.set(k, v)
+      }
+      if (value.trim()) sp.set('q', value.trim())
+      else sp.delete('q')
+      sp.delete('page') // reset to page 1 on new search
+      router.push(`${pathname}?${sp.toString()}`)
+    }, 350)
+  }
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    const sp = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined) sp.set(k, v)
+    }
+    if (searchQuery.trim()) sp.set('q', searchQuery.trim())
+    else sp.delete('q')
+    sp.delete('page')
+    router.push(`${pathname}?${sp.toString()}`)
+  }
+
   return (
     <div className="flex flex-col gap-3">
+      {/* Search bar */}
+      <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full bg-white border border-gray-200 rounded-full px-4 py-2.5 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all">
+        <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search by title, neighborhood, or keyword..."
+          className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => handleSearchChange('')}
+            className="text-gray-400 hover:text-gray-600 text-sm font-medium flex-shrink-0"
+          >
+            Clear
+          </button>
+        )}
+      </form>
+
       {/* Clear all — shown above filters when active */}
       {hasFilters && (
         <button
           onClick={() => {
             setPriceRange([PRICE_MIN, PRICE_MAX])
+            setSearchQuery('')
             router.push(pathname)
           }}
           className="self-start text-sm text-primary-600 hover:text-primary-800 font-medium transition-colors"
