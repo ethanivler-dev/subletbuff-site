@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
-import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/lib/utils'
+import { formatRent, formatDate, formatDateRange, sanitizeListingTitle, formatRoomType } from '@/lib/utils'
 import {
   Eye, Heart, MessageSquare, TrendingUp,
   Plus, Star, ArrowLeft, ExternalLink, Pencil,
@@ -18,6 +18,7 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from 'recharts'
 import { useToast } from '@/components/ui/Toast'
+import { FacebookShareButtons } from '@/components/listings/FacebookShareButtons'
 import { Modal } from '@/components/ui/Modal'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
@@ -32,6 +33,12 @@ interface UserListing {
   neighborhood: string
   rent_monthly: number | null
   monthly_rent: number | null
+  bedrooms: number | null
+  bathrooms: number | null
+  available_from: string | null
+  available_to: string | null
+  start_date: string | null
+  end_date: string | null
   status: string
   paused: boolean
   filled: boolean
@@ -94,7 +101,9 @@ export default function ListerDashboardPage() {
       .from('listings')
       .select(`
         id, title, room_type, neighborhood,
-        rent_monthly, monthly_rent, status, paused, filled, created_at,
+        rent_monthly, monthly_rent, bedrooms, bathrooms,
+        available_from, available_to, start_date, end_date,
+        status, paused, filled, created_at,
         listing_photos (url, is_primary, display_order)
       `)
       .or(`user_id.eq.${userId},lister_id.eq.${userId}`)
@@ -507,6 +516,29 @@ export default function ListerDashboardPage() {
                         </span>
                       </div>
 
+                      {/* Facebook crosspost */}
+                      {isActive && (
+                        <div className="mb-3">
+                          <FacebookShareButtons
+                            compact
+                            listingUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/listings/${listing.id}`}
+                            title={title}
+                            price={rent ?? 0}
+                            neighborhood={listing.neighborhood}
+                            bedrooms={listing.bedrooms}
+                            bathrooms={listing.bathrooms}
+                            dateRange={
+                              (listing.available_from ?? listing.start_date) && (listing.available_to ?? listing.end_date)
+                                ? formatDateRange(
+                                    (listing.available_from ?? listing.start_date)!,
+                                    (listing.available_to ?? listing.end_date)!
+                                  )
+                                : 'Dates flexible'
+                            }
+                          />
+                        </div>
+                      )}
+
                       {/* Action buttons row — Edit is prominent */}
                       <div className="flex items-center gap-2">
                         {!listing.filled && (
@@ -763,6 +795,27 @@ export default function ListerDashboardPage() {
                                       <Pencil className="w-3.5 h-3.5" />
                                       Edit Listing
                                     </Link>
+                                  )}
+                                  {listing.status === 'approved' && !listing.paused && !listing.filled && (
+                                    <div className="px-3 py-2">
+                                      <FacebookShareButtons
+                                        compact
+                                        listingUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/listings/${listing.id}`}
+                                        title={title}
+                                        price={rent ?? 0}
+                                        neighborhood={listing.neighborhood}
+                                        bedrooms={listing.bedrooms}
+                                        bathrooms={listing.bathrooms}
+                                        dateRange={
+                                          (listing.available_from ?? listing.start_date) && (listing.available_to ?? listing.end_date)
+                                            ? formatDateRange(
+                                                (listing.available_from ?? listing.start_date)!,
+                                                (listing.available_to ?? listing.end_date)!
+                                              )
+                                            : 'Dates flexible'
+                                        }
+                                      />
+                                    </div>
                                   )}
                                   {listing.status === 'approved' && !listing.filled && (
                                     <button
