@@ -192,10 +192,10 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 overflow-y-auto">
+      {/* Panel - full screen on mobile, slide-over on desktop */}
+      <div className="fixed inset-0 md:inset-auto md:top-0 md:right-0 md:h-full md:w-full md:max-w-lg bg-white shadow-2xl z-50 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3 min-w-0">
             <StatusBadge listing={listing} />
             {listing.admin_flag === 'needs_email' && (
@@ -222,7 +222,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-6">
+        <div className="px-4 md:px-6 py-4 md:py-5 space-y-5 md:space-y-6">
           {/* Photos */}
           {photos.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
@@ -276,7 +276,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
           </div>
 
           {/* Quick actions */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 md:gap-2">
             {isPending && (
               <>
                 <button

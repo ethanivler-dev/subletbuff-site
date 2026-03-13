@@ -343,11 +343,11 @@ export default function AdminDashboard() {
   })()
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="font-serif text-2xl text-gray-900">Listings</h1>
+          <h1 className="font-serif text-xl md:text-2xl text-gray-900">Listings</h1>
           <p className="text-sm text-gray-500 mt-1">
             {loading ? 'Loading...' : (
               <><span className="font-semibold text-gray-900">{listings.length}</span> listing{listings.length !== 1 ? 's' : ''}</>
@@ -356,13 +356,13 @@ export default function AdminDashboard() {
         </div>
         <Button variant="secondary" size="sm" onClick={() => fetchListings(tab, search)} disabled={loading}>
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 
       {/* Stat cards */}
       {!loading && (
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-4 md:mb-6">
           {stats.map((s) => (
             <div key={s.label} className={`rounded-card px-4 py-3 ${s.color} border border-gray-200`}>
               <p className="text-xs font-medium opacity-70">{s.label}</p>
@@ -373,55 +373,63 @@ export default function AdminDashboard() {
       )}
 
       {/* Tabs + Search */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex gap-1 bg-white rounded-button border border-gray-200 p-1">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={[
-                'px-3 py-1.5 text-sm font-medium rounded-button transition-colors',
-                tab === t.key ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100',
-              ].join(' ')}
+      <div className="flex flex-col gap-3 mb-4 md:mb-6">
+        {/* Tabs row - horizontally scrollable on mobile */}
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex gap-1 bg-white rounded-button border border-gray-200 p-1 w-max md:w-auto">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={[
+                  'px-3 py-1.5 text-sm font-medium rounded-button transition-colors whitespace-nowrap',
+                  tab === t.key ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100',
+                ].join(' ')}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Search + Filters row */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search title, neighborhood, lister, address..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-button focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            />
+          </div>
+          <div className="flex gap-2">
+            {/* Flag filter */}
+            <select
+              value={flagFilter}
+              onChange={(e) => setFlagFilter(e.target.value as FlagFilter)}
+              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-200 rounded-button bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
-              {t.label}
-            </button>
-          ))}
+              <option value="all">All Flags</option>
+              <option value="flagged">Flagged Only</option>
+              <option value="unflagged">Unflagged Only</option>
+              <option value="needs_email">Needs Email</option>
+              <option value="waiting_response">Waiting Response</option>
+              <option value="note">Note</option>
+              <option value="urgent">Urgent</option>
+            </select>
+            {/* Sort */}
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value as SortOption)}
+              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-200 rounded-button bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="created_at">Sort: Newest</option>
+              <option value="flagged_first">Sort: Flagged</option>
+              <option value="flag_type">Sort: Flag Type</option>
+            </select>
+          </div>
         </div>
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search title, neighborhood, lister, address..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-button focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-          />
-        </div>
-        {/* Flag filter */}
-        <select
-          value={flagFilter}
-          onChange={(e) => setFlagFilter(e.target.value as FlagFilter)}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-button bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="all">All Flags</option>
-          <option value="flagged">Flagged Only</option>
-          <option value="unflagged">Unflagged Only</option>
-          <option value="needs_email">Needs Email</option>
-          <option value="waiting_response">Waiting Response</option>
-          <option value="note">Note</option>
-          <option value="urgent">Urgent</option>
-        </select>
-        {/* Sort */}
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value as SortOption)}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-button bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="created_at">Sort: Newest First</option>
-          <option value="flagged_first">Sort: Flagged First</option>
-          <option value="flag_type">Sort: Flag Type</option>
-        </select>
       </div>
 
       {/* Empty state */}
@@ -433,9 +441,137 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Listing table */}
+      {/* Mobile card layout */}
       {displayListings.length > 0 && (
-        <div className="bg-white rounded-card shadow-card overflow-hidden">
+        <div className="md:hidden space-y-2">
+          {displayListings.map((listing) => {
+            const coverUrl = getCoverUrl(listing)
+            const status = getStatus(listing)
+            const isActioning = actionLoading === listing.id
+            const isPending = listing.status === 'pending'
+
+            return (
+              <div
+                key={listing.id}
+                onClick={() => setSelectedListing(listing)}
+                className="bg-white rounded-card shadow-card p-3 cursor-pointer active:bg-gray-50 transition-colors"
+              >
+                <div className="flex gap-3">
+                  {/* Cover photo */}
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                    {coverUrl ? (
+                      <Image src={coverUrl} alt="" fill className="object-cover" sizes="64px" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-gray-900 text-sm truncate">{listing.title || '(no title)'}</p>
+                      <span className="font-semibold text-gray-900 text-sm whitespace-nowrap">{getRent(listing)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {formatRoomType(listing.room_type ?? 'private_room')}
+                      {listing.neighborhood ? ` · ${listing.neighborhood}` : ''}
+                    </p>
+
+                    {/* Badges */}
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                        {status.label}
+                      </span>
+                      {listing.test_listing && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Test
+                        </span>
+                      )}
+                      {listing.lease_status === 'pending' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Lease
+                        </span>
+                      )}
+                      {listing.admin_flag === 'needs_email' && (
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          <Mail className="w-3 h-3" /> Email
+                        </span>
+                      )}
+                      {listing.admin_flag === 'waiting_response' && (
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                          <Clock className="w-3 h-3" /> Waiting
+                        </span>
+                      )}
+                      {listing.admin_flag === 'note' && (
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                          <FileText className="w-3 h-3" /> Note
+                        </span>
+                      )}
+                      {listing.admin_flag === 'urgent' && (
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <Flag className="w-3 h-3" /> Urgent
+                        </span>
+                      )}
+                      {listing.auto_reduce_enabled && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                          Auto-reduce
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom row: lister + date + quick actions */}
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                  <div className="text-xs text-gray-500 truncate">
+                    {getOwner(listing)}
+                    {listing.created_at && (
+                      <> · {new Date(listing.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+                    )}
+                  </div>
+                  {/* Quick action buttons for mobile */}
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {isPending && (
+                      <>
+                        <button
+                          onClick={() => handleAction(listing.id, 'approve')}
+                          disabled={isActioning}
+                          className="p-1.5 rounded hover:bg-green-100 text-green-600 transition-colors disabled:opacity-50"
+                          title="Approve"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleAction(listing.id, 'reject')}
+                          disabled={isActioning}
+                          className="p-1.5 rounded hover:bg-red-100 text-red-500 transition-colors disabled:opacity-50"
+                          title="Reject"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    <Link
+                      href={`/listings/${listing.id}`}
+                      target="_blank"
+                      className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"
+                      title="View listing"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Desktop listing table */}
+      {displayListings.length > 0 && (
+        <div className="hidden md:block bg-white rounded-card shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
