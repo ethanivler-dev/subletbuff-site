@@ -24,6 +24,8 @@ export interface ListingCardData {
   verification_level?: string
   is_saved?: boolean
   save_count?: number
+  latitude?: number
+  longitude?: number
   public_latitude?: number
   public_longitude?: number
   original_rent_monthly?: number
