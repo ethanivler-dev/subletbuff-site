@@ -26,6 +26,8 @@ interface ListingDetailRow {
   title: string | null
   description: string | null
   neighborhood: string | null
+  latitude: number | null
+  longitude: number | null
   public_latitude: number | null
   public_longitude: number | null
   room_type: string | null
@@ -81,7 +83,7 @@ async function getListing(id: string) {
     .from('listings')
     .select(`
       id, title, description, neighborhood,
-      public_latitude, public_longitude,
+      latitude, longitude, public_latitude, public_longitude,
       room_type, bedrooms, bathrooms, sqft,
       rent_monthly, monthly_rent, deposit, security_deposit,
       utilities_included, utilities_estimate,
