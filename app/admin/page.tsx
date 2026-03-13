@@ -559,9 +559,9 @@ export default function AdminDashboard() {
                       {/* Device */}
                       <td className="px-2 py-3 hidden xl:table-cell text-center">
                         {listing.created_device === 'mobile' ? (
-                          <Smartphone className="w-4 h-4 text-gray-400 mx-auto" title="Created on mobile" />
+                          <span title="Created on mobile"><Smartphone className="w-4 h-4 text-gray-400 mx-auto" /></span>
                         ) : listing.created_device === 'desktop' ? (
-                          <Monitor className="w-4 h-4 text-gray-400 mx-auto" title="Created on desktop" />
+                          <span title="Created on desktop"><Monitor className="w-4 h-4 text-gray-400 mx-auto" /></span>
                         ) : (
                           <span className="text-gray-300">—</span>
                         )}
