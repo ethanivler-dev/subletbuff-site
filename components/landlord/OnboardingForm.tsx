@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 const UNIT_OPTIONS = ['1-5', '6-20', '21-50', '50+']
 const REFERRAL_OPTIONS = [
@@ -33,31 +32,27 @@ export function OnboardingForm({
     setLoading(true)
     setError('')
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      setError('You must be logged in.')
-      setLoading(false)
-      return
-    }
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        role: 'landlord',
-        full_name: fullName || null,
-        phone: phone || null,
-        landlord_details: {
-          company: company || null,
-          units: units || null,
-          referral_source: referral || null,
-        },
-        updated_at: new Date().toISOString(),
+    try {
+      const res = await fetch('/api/landlords/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName,
+          phone,
+          company,
+          units,
+          referral_source: referral,
+        }),
       })
-      .eq('id', user.id)
 
-    if (updateError) {
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong. Please try again.')
+        setLoading(false)
+        return
+      }
+    } catch {
       setError('Something went wrong. Please try again.')
       setLoading(false)
       return

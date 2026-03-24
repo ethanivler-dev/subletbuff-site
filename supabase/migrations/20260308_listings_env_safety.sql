@@ -35,11 +35,6 @@ BEGIN
     RETURN false;
   END IF;
 
-  -- Hardcoded fallback admin from app config.
-  IF p_user_id = '4943eb7b-d0bd-40c6-95ce-a0f04471754e'::UUID THEN
-    RETURN true;
-  END IF;
-
   SELECT to_regclass('public.admins') IS NOT NULL INTO has_admins_table;
 
   IF has_admins_table THEN
