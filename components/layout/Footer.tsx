@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="bg-gray-900 text-white">
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
           {/* Col 1: Logo + tagline */}
           <div className="flex flex-col gap-4 min-w-0">
             <div className="flex-shrink-0">
@@ -95,32 +95,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Col 4: For Landlords */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-              For Landlords
-            </h3>
-            <ul className="flex flex-col gap-0">
-              <li>
-                <Link href="/landlords" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">
-                  Why SubletBuff
-                </Link>
-              </li>
-              <li>
-                <Link href="/landlords" className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2">
-                  Landlord Login
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="mailto:subletbuff@gmail.com"
-                  className="text-sm text-gray-300 hover:text-white transition-colors inline-block py-2"
-                >
-                  Contact Us
-                </a>
-              </li>
-            </ul>
-          </div>
         </div>
 
         {/* Fair Housing Statement */}
