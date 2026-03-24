@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminServer } from '@/lib/admin'
 
@@ -85,7 +86,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This user is already an admin' }, { status: 409 })
   }
 
-  const { error } = await supabase
+  // Use service role to bypass RLS — admins table only allows SELECT for authenticated users
+  const serviceClient = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { error } = await serviceClient
     .from('admins')
     .insert({ id: profile.id, email: profile.email, added_by: user.id })
 

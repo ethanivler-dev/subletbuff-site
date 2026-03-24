@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminServer } from '@/lib/admin'
 
@@ -22,7 +23,12 @@ export async function DELETE(
     return NextResponse.json({ error: 'You cannot remove yourself as admin' }, { status: 400 })
   }
 
-  const { error } = await supabase
+  // Use service role to bypass RLS — admins table only allows SELECT for authenticated users
+  const serviceClient = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { error } = await serviceClient
     .from('admins')
     .delete()
     .eq('id', id)
