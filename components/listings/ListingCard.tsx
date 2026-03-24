@@ -17,7 +17,6 @@ export interface ListingCardData {
   available_to: string
   furnished: boolean | string
   is_featured: boolean
-  is_intern_friendly: boolean
   immediate_movein: boolean
   start_date?: string
   primary_photo_url?: string
@@ -50,7 +49,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
     available_to,
     furnished,
     is_featured,
-    is_intern_friendly,
     immediate_movein,
     primary_photo_url,
     verification_level,
@@ -151,7 +149,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
             {verification_level && verification_level !== 'basic' && (
               <Badge variant={verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
             )}
-            {is_intern_friendly && <Badge variant="intern_friendly" />}
             {isImmediate && <Badge variant="immediate" />}
             {isFurnished && <Badge variant="furnished" />}
           </div>
@@ -243,7 +240,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
           {verification_level && verification_level !== 'basic' && (
             <Badge variant={verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
           )}
-          {is_intern_friendly && <Badge variant="intern_friendly" />}
           {isFurnished && <Badge variant="furnished" />}
           {isImmediate && <Badge variant="immediate" />}
         </div>

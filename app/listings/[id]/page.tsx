@@ -368,7 +368,6 @@ export default async function ListingDetailPage({
                 {listing.lease_status === 'verified' && <Badge variant="lease_verified" />}
                 {listing.verified && <Badge variant="verified" />}
                 {listing.is_featured && <Badge variant="featured" />}
-                {listing.is_intern_friendly && <Badge variant="intern_friendly" />}
                 {isFurnished && <Badge variant="furnished" />}
                 {(() => {
                   const today = new Date()

@@ -50,7 +50,6 @@ const INITIAL_DETAILS: DetailsData = {
   utilities_estimate: '',
   house_rules: '',
   roommate_info: '',
-  is_intern_friendly: false,
   immediate_movein: false,
 }
 
@@ -356,7 +355,6 @@ export default function PostListingPage() {
           utilities_estimate: details.utilities_estimate ? parseInt(details.utilities_estimate) : null,
           house_rules: details.house_rules || null,
           roommate_info: details.roommate_info || null,
-          is_intern_friendly: details.is_intern_friendly,
           immediate_movein: details.immediate_movein,
 
           // === Auto price reduction ===

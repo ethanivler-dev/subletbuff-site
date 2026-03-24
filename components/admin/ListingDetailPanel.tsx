@@ -518,9 +518,6 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
 
           {/* Flags */}
           <div className="flex flex-wrap gap-2 text-xs pb-4">
-            {listing.is_intern_friendly && (
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Intern Friendly</span>
-            )}
             {listing.immediate_movein && (
               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">Immediate Move-in</span>
             )}

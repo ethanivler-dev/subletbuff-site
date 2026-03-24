@@ -621,10 +621,6 @@ export default function AdminEditListingPage() {
                 Utilities Included
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" checked={isInternFriendly} onChange={(e) => setIsInternFriendly(e.target.checked)} className={checkboxClass} />
-                Intern Friendly
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={immediateMovein} onChange={(e) => setImmediateMovein(e.target.checked)} className={checkboxClass} />
                 Immediate Move-in
               </label>

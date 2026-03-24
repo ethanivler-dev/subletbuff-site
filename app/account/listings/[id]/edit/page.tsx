@@ -992,7 +992,6 @@ export default function EditListingPage() {
 
             {/* Tier 2 toggles */}
             <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
-              <Toggle label="Intern-Friendly" checked={isInternFriendly} onChange={setIsInternFriendly} />
               <div className="flex flex-col gap-1">
                 <Toggle
                   label="Immediate Move-In"

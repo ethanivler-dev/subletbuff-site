@@ -237,7 +237,7 @@ export function ListingsMapView({ listings, total, params, page, totalPages }: P
   const hasActiveFilters = !!(
     params.q || params.neighborhood || params.price_min || params.price_max ||
     params.room_type || params.filter || params.date_from || params.date_to ||
-    params.min_stay || params.furnished || params.intern_friendly || params.parking
+    params.min_stay || params.furnished || params.parking
   )
 
   const cardList =

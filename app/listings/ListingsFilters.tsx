@@ -84,7 +84,7 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
     params.price_min || params.price_max ||
     params.room_type || params.filter || params.min_stay ||
     params.neighborhood || params.date_from || params.date_to ||
-    params.furnished || params.intern_friendly || params.parking || params.q
+    params.furnished || params.parking || params.q
   )
 
   const priceLabel =
@@ -293,12 +293,6 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
             label="Near Campus"
             active={params.filter === 'near_campus'}
             onClick={() => update('filter', params.filter === 'near_campus' ? null : 'near_campus')}
-          />
-          <CheckPill
-            label="Intern-Friendly"
-            active={params.intern_friendly === 'true'}
-            onClick={() => update('intern_friendly', params.intern_friendly === 'true' ? null : 'true')}
-            title="Short-term stays welcome — flexible lease lengths and no long-term commitment required"
           />
           <CheckPill
             label="Parking"

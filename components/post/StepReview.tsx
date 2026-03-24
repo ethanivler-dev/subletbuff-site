@@ -77,7 +77,6 @@ export function StepReview({ basicInfo, details, photos, leaseDocPath, onEdit, o
         <p className="text-sm text-gray-600 line-clamp-4 mb-3">{details.description || 'No description'}</p>
         <div className="flex flex-wrap gap-2">
           {details.furnished && <Badge variant="furnished" />}
-          {details.is_intern_friendly && <Badge variant="intern_friendly" />}
           {details.immediate_movein && <Badge variant="immediate" />}
           {details.amenities.map((a) => (
             <span key={a} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-badge">
