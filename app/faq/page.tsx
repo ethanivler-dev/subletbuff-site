@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: 'Is SubletBuff free?',
-    a: 'Yes. It\'s completely free to browse listings, post a sublet, and message other users. There are no listing fees, facilitation fees, or hidden charges.',
+    a: 'Yes. SubletBuff is completely free — browsing, posting, and messaging all cost nothing. There are no listing fees, facilitation fees, or hidden charges.',
   },
   {
     q: 'How do I post a listing?',

@@ -79,7 +79,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-3 text-gray-600">
               <Eye className="w-6 h-6 text-primary-600 flex-shrink-0" />
-              <span className="text-sm font-medium">Free to browse</span>
+              <span className="text-sm font-medium">Completely free</span>
             </div>
             <div className="flex items-center gap-3 text-gray-600">
               <MapPin className="w-6 h-6 text-primary-600 flex-shrink-0" />
