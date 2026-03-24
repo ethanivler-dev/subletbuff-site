@@ -2,7 +2,7 @@ import {
   Search, MessageSquare, Home,
   Camera, Shield, UserCheck,
   ClipboardCheck, ShieldCheck, FileText,
-  ArrowRight,
+  ArrowRight, Info,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
@@ -18,6 +18,7 @@ interface Section {
   bg: string
   accent: string
   steps: Step[]
+  tip?: string
   cta?: { label: string; href: string }
 }
 
@@ -71,6 +72,7 @@ const SECTIONS: Section[] = [
           'Review transfer requests, message applicants, and pick the best fit for your place.',
       },
     ],
+    tip: 'Each listing is for one person, one room. If your unit has multiple rooms, each roommate should submit their own room as a separate listing.',
   },
   {
     heading: 'For Landlords',
@@ -153,6 +155,15 @@ export function HowItWorksSteps() {
                   </div>
                 ))}
               </div>
+
+              {section.tip && (
+                <div className={`mt-8 flex items-start gap-3 rounded-card px-5 py-4 text-sm leading-relaxed max-w-2xl mx-auto ${
+                  isLandlord ? 'bg-white/10 text-white/80' : 'bg-accent-400/10 text-gray-700'
+                }`}>
+                  <Info className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isLandlord ? 'text-white/60' : 'text-accent-600'}`} strokeWidth={1.5} />
+                  <p><span className="font-semibold">Tip:</span> {section.tip}</p>
+                </div>
+              )}
 
               {section.cta && (
                 <div className="mt-10 text-center">

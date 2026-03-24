@@ -27,6 +27,10 @@ const FAQS = [
     a: 'Create an account, then click "Post a Listing" in the navigation bar. Add photos, a description, pricing, and availability dates. Your listing will be reviewed and published — typically within 24 hours.',
   },
   {
+    q: 'What if my unit has multiple rooms?',
+    a: 'Each listing is for one person, one room. If your unit has multiple rooms available, each roommate should submit their own room as a separate listing. This keeps things clear for everyone — searchers can see exactly what\'s available, and each person manages their own listing.',
+  },
+  {
     q: 'How does verification work?',
     a: 'All users verify their email address when signing up. Every listing is reviewed before it goes live to check for quality and accuracy. We\'re working on additional verification features like CU email badges and lease verification.',
   },

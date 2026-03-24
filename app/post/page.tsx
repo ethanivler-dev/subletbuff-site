@@ -11,7 +11,7 @@ import { StepReview } from '@/components/post/StepReview'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
 import { isStagingEnvironment } from '@/lib/appEnv'
-import { CheckCircle, Trash2 } from 'lucide-react'
+import { CheckCircle, Trash2, Info } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 const STEPS = ['Basic Info', 'Photos', 'Details', 'Verify', 'Review']
@@ -514,7 +514,13 @@ export default function PostListingPage() {
       {/* Step content */}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {step === 1 && (
-          <StepBasicInfo data={basicInfo} onChange={handleBasicInfoChange} errors={basicErrors} />
+          <>
+            <div className="max-w-xl mx-auto mb-6 flex items-start gap-3 rounded-card bg-accent-400/10 px-5 py-4 text-sm leading-relaxed text-gray-700">
+              <Info className="w-5 h-5 flex-shrink-0 mt-0.5 text-accent-600" strokeWidth={1.5} />
+              <p>Each submission is for <span className="font-semibold">one person, one room</span>. If your unit has multiple rooms, each roommate should submit their own room as a separate listing.</p>
+            </div>
+            <StepBasicInfo data={basicInfo} onChange={handleBasicInfoChange} errors={basicErrors} />
+          </>
         )}
         {step === 2 && (
           <StepPhotos photos={photos} onChange={setPhotos} error={photosError} />

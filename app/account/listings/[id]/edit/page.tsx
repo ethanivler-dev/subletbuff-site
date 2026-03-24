@@ -13,7 +13,7 @@ import {
 import { NEIGHBORHOODS, ROOM_TYPES, AMENITIES, AMENITY_LABELS } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage } from '@/lib/image-rotate'
-import { convertHeicToJpeg, isHeic } from '@/components/post/StepPhotos'
+import { isHeic } from '@/components/post/StepPhotos'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 
@@ -328,7 +328,8 @@ export default function EditListingPage() {
       for (let file of Array.from(files)) {
         try {
           if (isHeic(file)) {
-            try { file = await convertHeicToJpeg(file) } catch { toast('Failed to convert HEIC image', 'error'); continue }
+            toast('HEIC files are not supported. Please convert to JPEG, PNG, or WebP before uploading.', 'error')
+            continue
           }
           const formData = new FormData()
           formData.append('file', file)
@@ -751,7 +752,7 @@ export default function EditListingPage() {
                 ) : (
                   <Plus className="w-5 h-5 text-gray-400" />
                 )}
-                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
               </label>
             </div>
           </div>
