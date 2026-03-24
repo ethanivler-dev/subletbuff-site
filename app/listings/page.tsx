@@ -48,7 +48,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     .select(`
       id, title, neighborhood, rent_monthly, original_rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
-      save_count, photo_urls, latitude, longitude, public_latitude, public_longitude, user_id,
+      save_count, photo_urls, public_latitude, public_longitude, user_id,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
     .eq('status', 'approved')
@@ -182,7 +182,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
 
   // Batch-fetch routed walking times to CU
   const walkingTimes = await fetchWalkingTimesToCU(
-    listings.map((l) => ({ lat: l.latitude ?? l.public_latitude, lng: l.longitude ?? l.public_longitude })),
+    listings.map((l) => ({ lat: l.public_latitude, lng: l.public_longitude })),
   )
   listings.forEach((l, i) => { l.walking_time = walkingTimes[i] })
 
