@@ -60,7 +60,7 @@ export default async function Image() {
           >
             <span>Verified Listings</span>
             <span>·</span>
-            <span>Free to Browse</span>
+            <span>Completely Free</span>
             <span>·</span>
             <span>Boulder Focused</span>
           </div>

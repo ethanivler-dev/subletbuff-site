@@ -12,7 +12,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Summer Sublets in Boulder CO | Browse Verified Listings',
-  description: 'Browse verified summer sublets in Boulder near CU. Filter by neighborhood, price, dates, and amenities. Furnished rooms, apartments, and houses. Free to browse.',
+  description: 'Browse verified summer sublets in Boulder near CU. Filter by neighborhood, price, dates, and amenities. Furnished rooms, apartments, and houses. Completely free.',
   alternates: { canonical: '/listings' },
 }
 
