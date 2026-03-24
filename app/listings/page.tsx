@@ -7,6 +7,7 @@ function escapeLikePattern(str: string): string {
 import { type ListingCardData } from '@/components/listings/ListingCard'
 import { ListingsMapView } from '@/components/listings/ListingsMapView'
 import { sanitizeListingTitle } from '@/lib/utils'
+import { fetchWalkingTimesToCU } from '@/lib/walking-time'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -47,7 +48,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     .select(`
       id, title, neighborhood, rent_monthly, original_rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
-      save_count, photo_urls, public_latitude, public_longitude, user_id,
+      save_count, photo_urls, latitude, longitude, public_latitude, public_longitude, user_id,
       listing_photos(url, display_order, is_primary)
     `, { count: 'exact' })
     .eq('status', 'approved')
@@ -146,7 +147,7 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
     if (savedRows) savedIds = new Set(savedRows.map((r: { listing_id: string }) => r.listing_id))
   }
 
-  const listings = data.map((row: Record<string, unknown>) => {
+  const listings: ListingCardData[] = data.map((row: Record<string, unknown>) => {
     const photos = (row.listing_photos as Array<{ url: string; display_order: number; is_primary: boolean }> | null) ?? []
     const primaryPhoto =
       photos.find((p) => p.is_primary)?.url ??
@@ -178,6 +179,12 @@ async function fetchListings(params: SearchParams): Promise<{ listings: ListingC
       verification_level: verificationMap.get(row.user_id as string),
     }
   })
+
+  // Batch-fetch routed walking times to CU
+  const walkingTimes = await fetchWalkingTimesToCU(
+    listings.map((l) => ({ lat: l.latitude ?? l.public_latitude, lng: l.longitude ?? l.public_longitude })),
+  )
+  listings.forEach((l, i) => { l.walking_time = walkingTimes[i] })
 
   const totalCount = count ?? listings.length
   return { listings, total: totalCount, page, totalPages: Math.ceil(totalCount / PAGE_SIZE) }

@@ -278,17 +278,17 @@ export default function AccountPage() {
 
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-card shadow-card p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{savedCount}</p>
+            <div className="bg-white rounded-card shadow-card p-3 sm:p-4 text-center">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{savedCount}</p>
               <p className="text-xs text-gray-500 mt-0.5">Saved</p>
             </div>
-            <div className="bg-white rounded-card shadow-card p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{inquiriesCount}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Inquiries Sent</p>
+            <div className="bg-white rounded-card shadow-card p-3 sm:p-4 text-center">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{inquiriesCount}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Inquiries</p>
             </div>
-            <div className="bg-white rounded-card shadow-card p-4 text-center">
-              <p className="text-lg font-bold text-gray-900">{profile?.account_type === 'renter_premium' ? 'Premium' : 'Free'}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Account Level</p>
+            <div className="bg-white rounded-card shadow-card p-3 sm:p-4 text-center">
+              <p className="text-sm sm:text-lg font-bold text-gray-900">{profile?.account_type === 'renter_premium' ? 'Premium' : 'Free'}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Account</p>
             </div>
           </div>
         </div>
@@ -331,26 +331,27 @@ export default function AccountPage() {
         {/* Tabs + content */}
         <div className="bg-white rounded-card shadow-card overflow-hidden">
           {/* Tab bar */}
-          <div className="flex border-b border-gray-100">
+          <div className="flex border-b border-gray-100 overflow-x-auto">
             {(
               [
-                { key: 'saved' as Tab, label: 'Saved Listings', Icon: Heart },
-                { key: 'searches' as Tab, label: 'Saved Searches', Icon: Bell },
-                { key: 'inquiries' as Tab, label: 'Inquiries', Icon: MessageSquare },
-                { key: 'settings' as Tab, label: 'Settings', Icon: Settings },
+                { key: 'saved' as Tab, label: 'Saved Listings', mobileLabel: 'Saved', Icon: Heart },
+                { key: 'searches' as Tab, label: 'Saved Searches', mobileLabel: 'Searches', Icon: Bell },
+                { key: 'inquiries' as Tab, label: 'Inquiries', mobileLabel: 'Inquiries', Icon: MessageSquare },
+                { key: 'settings' as Tab, label: 'Settings', mobileLabel: 'Settings', Icon: Settings },
               ] as const
-            ).map(({ key, label, Icon }) => (
+            ).map(({ key, label, mobileLabel, Icon }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
                 className={[
-                  'flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition-colors',
+                  'flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-3.5 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap min-w-0',
                   activeTab === key
                     ? 'text-primary-700 border-b-2 border-primary-600 -mb-px'
                     : 'text-gray-500 hover:text-gray-700',
                 ].join(' ')}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="sm:hidden">{mobileLabel}</span>
                 <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
@@ -399,7 +400,7 @@ export default function AccountPage() {
                           href={`/listings/${l.id}`}
                           className="flex gap-3 p-3 rounded-card border border-gray-100 hover:border-gray-200 hover:shadow-card transition-all"
                         >
-                          <div className="relative w-20 h-16 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                          <div className="relative w-16 h-14 sm:w-20 sm:h-16 rounded overflow-hidden bg-gray-100 flex-shrink-0">
                             {coverUrl ? (
                               <Image
                                 src={coverUrl}
@@ -413,21 +414,21 @@ export default function AccountPage() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 line-clamp-1">{title}</p>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-semibold text-gray-900 line-clamp-1">{title}</p>
+                              {rent && (
+                                <p className="text-sm font-bold text-gray-900 flex-shrink-0">{formatRent(rent)}</p>
+                              )}
+                            </div>
                             <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
                               <MapPin className="w-3 h-3 flex-shrink-0" />
-                              <span>{l.neighborhood} · {formatRoomType(l.room_type)}</span>
+                              <span className="truncate">{l.neighborhood} · {formatRoomType(l.room_type)}</span>
                             </div>
                             {from && to && (
                               <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
                                 <Calendar className="w-3 h-3 flex-shrink-0" />
-                                <span>{formatDate(from)} – {formatDate(to)}</span>
+                                <span className="truncate">{formatDate(from)} – {formatDate(to)}</span>
                               </div>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0 text-right">
-                            {rent && (
-                              <p className="text-sm font-bold text-gray-900">{formatRent(rent)}</p>
                             )}
                             <p className="text-xs text-gray-400 mt-0.5">
                               saved {formatDate(item.saved_at.split('T')[0])}
@@ -476,38 +477,40 @@ export default function AccountPage() {
                       if (search.move_out_before) searchParams.set('date_to', search.move_out_before)
 
                       return (
-                        <div key={search.id} className="flex items-center gap-3 p-4 rounded-card border border-gray-100">
-                          <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                        <div key={search.id} className="flex items-start sm:items-center gap-3 p-3 sm:p-4 rounded-card border border-gray-100">
+                          <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
                             <Search className="w-4 h-4 text-primary-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                            <p className="text-sm font-medium text-gray-900 line-clamp-2 sm:line-clamp-1">
                               {parts.length > 0 ? parts.join(' · ') : 'All listings'}
                             </p>
                             <p className="text-xs text-gray-400 mt-0.5">
                               Saved {formatDate(search.created_at.split('T')[0])}
                             </p>
                           </div>
-                          <Link
-                            href={`/listings?${searchParams.toString()}`}
-                            className="text-xs font-medium text-primary-600 hover:text-primary-800 flex-shrink-0"
-                          >
-                            View
-                          </Link>
-                          <button
-                            onClick={async () => {
-                              await fetch('/api/saved-searches', {
-                                method: 'DELETE',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: search.id }),
-                              })
-                              setSavedSearches((prev) => prev.filter((s) => s.id !== search.id))
-                            }}
-                            className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-                            title="Delete saved search"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Link
+                              href={`/listings?${searchParams.toString()}`}
+                              className="text-xs font-medium text-primary-600 hover:text-primary-800 p-1.5"
+                            >
+                              View
+                            </Link>
+                            <button
+                              onClick={async () => {
+                                await fetch('/api/saved-searches', {
+                                  method: 'DELETE',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id: search.id }),
+                                })
+                                setSavedSearches((prev) => prev.filter((s) => s.id !== search.id))
+                              }}
+                              className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                              title="Delete saved search"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       )
                     })}
@@ -638,33 +641,35 @@ export default function AccountPage() {
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Display Name</p>
                     {editingName ? (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="text"
                           value={nameValue}
                           onChange={(e) => setNameValue(e.target.value)}
-                          className="flex-1 text-sm px-3 py-2 rounded-button border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="flex-1 text-sm px-3 py-2 rounded-button border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 w-full"
                           maxLength={100}
                         />
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          disabled={nameSaving || !nameValue.trim()}
-                          onClick={async () => {
-                            setNameSaving(true)
-                            const supabase = createClient()
-                            await supabase.from('profiles').update({ full_name: nameValue.trim() }).eq('id', user.id)
-                            await supabase.auth.updateUser({ data: { full_name: nameValue.trim() } })
-                            setEditingName(false)
-                            setNameSaving(false)
-                            window.location.reload()
-                          }}
-                        >
-                          {nameSaving ? 'Saving...' : 'Save'}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingName(false)}>
-                          Cancel
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={nameSaving || !nameValue.trim()}
+                            onClick={async () => {
+                              setNameSaving(true)
+                              const supabase = createClient()
+                              await supabase.from('profiles').update({ full_name: nameValue.trim() }).eq('id', user.id)
+                              await supabase.auth.updateUser({ data: { full_name: nameValue.trim() } })
+                              setEditingName(false)
+                              setNameSaving(false)
+                              window.location.reload()
+                            }}
+                          >
+                            {nameSaving ? 'Saving...' : 'Save'}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setEditingName(false)}>
+                            Cancel
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-button border border-gray-100">
@@ -723,7 +728,7 @@ export default function AccountPage() {
                           {passwordMessage.text}
                         </p>
                       )}
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           variant="primary"
                           size="sm"
@@ -788,11 +793,11 @@ export default function AccountPage() {
                           className="w-full text-sm px-3 py-2 rounded-button border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 mb-3"
                           placeholder="Type DELETE"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             variant="primary"
                             size="sm"
-                            className="!bg-red-600 hover:!bg-red-700"
+                            className="!bg-red-600 hover:!bg-red-700 w-full sm:w-auto"
                             disabled={deleteConfirmText !== 'DELETE' || deleting}
                             onClick={async () => {
                               setDeleting(true)
@@ -809,7 +814,7 @@ export default function AccountPage() {
                           >
                             {deleting ? 'Deleting...' : 'Permanently Delete Account'}
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}>
+                          <Button variant="ghost" size="sm" className="w-full sm:w-auto" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}>
                             Cancel
                           </Button>
                         </div>

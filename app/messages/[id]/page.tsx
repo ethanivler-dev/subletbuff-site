@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, MessageCircle } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Home } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MessageInput } from '@/components/messages/MessageInput'
 import { sanitizeListingTitle } from '@/lib/utils'
@@ -107,48 +107,53 @@ export default async function ConversationPage({ params }: ConversationPageProps
   return (
     <div className="min-h-screen bg-gray-50 pt-16 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
+      <div className="bg-white border-b border-gray-200 shadow-sm sticky top-16 z-10">
+        <div className="max-w-2xl mx-auto flex items-center gap-3 px-4 sm:px-6 py-3">
+          {/* Back button */}
           <Link
             href="/messages"
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
+            className="p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
+            aria-label="Back to messages"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
 
           {/* Cover photo thumbnail */}
-          <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+          <Link
+            href={`/listings/${conversation.listing_id}`}
+            className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ring-1 ring-gray-200/60 hover:ring-primary-300 transition-all"
+          >
             {coverPhotoUrl ? (
               <Image
                 src={coverPhotoUrl}
                 alt={listingTitle ?? 'Listing photo'}
                 fill
                 className="object-cover"
-                sizes="48px"
+                sizes="44px"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-gray-300" />
+                <Home className="w-5 h-5 text-gray-300" />
               </div>
             )}
-          </div>
+          </Link>
 
           {/* Title + subtitle */}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
               {listingTitle}
             </p>
-            <p className="text-xs text-gray-500 truncate">
-              with {otherName}{formattedPrice ? ` · ${formattedPrice}` : ''}
+            <p className="text-xs text-gray-500 truncate mt-0.5">
+              {otherName}{formattedPrice ? ` \u00b7 ${formattedPrice}` : ''}
             </p>
           </div>
 
           {/* View listing button */}
           <Link
             href={`/listings/${conversation.listing_id}`}
-            className="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors whitespace-nowrap flex-shrink-0 border border-primary-200 rounded-button px-3 py-1.5 hover:bg-primary-50"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors whitespace-nowrap flex-shrink-0 border border-primary-200 rounded-button px-3 py-1.5 hover:bg-primary-50"
           >
-            View listing
+            View listing <ExternalLink className="w-3 h-3" />
           </Link>
         </div>
       </div>
@@ -160,6 +165,7 @@ export default async function ConversationPage({ params }: ConversationPageProps
           currentUserId={user.id}
           initialMessages={messages ?? []}
           participants={participants}
+          otherUserName={otherName}
         />
       </div>
     </div>

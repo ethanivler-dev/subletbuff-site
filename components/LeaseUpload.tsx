@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Upload, CheckCircle, Clock, XCircle, Loader2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Upload, CheckCircle, Clock, XCircle, Loader2, Eye, Trash2, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
@@ -12,12 +12,84 @@ interface LeaseUploadProps {
   currentStatus: string
   currentPath?: string
   onUploadComplete: (path: string) => void
+  onRemove?: () => void
 }
 
-export function LeaseUpload({ userId, currentStatus, currentPath, onUploadComplete }: LeaseUploadProps) {
+function LeasePreview({ previewUrl, isImage, onView, onRemove, showRemove }: {
+  previewUrl: string | null
+  isImage: boolean
+  onView: () => void
+  onRemove?: () => void
+  showRemove: boolean
+}) {
+  const [removing, setRemoving] = useState(false)
+
+  return (
+    <div className="flex items-center gap-3 mt-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
+      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+        {previewUrl && isImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={previewUrl} alt="Lease preview" className="w-full h-full object-cover" />
+        ) : (
+          <FileText className="w-8 h-8 text-gray-400" />
+        )}
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onView}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button text-primary-700 bg-primary-50 hover:bg-primary-100 transition-colors"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          View
+        </button>
+        {showRemove && onRemove && (
+          <button
+            type="button"
+            disabled={removing}
+            onClick={async () => {
+              setRemoving(true)
+              await onRemove()
+              setRemoving(false)
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button text-red-700 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {removing ? 'Removing...' : 'Remove'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function LeaseUpload({ userId, currentStatus, currentPath, onUploadComplete, onRemove }: LeaseUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const isImage = currentPath ? /\.(jpe?g|png)$/i.test(currentPath) : false
+
+  useEffect(() => {
+    if (!currentPath) { setPreviewUrl(null); return }
+    const supabase = createClient()
+    supabase.storage.from('lease-documents').createSignedUrl(currentPath, 3600).then(({ data }) => {
+      if (data?.signedUrl) setPreviewUrl(data.signedUrl)
+    })
+  }, [currentPath])
+
+  async function handleRemove() {
+    if (!currentPath) return
+    const supabase = createClient()
+    await supabase.storage.from('lease-documents').remove([currentPath])
+    setPreviewUrl(null)
+    onRemove?.()
+  }
+
+  function handleView() {
+    if (previewUrl) window.open(previewUrl, '_blank')
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -68,14 +140,17 @@ export function LeaseUpload({ userId, currentStatus, currentPath, onUploadComple
   // Pending review state
   if (currentStatus === 'pending' && currentPath) {
     return (
-      <div className="rounded-card border border-yellow-200 bg-yellow-50 p-4 flex items-start gap-3">
-        <Clock className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-gray-900">Lease Pending Review</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Your lease document has been uploaded and is awaiting manual review.
-          </p>
+      <div>
+        <div className="rounded-card border border-yellow-200 bg-yellow-50 p-4 flex items-start gap-3">
+          <Clock className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-gray-900">Lease Pending Review</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Your lease document has been uploaded and is awaiting manual review.
+            </p>
+          </div>
         </div>
+        <LeasePreview previewUrl={previewUrl} isImage={isImage} onView={handleView} onRemove={handleRemove} showRemove={true} />
       </div>
     )
   }
@@ -83,14 +158,19 @@ export function LeaseUpload({ userId, currentStatus, currentPath, onUploadComple
   // Verified state
   if (currentStatus === 'verified') {
     return (
-      <div className="rounded-card border border-green-200 bg-green-50 p-4 flex items-start gap-3">
-        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-gray-900">Lease Verified</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Your lease has been verified. This listing displays a trust badge.
-          </p>
+      <div>
+        <div className="rounded-card border border-green-200 bg-green-50 p-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-gray-900">Lease Verified</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Your lease has been verified. This listing displays a trust badge.
+            </p>
+          </div>
         </div>
+        {currentPath && (
+          <LeasePreview previewUrl={previewUrl} isImage={isImage} onView={handleView} showRemove={false} />
+        )}
       </div>
     )
   }

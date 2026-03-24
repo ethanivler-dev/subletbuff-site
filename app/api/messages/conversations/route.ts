@@ -222,10 +222,31 @@ export async function GET(request: NextRequest) {
     .in('id', Array.from(otherUserIds))
 
   const profileMap: Record<string, string> = {}
+  const missingNameIds: string[] = []
   if (profiles) {
     for (const p of profiles) {
       const name = p.full_name?.trim()
-      profileMap[p.id] = name || (p.email ? p.email.split('@')[0] : 'User')
+      if (name) {
+        profileMap[p.id] = name.split(' ')[0]
+      } else {
+        missingNameIds.push(p.id)
+        profileMap[p.id] = p.email ? p.email.split('@')[0] : 'User'
+      }
+    }
+  }
+
+  // For users with no profile name, check auth user_metadata (e.g. Google OAuth stores name there)
+  if (missingNameIds.length > 0) {
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    for (const uid of missingNameIds) {
+      const { data: authUser } = await admin.auth.admin.getUserById(uid)
+      const metaName = authUser?.user?.user_metadata?.full_name || authUser?.user?.user_metadata?.name
+      if (metaName?.trim()) {
+        profileMap[uid] = metaName.trim().split(' ')[0]
+      }
     }
   }
 

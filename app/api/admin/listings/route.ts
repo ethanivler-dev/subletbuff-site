@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       management_company, furnished, is_intern_friendly, immediate_movein,
       amenities, house_rules, roommate_info, beds, baths,
       utilities_included, utilities_estimate, deposit, pets,
-      admin_flag, admin_notes,
+      admin_flag, admin_notes, auto_reduce_enabled, created_device,
       listing_photos(url, display_order, is_primary)
     `)
     .order('created_at', { ascending: false })

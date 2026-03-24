@@ -6,8 +6,10 @@ import Link from 'next/link'
 import {
   X, ExternalLink, Pencil, MapPin, Calendar, Home, DollarSign,
   FileText, Shield, Mail, Clock, RotateCw, RotateCcw, FlipVertical2,
+  Smartphone, Monitor,
 } from 'lucide-react'
 import { formatRent, formatDate, formatRoomType } from '@/lib/utils'
+import { Modal } from '@/components/ui/Modal'
 import { rotateImage } from '@/lib/image-rotate'
 import { createClient } from '@/lib/supabase/client'
 import { AMENITY_LABELS } from '@/lib/constants'
@@ -55,6 +57,8 @@ interface AdminListing {
   pets: string | null
   admin_flag: string | null
   admin_notes: string | null
+  auto_reduce_enabled: boolean | null
+  created_device: string | null
   listing_photos: Array<{ url: string; display_order: number; is_primary: boolean; storage_path?: string; photo_path?: string }> | null
 }
 
@@ -113,6 +117,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
 
   const [photos, setPhotos] = useState(sortedPhotos)
   const [rotatingPhoto, setRotatingPhoto] = useState<number | null>(null)
+  const [confirmFill, setConfirmFill] = useState(false)
 
   // Reset photos when listing changes
   useEffect(() => {
@@ -187,10 +192,10 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 overflow-y-auto">
+      {/* Panel - full screen on mobile, slide-over on desktop */}
+      <div className="fixed inset-0 md:inset-auto md:top-0 md:right-0 md:h-full md:w-full md:max-w-lg bg-white shadow-2xl z-50 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3 min-w-0">
             <StatusBadge listing={listing} />
             {listing.admin_flag === 'needs_email' && (
@@ -217,7 +222,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-6">
+        <div className="px-4 md:px-6 py-4 md:py-5 space-y-5 md:space-y-6">
           {/* Photos */}
           {photos.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
@@ -271,7 +276,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
           </div>
 
           {/* Quick actions */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 md:gap-2">
             {isPending && (
               <>
                 <button
@@ -292,7 +297,7 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
             )}
             {isApproved && !listing.filled && (
               <button
-                onClick={() => onAction('fill')}
+                onClick={() => setConfirmFill(true)}
                 disabled={actionLoading}
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-800 hover:bg-purple-200 disabled:opacity-50"
               >
@@ -480,6 +485,12 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
               <InfoRow icon={FileText} label="Rejection Reason" value={listing.rejection_reason} />
             )}
             <InfoRow icon={Shield} label="Test Listing" value={listing.test_listing ? 'Yes' : 'No'} />
+            <InfoRow
+              icon={listing.created_device === 'mobile' ? Smartphone : Monitor}
+              label="Created On"
+              value={listing.created_device === 'mobile' ? 'Mobile' : listing.created_device === 'desktop' ? 'Desktop' : null}
+            />
+            <InfoRow icon={DollarSign} label="Auto Price Reduction" value={listing.auto_reduce_enabled ? 'Enabled' : 'Disabled'} />
             <InfoRow icon={Clock} label="Created" value={listing.created_at ? formatDate(listing.created_at.split('T')[0]) : null} />
             {listing.admin_notes && (
               <div className="mt-2 pt-2 border-t border-amber-200">
@@ -507,15 +518,19 @@ export function ListingDetailPanel({ listing, profile, onClose, onContactLister,
 
           {/* Flags */}
           <div className="flex flex-wrap gap-2 text-xs pb-4">
-            {listing.is_intern_friendly && (
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Intern Friendly</span>
-            )}
             {listing.immediate_movein && (
               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800">Immediate Move-in</span>
             )}
           </div>
         </div>
       </div>
+      <Modal open={confirmFill} onClose={() => setConfirmFill(false)} title="Mark as Filled">
+        <p className="text-sm text-gray-600 mb-6">Are you sure you want to mark this listing as filled?</p>
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={() => setConfirmFill(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-button hover:bg-gray-200 transition-colors">Cancel</button>
+          <button onClick={() => { onAction('fill'); setConfirmFill(false) }} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-button hover:bg-green-700 transition-colors">Confirm</button>
+        </div>
+      </Modal>
     </>
   )
 }

@@ -5,7 +5,6 @@ type BadgeVariant =
   | 'lease_verified'
   | 'edu_verified'
   | 'id_verified'
-  | 'intern_friendly'
   | 'featured'
   | 'immediate'
   | 'furnished'
@@ -37,11 +36,6 @@ const badgeConfig: Record<
     title: 'This lister has verified their identity',
     className: 'bg-accent-400/20 text-accent-600',
     Icon: CheckCircle,
-  },
-  intern_friendly: {
-    label: 'Intern-Friendly',
-    title: 'Short-term stays welcome — flexible lease lengths, no long-term commitment required',
-    className: 'bg-purple-100 text-purple-700',
   },
   featured: {
     label: 'Featured',

@@ -50,7 +50,6 @@ const INITIAL_DETAILS: DetailsData = {
   utilities_estimate: '',
   house_rules: '',
   roommate_info: '',
-  is_intern_friendly: false,
   immediate_movein: false,
 }
 
@@ -108,6 +107,13 @@ export default function PostListingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
+
+  // Detect device type (mobile vs desktop)
+  const [createdDevice, setCreatedDevice] = useState<'mobile' | 'desktop'>('desktop')
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768
+    setCreatedDevice(isMobile ? 'mobile' : 'desktop')
+  }, [])
 
   // Auth check + fetch edu_email
   useEffect(() => {
@@ -282,8 +288,8 @@ export default function PostListingPage() {
 
       const baseLat = basicInfo.latitude ? parseFloat(basicInfo.latitude) : 40.0150
       const baseLng = basicInfo.longitude ? parseFloat(basicInfo.longitude) : -105.2705
-      const jitterLat = baseLat + (Math.random() - 0.5) * 0.004
-      const jitterLng = baseLng + (Math.random() - 0.5) * 0.004
+      const jitterLat = baseLat + (Math.random() - 0.5) * 0.001
+      const jitterLng = baseLng + (Math.random() - 0.5) * 0.001
 
       const uploadedPhotos = photos.filter((p) => !p.uploading)
       const isStaging = isStagingEnvironment()
@@ -349,7 +355,6 @@ export default function PostListingPage() {
           utilities_estimate: details.utilities_estimate ? parseInt(details.utilities_estimate) : null,
           house_rules: details.house_rules || null,
           roommate_info: details.roommate_info || null,
-          is_intern_friendly: details.is_intern_friendly,
           immediate_movein: details.immediate_movein,
 
           // === Auto price reduction ===
@@ -370,6 +375,9 @@ export default function PostListingPage() {
           // === Lease verification ===
           lease_document_path: leaseDocPath || null,
           lease_status: leaseDocPath ? 'pending' : 'none',
+
+          // === Device tracking ===
+          created_device: createdDevice,
 
           // === Photos + status ===
           photo_urls: uploadedPhotos.map((p) => p.url),
@@ -451,8 +459,11 @@ export default function PostListingPage() {
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
           <h1 className="font-serif text-2xl text-gray-900 mb-2">Listing Submitted!</h1>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-sm text-gray-500 mb-2">
             Your listing has been submitted for review. We&apos;ll approve it within 24 hours, and it&apos;ll go live on the site.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            You&apos;ll get an email when approved.
           </p>
           <div className="flex flex-col gap-3 items-center">
             {submittedId && (
@@ -517,6 +528,7 @@ export default function PostListingPage() {
             leaseDocPath={leaseDocPath || undefined}
             eduEmail={eduEmail}
             onLeaseUpload={setLeaseDocPath}
+            onLeaseRemove={() => setLeaseDocPath('')}
             onEduVerified={setEduEmail}
             onSkip={nextStep}
           />

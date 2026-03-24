@@ -70,10 +70,31 @@ export async function GET(
 
   // Build participants map
   const participants: Record<string, string> = {}
+  const missingNameIds: string[] = []
   if (profiles) {
     for (const p of profiles) {
       const name = p.full_name?.trim()
-      participants[p.id] = name || (p.email ? p.email.split('@')[0] : 'User')
+      if (name) {
+        participants[p.id] = name.split(' ')[0]
+      } else {
+        missingNameIds.push(p.id)
+        participants[p.id] = p.email ? p.email.split('@')[0] : 'User'
+      }
+    }
+  }
+
+  // For users with no profile name, check auth user_metadata (e.g. Google OAuth)
+  if (missingNameIds.length > 0) {
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    for (const uid of missingNameIds) {
+      const { data: authUser } = await admin.auth.admin.getUserById(uid)
+      const metaName = authUser?.user?.user_metadata?.full_name || authUser?.user?.user_metadata?.name
+      if (metaName?.trim()) {
+        participants[uid] = metaName.trim().split(' ')[0]
+      }
     }
   }
 

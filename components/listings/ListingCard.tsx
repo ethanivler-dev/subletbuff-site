@@ -2,10 +2,10 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Calendar, Bed } from 'lucide-react'
+import { MapPin, Calendar, Bed, Footprints } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { SaveButton } from '@/components/listings/SaveButton'
-import { formatRent, formatDateRange, formatRoomType, walkingTimeToCU } from '@/lib/utils'
+import { formatRent, formatDateRange, formatRoomType } from '@/lib/utils'
 
 export interface ListingCardData {
   id: string
@@ -17,18 +17,20 @@ export interface ListingCardData {
   available_to: string
   furnished: boolean | string
   is_featured: boolean
-  is_intern_friendly: boolean
   immediate_movein: boolean
   start_date?: string
   primary_photo_url?: string
   verification_level?: string
   is_saved?: boolean
   save_count?: number
+  latitude?: number
+  longitude?: number
   public_latitude?: number
   public_longitude?: number
   original_rent_monthly?: number
   verified?: boolean
   lease_status?: string
+  walking_time?: string | null
 }
 
 interface ListingCardProps {
@@ -47,7 +49,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
     available_to,
     furnished,
     is_featured,
-    is_intern_friendly,
     immediate_movein,
     primary_photo_url,
     verification_level,
@@ -55,9 +56,8 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
     save_count = 0,
     public_latitude,
     public_longitude,
+    walking_time,
   } = listing
-
-  const walkTime = walkingTimeToCU(public_latitude, public_longitude)
 
   const isFurnished =
     furnished === true ||
@@ -115,11 +115,11 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
             {listing.original_rent_monthly && listing.original_rent_monthly > rent_monthly ? (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="line-through text-gray-400 text-sm">{formatRent(listing.original_rent_monthly)}</span>
-                <span className="text-xl font-bold text-gray-900">{formatRent(rent_monthly)}</span>
+                <span className="text-lg font-bold text-gray-900">{formatRent(rent_monthly)}</span>
                 <span className="text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-badge px-1.5 py-0.5">Price reduced</span>
               </div>
             ) : (
-              <p className="text-xl font-bold text-gray-900">{formatRent(rent_monthly)}</p>
+              <p className="text-lg font-bold text-gray-900">{formatRent(rent_monthly)}</p>
             )}
             <h3 className="text-sm font-semibold text-gray-800 leading-snug mt-0.5 line-clamp-1">
               {title}
@@ -128,8 +128,15 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
 
           <div className="flex items-center gap-1 text-gray-500 text-xs">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>{neighborhood}{walkTime && ` · ~${walkTime} to CU`} · {formatRoomType(room_type)}</span>
+            <span>{neighborhood} · {formatRoomType(room_type)}</span>
           </div>
+
+          {walking_time && (
+            <div className="flex items-center gap-1 text-primary-600 text-xs font-medium">
+              <Footprints className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>~{walking_time} walk to CU</span>
+            </div>
+          )}
 
           <div className="flex items-center gap-1 text-gray-500 text-xs">
             <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
@@ -142,7 +149,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
             {verification_level && verification_level !== 'basic' && (
               <Badge variant={verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
             )}
-            {is_intern_friendly && <Badge variant="intern_friendly" />}
             {isImmediate && <Badge variant="immediate" />}
             {isFurnished && <Badge variant="furnished" />}
           </div>
@@ -199,11 +205,11 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
           {listing.original_rent_monthly && listing.original_rent_monthly > rent_monthly ? (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="line-through text-gray-400 text-sm">{formatRent(listing.original_rent_monthly)}</span>
-              <span className="text-lg font-bold text-gray-900">{formatRent(rent_monthly)}</span>
+              <span className="text-base font-bold text-gray-900">{formatRent(rent_monthly)}</span>
               <span className="text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-badge px-1.5 py-0.5">Price reduced</span>
             </div>
           ) : (
-            <p className="text-lg font-bold text-gray-900">{formatRent(rent_monthly)}</p>
+            <p className="text-base font-bold text-gray-900">{formatRent(rent_monthly)}</p>
           )}
         </div>
 
@@ -211,8 +217,15 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
 
         <div className="flex items-center gap-1 text-gray-500 text-xs">
           <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="truncate">{neighborhood}{walkTime && ` · ~${walkTime} to CU`}</span>
+          <span className="truncate">{neighborhood}</span>
         </div>
+
+        {walking_time && (
+          <div className="flex items-center gap-1 text-primary-600 text-xs font-medium">
+            <Footprints className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>~{walking_time} walk to CU</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-1 text-gray-400 text-xs">
           <Bed className="w-3.5 h-3.5 flex-shrink-0" />
@@ -227,7 +240,6 @@ export function ListingCard({ listing, variant = 'vertical' }: ListingCardProps)
           {verification_level && verification_level !== 'basic' && (
             <Badge variant={verification_level as 'lease_verified' | 'edu_verified' | 'id_verified'} />
           )}
-          {is_intern_friendly && <Badge variant="intern_friendly" />}
           {isFurnished && <Badge variant="furnished" />}
           {isImmediate && <Badge variant="immediate" />}
         </div>

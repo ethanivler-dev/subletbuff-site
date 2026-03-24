@@ -147,7 +147,7 @@ export function ListingDetailMap({
           getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -(h / 2) })}
         >
           <button
-            className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-lg border-2 border-white whitespace-nowrap cursor-default"
+            className="px-3 py-1 rounded-full text-xs font-bold bg-rose-400 text-white shadow-lg border-2 border-white whitespace-nowrap cursor-default"
             style={{ zIndex: 20 }}
           >
             {formatPrice(currentRent)}

@@ -1,11 +1,12 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag, Footprints } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { shouldHideTestListings } from '@/lib/appEnv'
 import { isAdmin } from '@/lib/admin'
-import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle, walkingTimeToCU } from '@/lib/utils'
+import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
+import { fetchWalkingTimeToCU } from '@/lib/walking-time'
 import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
 import { ListingGallery } from '@/components/listings/ListingGallery'
@@ -14,6 +15,7 @@ import { ListerProfile } from '@/components/listings/ListerProfile'
 import { MessageListerForm } from '@/components/listings/MessageListerForm'
 import { RequestTransferButton } from './RequestTransferButton'
 import { SimilarListings } from '@/components/listings/SimilarListings'
+import { FacebookShareButtons } from '@/components/listings/FacebookShareButtons'
 import { ListingDetailMap, type MapListing } from '@/components/listings/ListingDetailMap'
 import type { Metadata } from 'next'
 
@@ -25,6 +27,8 @@ interface ListingDetailRow {
   title: string | null
   description: string | null
   neighborhood: string | null
+  latitude: number | null
+  longitude: number | null
   public_latitude: number | null
   public_longitude: number | null
   room_type: string | null
@@ -80,7 +84,7 @@ async function getListing(id: string) {
     .from('listings')
     .select(`
       id, title, description, neighborhood,
-      public_latitude, public_longitude,
+      latitude, longitude, public_latitude, public_longitude,
       room_type, bedrooms, bathrooms, sqft,
       rent_monthly, monthly_rent, deposit, security_deposit,
       utilities_included, utilities_estimate,
@@ -133,8 +137,10 @@ async function getListing(id: string) {
   const dateFrom = row.available_from ?? (row.start_date as string | null)
   const dateTo = row.available_to ?? (row.end_date as string | null)
 
+  const walkingTime = await fetchWalkingTimeToCU(row.latitude, row.longitude)
+
   const isPreview = !isPublic
-  return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo, isPreview }
+  return { row, profile, ownerId, rent, deposit: dep, dateFrom, dateTo, isPreview, walkingTime }
 }
 
 async function getCurrentUser() {
@@ -183,6 +189,7 @@ export async function generateMetadata({
     description,
     alternates: { canonical: `/listings/${id}` },
     openGraph: {
+      type: 'article',
       title: metaTitle,
       description,
       ...(ogImage ? { images: [{ url: ogImage, width: 800, height: 600 }] } : {}),
@@ -206,7 +213,7 @@ export default async function ListingDetailPage({
 
   if (!result) notFound()
 
-  const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo, isPreview } = result
+  const { row: listing, profile: lister, ownerId, rent, deposit, dateFrom, dateTo, isPreview, walkingTime } = result
 
   // Parallel: check saved status + fetch all map listings
   const supabase = await createClient()
@@ -361,7 +368,6 @@ export default async function ListingDetailPage({
                 {listing.lease_status === 'verified' && <Badge variant="lease_verified" />}
                 {listing.verified && <Badge variant="verified" />}
                 {listing.is_featured && <Badge variant="featured" />}
-                {listing.is_intern_friendly && <Badge variant="intern_friendly" />}
                 {isFurnished && <Badge variant="furnished" />}
                 {(() => {
                   const today = new Date()
@@ -394,10 +400,12 @@ export default async function ListingDetailPage({
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4" /> {neighborhood}
-                  {walkingTimeToCU(listing.public_latitude, listing.public_longitude) && (
-                    <span className="text-gray-400">· ~{walkingTimeToCU(listing.public_latitude, listing.public_longitude)} walk to CU</span>
-                  )}
                 </span>
+                {walkingTime && (
+                  <span className="flex items-center gap-1.5 text-primary-600 font-medium">
+                    <Footprints className="w-4 h-4" /> ~{walkingTime} walk to CU
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5">
                   <Home className="w-4 h-4" /> {formatRoomType(roomType)}
                 </span>
@@ -485,15 +493,15 @@ export default async function ListingDetailPage({
 
             {/* Share + Report */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-4">
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${baseUrl}/listings/${listing.id}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition text-gray-600"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                Share on Facebook
-              </a>
+              <FacebookShareButtons
+                listingUrl={`${baseUrl}/listings/${listing.id}`}
+                title={title}
+                price={rent}
+                neighborhood={neighborhood}
+                bedrooms={listing.bedrooms}
+                bathrooms={listing.bathrooms}
+                dateRange={dateFrom && dateTo ? formatDateRange(dateFrom, dateTo) : 'Dates flexible'}
+              />
               <a
                 href={`mailto:subletbuff@gmail.com?subject=${encodeURIComponent(`Report Listing: ${title} (ID: ${listing.id})`)}`}
                 className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
-import { formatRent, formatDate, sanitizeListingTitle, formatRoomType } from '@/lib/utils'
+import { formatRent, formatDate, formatDateRange, sanitizeListingTitle, formatRoomType } from '@/lib/utils'
 import {
   Eye, Heart, MessageSquare, TrendingUp,
   Plus, Star, ArrowLeft, ExternalLink, Pencil,
@@ -18,6 +18,8 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from 'recharts'
 import { useToast } from '@/components/ui/Toast'
+import { FacebookShareButtons } from '@/components/listings/FacebookShareButtons'
+import { Modal } from '@/components/ui/Modal'
 import type { User as AuthUser } from '@supabase/supabase-js'
 
 /* ------------------------------------------------------------------ */
@@ -31,6 +33,12 @@ interface UserListing {
   neighborhood: string
   rent_monthly: number | null
   monthly_rent: number | null
+  bedrooms: number | null
+  bathrooms: number | null
+  available_from: string | null
+  available_to: string | null
+  start_date: string | null
+  end_date: string | null
   status: string
   paused: boolean
   filled: boolean
@@ -78,6 +86,7 @@ export default function ListerDashboardPage() {
   const [listings, setListings] = useState<UserListing[]>([])
   const [recentInquiries, setRecentInquiries] = useState<RecentInquiry[]>([])
   const [chartData, setChartData] = useState<Array<{ date: string; views: number; inquiries: number }>>([])
+  const [confirmFillId, setConfirmFillId] = useState<string | null>(null)
 
   const totalViews = listings.reduce((s, l) => s + l.views, 0)
   const totalInquiries = listings.reduce((s, l) => s + l.inquiries, 0)
@@ -92,7 +101,9 @@ export default function ListerDashboardPage() {
       .from('listings')
       .select(`
         id, title, room_type, neighborhood,
-        rent_monthly, monthly_rent, status, paused, filled, created_at,
+        rent_monthly, monthly_rent, bedrooms, bathrooms,
+        available_from, available_to, start_date, end_date,
+        status, paused, filled, created_at,
         listing_photos (url, is_primary, display_order)
       `)
       .or(`user_id.eq.${userId},lister_id.eq.${userId}`)
@@ -441,200 +452,411 @@ export default function ListerDashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Listing
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
-                      <span className="inline-flex items-center gap-1">
-                        <Eye className="w-3.5 h-3.5" /> Views
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
-                      <span className="inline-flex items-center gap-1">
-                        <Heart className="w-3.5 h-3.5" /> Saves
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
-                      <span className="inline-flex items-center gap-1">
-                        <MessageSquare className="w-3.5 h-3.5" /> Inquiries
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Action
-                    </th>
-                    <th className="px-4 py-3" />
-               </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {listings.map((listing) => {
-                    const photos = listing.listing_photos
-                      ? [...listing.listing_photos].sort((a, b) => {
-                          if (a.is_primary && !b.is_primary) return -1
-                          if (!a.is_primary && b.is_primary) return 1
-                          return a.display_order - b.display_order
-                        })
-                      : []
-                    const coverUrl = photos[0]?.url
-                    const title = sanitizeListingTitle(
-                      listing.title,
-                      listing.room_type,
-                      listing.neighborhood
-                    )
-                    const rent = listing.rent_monthly ?? listing.monthly_rent
-                    const si = statusInfo(listing)
-                    const isActive = listing.status === 'approved' && !listing.paused && !listing.filled
-                    const isDisabled = actionLoading === listing.id
+            <>
+              {/* ---- Mobile card layout ---- */}
+              <div className="md:hidden divide-y divide-gray-100">
+                {listings.map((listing) => {
+                  const photos = listing.listing_photos
+                    ? [...listing.listing_photos].sort((a, b) => {
+                        if (a.is_primary && !b.is_primary) return -1
+                        if (!a.is_primary && b.is_primary) return 1
+                        return a.display_order - b.display_order
+                      })
+                    : []
+                  const coverUrl = photos[0]?.url
+                  const title = sanitizeListingTitle(
+                    listing.title,
+                    listing.room_type,
+                    listing.neighborhood
+                  )
+                  const rent = listing.rent_monthly ?? listing.monthly_rent
+                  const si = statusInfo(listing)
+                  const isActive = listing.status === 'approved' && !listing.paused && !listing.filled
+                  const isDisabled = actionLoading === listing.id
 
-                    return (
-                      <tr key={listing.id} className="hover:bg-gray-50/50 transition-colors">
-                        {/* Listing info */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="relative w-12 h-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
-                              {coverUrl ? (
-                                <Image
-                                  src={coverUrl}
-                                  alt={title}
-                                  fill
-                                  className="object-cover"
-                                  sizes="48px"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 line-clamp-1 max-w-[220px]">
-                                {title}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {listing.neighborhood}
-                                {rent ? ` · ${formatRent(rent)}` : ''}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className="text-sm font-medium text-gray-900">{listing.views}</span>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className="text-sm font-medium text-gray-900">{listing.saves}</span>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className="text-sm font-medium text-gray-900">{listing.inquiries}</span>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-badge ${si.color}`}>
+                  return (
+                    <div key={listing.id} className="px-4 py-4">
+                      {/* Top row: photo + info + status */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          {coverUrl ? (
+                            <Image
+                              src={coverUrl}
+                              alt={title}
+                              fill
+                              className="object-cover"
+                              sizes="56px"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 line-clamp-1">{title}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {listing.neighborhood}
+                            {rent ? ` · ${formatRent(rent)}` : ''}
+                          </p>
+                          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-badge mt-1.5 ${si.color}`}>
                             {si.label}
                           </span>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          {isActive && (
-                            <button
-                              onClick={() => patchListing(listing.id, { filled: true })}
-                              disabled={isDisabled}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Mark as Filled
-                            </button>
-                          )}
-                          {listing.filled && (
-                            <button
-                              onClick={() => patchListing(listing.id, { filled: false })}
-                              disabled={isDisabled}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              Reopen Listing
-                            </button>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <button
-                            ref={(el) => { menuBtnRefs.current[listing.id] = el }}
-                            onClick={() => toggleMenu(listing.id)}
-                            disabled={isDisabled}
-                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50"
-                            aria-label="Actions"
+                        </div>
+                      </div>
+
+                      {/* Stats row */}
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                        <span className="inline-flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" /> {listing.views}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Heart className="w-3.5 h-3.5" /> {listing.saves}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <MessageSquare className="w-3.5 h-3.5" /> {listing.inquiries}
+                        </span>
+                      </div>
+
+                      {/* Facebook crosspost */}
+                      {isActive && (
+                        <div className="mb-3">
+                          <FacebookShareButtons
+                            compact
+                            listingUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/listings/${listing.id}`}
+                            title={title}
+                            price={rent ?? 0}
+                            neighborhood={listing.neighborhood}
+                            bedrooms={listing.bedrooms}
+                            bathrooms={listing.bathrooms}
+                            dateRange={
+                              (listing.available_from ?? listing.start_date) && (listing.available_to ?? listing.end_date)
+                                ? formatDateRange(
+                                    (listing.available_from ?? listing.start_date)!,
+                                    (listing.available_to ?? listing.end_date)!
+                                  )
+                                : 'Dates flexible'
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {/* Action buttons row — Edit is prominent */}
+                      <div className="flex items-center gap-2">
+                        {!listing.filled && (
+                          <Link
+                            href={`/account/listings/${listing.id}/edit`}
+                            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-button bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 transition-colors flex-1"
                           >
-                            {isDisabled ? (
-                              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <MoreVertical className="w-4 h-4" />
-                            )}
+                            <Pencil className="w-4 h-4" />
+                            Edit Listing
+                          </Link>
+                        )}
+                        {isActive && (
+                          <button
+                            onClick={() => setConfirmFillId(listing.id)}
+                            disabled={isDisabled}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-button bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 flex-1"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Mark Filled
                           </button>
-                          {openMenu === listing.id && menuPos && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => { setOpenMenu(null); setMenuPos(null) }} />
-                              <div
-                                className="fixed w-44 bg-white rounded-card shadow-card-hover border border-gray-100 py-1 z-50"
-                                style={{ top: menuPos.top, left: menuPos.left }}
+                        )}
+                        {listing.filled && (
+                          <button
+                            onClick={() => patchListing(listing.id, { filled: false })}
+                            disabled={isDisabled}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-button border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 flex-1"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            Reopen
+                          </button>
+                        )}
+                        <button
+                          ref={(el) => { menuBtnRefs.current[listing.id] = el }}
+                          onClick={() => toggleMenu(listing.id)}
+                          disabled={isDisabled}
+                          className="p-2.5 rounded-button border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50"
+                          aria-label="More actions"
+                        >
+                          {isDisabled ? (
+                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <MoreVertical className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Mobile dropdown menu */}
+                      {openMenu === listing.id && menuPos && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => { setOpenMenu(null); setMenuPos(null) }} />
+                          <div
+                            className="fixed w-44 bg-white rounded-card shadow-card-hover border border-gray-100 py-1 z-50"
+                            style={{ top: menuPos.top, left: menuPos.left }}
+                          >
+                            <Link
+                              href={`/listings/${listing.id}`}
+                              onClick={() => { setOpenMenu(null); setMenuPos(null) }}
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              View Listing
+                            </Link>
+                            {listing.status === 'approved' && !listing.filled && (
+                              <button
+                                onClick={() => patchListing(listing.id, { paused: !listing.paused })}
+                                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                               >
+                                {listing.paused ? (
+                                  <><Play className="w-3.5 h-3.5" /> Unpause</>
+                                ) : (
+                                  <><Pause className="w-3.5 h-3.5" /> Pause Listing</>
+                                )}
+                              </button>
+                            )}
+                            <div className="border-t border-gray-100 my-1" />
+                            <button
+                              onClick={() => deleteListing(listing.id)}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete Listing
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* ---- Desktop table layout ---- */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50 text-left">
+                      <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        Listing
+                      </th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
+                        <span className="inline-flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" /> Views
+                        </span>
+                      </th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
+                        <span className="inline-flex items-center gap-1">
+                          <Heart className="w-3.5 h-3.5" /> Saves
+                        </span>
+                      </th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
+                        <span className="inline-flex items-center gap-1">
+                          <MessageSquare className="w-3.5 h-3.5" /> Inquiries
+                        </span>
+                      </th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        Action
+                      </th>
+                      <th className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {listings.map((listing) => {
+                      const photos = listing.listing_photos
+                        ? [...listing.listing_photos].sort((a, b) => {
+                            if (a.is_primary && !b.is_primary) return -1
+                            if (!a.is_primary && b.is_primary) return 1
+                            return a.display_order - b.display_order
+                          })
+                        : []
+                      const coverUrl = photos[0]?.url
+                      const title = sanitizeListingTitle(
+                        listing.title,
+                        listing.room_type,
+                        listing.neighborhood
+                      )
+                      const rent = listing.rent_monthly ?? listing.monthly_rent
+                      const si = statusInfo(listing)
+                      const isActive = listing.status === 'approved' && !listing.paused && !listing.filled
+                      const isDisabled = actionLoading === listing.id
+
+                      return (
+                        <tr key={listing.id} className="hover:bg-gray-50/50 transition-colors">
+                          {/* Listing info */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-12 h-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                {coverUrl ? (
+                                  <Image
+                                    src={coverUrl}
+                                    alt={title}
+                                    fill
+                                    className="object-cover"
+                                    sizes="48px"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 line-clamp-1 max-w-[220px]">
+                                  {title}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  {listing.neighborhood}
+                                  {rent ? ` · ${formatRent(rent)}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="text-sm font-medium text-gray-900">{listing.views}</span>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="text-sm font-medium text-gray-900">{listing.saves}</span>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="text-sm font-medium text-gray-900">{listing.inquiries}</span>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-badge ${si.color}`}>
+                              {si.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <div className="flex items-center gap-2 justify-center">
+                              {!listing.filled && (
                                 <Link
-                                  href={`/listings/${listing.id}`}
-                                  onClick={() => { setOpenMenu(null); setMenuPos(null) }}
-                                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                  href={`/account/listings/${listing.id}/edit`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                                 >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                  View Listing
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  Edit
                                 </Link>
-                                {!listing.filled && (
+                              )}
+                              {isActive && (
+                                <button
+                                  onClick={() => setConfirmFillId(listing.id)}
+                                  disabled={isDisabled}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  Mark as Filled
+                                </button>
+                              )}
+                              {listing.filled && (
+                                <button
+                                  onClick={() => patchListing(listing.id, { filled: false })}
+                                  disabled={isDisabled}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  Reopen Listing
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <button
+                              ref={(el) => { menuBtnRefs.current[listing.id] = el }}
+                              onClick={() => toggleMenu(listing.id)}
+                              disabled={isDisabled}
+                              className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50"
+                              aria-label="Actions"
+                            >
+                              {isDisabled ? (
+                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <MoreVertical className="w-4 h-4" />
+                              )}
+                            </button>
+                            {openMenu === listing.id && menuPos && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => { setOpenMenu(null); setMenuPos(null) }} />
+                                <div
+                                  className="fixed w-44 bg-white rounded-card shadow-card-hover border border-gray-100 py-1 z-50"
+                                  style={{ top: menuPos.top, left: menuPos.left }}
+                                >
                                   <Link
-                                    href={`/account/listings/${listing.id}/edit`}
+                                    href={`/listings/${listing.id}`}
                                     onClick={() => { setOpenMenu(null); setMenuPos(null) }}
                                     className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                   >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                    Edit Listing
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    View Listing
                                   </Link>
-                                )}
-                                {listing.status === 'approved' && !listing.filled && (
+                                  {!listing.filled && (
+                                    <Link
+                                      href={`/account/listings/${listing.id}/edit`}
+                                      onClick={() => { setOpenMenu(null); setMenuPos(null) }}
+                                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                      Edit Listing
+                                    </Link>
+                                  )}
+                                  {listing.status === 'approved' && !listing.paused && !listing.filled && (
+                                    <div className="px-3 py-2">
+                                      <FacebookShareButtons
+                                        compact
+                                        listingUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/listings/${listing.id}`}
+                                        title={title}
+                                        price={rent ?? 0}
+                                        neighborhood={listing.neighborhood}
+                                        bedrooms={listing.bedrooms}
+                                        bathrooms={listing.bathrooms}
+                                        dateRange={
+                                          (listing.available_from ?? listing.start_date) && (listing.available_to ?? listing.end_date)
+                                            ? formatDateRange(
+                                                (listing.available_from ?? listing.start_date)!,
+                                                (listing.available_to ?? listing.end_date)!
+                                              )
+                                            : 'Dates flexible'
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                  {listing.status === 'approved' && !listing.filled && (
+                                    <button
+                                      onClick={() => patchListing(listing.id, { paused: !listing.paused })}
+                                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                      {listing.paused ? (
+                                        <><Play className="w-3.5 h-3.5" /> Unpause</>
+                                      ) : (
+                                        <><Pause className="w-3.5 h-3.5" /> Pause Listing</>
+                                      )}
+                                    </button>
+                                  )}
+                                  {listing.status === 'approved' && !listing.paused && (
+                                    <button
+                                      onClick={() => { if (listing.filled) { patchListing(listing.id, { filled: false }) } else { setOpenMenu(null); setMenuPos(null); setConfirmFillId(listing.id) } }}
+                                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                      {listing.filled ? 'Reopen Listing' : 'Mark as Filled'}
+                                    </button>
+                                  )}
+                                  <div className="border-t border-gray-100 my-1" />
                                   <button
-                                    onClick={() => patchListing(listing.id, { paused: !listing.paused })}
-                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    onClick={() => deleteListing(listing.id)}
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                                   >
-                                    {listing.paused ? (
-                                      <><Play className="w-3.5 h-3.5" /> Unpause</>
-                                    ) : (
-                                      <><Pause className="w-3.5 h-3.5" /> Pause Listing</>
-                                    )}
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Delete Listing
                                   </button>
-                                )}
-                                {listing.status === 'approved' && !listing.paused && (
-                                  <button
-                                    onClick={() => patchListing(listing.id, { filled: !listing.filled })}
-                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                  >
-                                    <CheckCircle className="w-3.5 h-3.5" />
-                                    {listing.filled ? 'Reopen Listing' : 'Mark as Filled'}
-                                  </button>
-                                )}
-                                <div className="border-t border-gray-100 my-1" />
-                                <button
-                                  onClick={() => deleteListing(listing.id)}
-                                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  Delete Listing
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                                </div>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 
@@ -712,6 +934,14 @@ export default function ListerDashboardPage() {
         </div>
 
       </div>
+
+      <Modal open={!!confirmFillId} onClose={() => setConfirmFillId(null)} title="Mark as Filled">
+        <p className="text-sm text-gray-600 mb-6">Are you sure you want to mark this listing as filled?</p>
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={() => setConfirmFillId(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-button hover:bg-gray-200 transition-colors">Cancel</button>
+          <button onClick={() => { if (confirmFillId) { patchListing(confirmFillId, { filled: true }); setConfirmFillId(null) } }} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-button hover:bg-green-700 transition-colors">Confirm</button>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -11,7 +11,6 @@ export interface DetailsData {
   utilities_estimate: string
   house_rules: string
   roommate_info: string
-  is_intern_friendly: boolean
   immediate_movein: boolean
 }
 
@@ -93,7 +92,6 @@ export function StepDetails({ data, onChange, errors, availableFrom }: StepDetai
           </div>
         )}
 
-        <Toggle label="Intern-Friendly" checked={data.is_intern_friendly} onChange={(v) => update('is_intern_friendly', v)} />
         <Toggle
           label="Immediate Move-In"
           checked={data.immediate_movein}

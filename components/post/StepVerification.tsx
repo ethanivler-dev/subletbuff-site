@@ -10,11 +10,12 @@ interface StepVerificationProps {
   leaseDocPath?: string
   eduEmail?: string | null
   onLeaseUpload: (path: string) => void
+  onLeaseRemove?: () => void
   onEduVerified?: (email: string) => void
   onSkip: () => void
 }
 
-export function StepVerification({ userId, leaseDocPath, eduEmail: initialEduEmail, onLeaseUpload, onEduVerified, onSkip }: StepVerificationProps) {
+export function StepVerification({ userId, leaseDocPath, eduEmail: initialEduEmail, onLeaseUpload, onLeaseRemove, onEduVerified, onSkip }: StepVerificationProps) {
   const leaseStatus = leaseDocPath ? 'pending' : 'none'
   const [eduEmail, setEduEmail] = useState(initialEduEmail)
 
@@ -48,6 +49,7 @@ export function StepVerification({ userId, leaseDocPath, eduEmail: initialEduEma
           currentStatus={leaseStatus}
           currentPath={leaseDocPath}
           onUploadComplete={onLeaseUpload}
+          onRemove={onLeaseRemove}
         />
       </div>
 

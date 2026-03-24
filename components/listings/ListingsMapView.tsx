@@ -79,7 +79,7 @@ function PriceMarker({
           'rounded-full font-bold whitespace-nowrap shadow-md border transition-all duration-150',
           isActive
             ? 'bg-gray-900 text-white border-gray-900 shadow-lg text-sm px-3 py-1.5 scale-110'
-            : 'bg-red-500 text-white border-red-500 hover:bg-red-600 hover:shadow-lg text-xs px-2.5 py-1',
+            : 'bg-rose-400 text-white border-rose-400 hover:bg-rose-500 hover:shadow-lg text-xs px-2.5 py-1',
         ].join(' ')}
       >
         {formatPrice(price)}
@@ -160,16 +160,12 @@ export function ListingsMapView({ listings, total, params, page, totalPages }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Clicking a price pin scrolls to the corresponding card and highlights it
+  // Clicking a price pin navigates to the listing detail page
   const handlePinClick = useCallback(
     (id: string) => {
-      setHoveredId(id)
-      const card = cardRefs.current[id]
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
+      router.push(`/listings/${id}`)
     },
-    [],
+    [router],
   )
 
   const handlePinHoverStart = useCallback(
@@ -241,7 +237,7 @@ export function ListingsMapView({ listings, total, params, page, totalPages }: P
   const hasActiveFilters = !!(
     params.q || params.neighborhood || params.price_min || params.price_max ||
     params.room_type || params.filter || params.date_from || params.date_to ||
-    params.min_stay || params.furnished || params.intern_friendly || params.parking
+    params.min_stay || params.furnished || params.parking
   )
 
   const cardList =

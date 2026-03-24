@@ -9,6 +9,7 @@ import 'react-image-crop/dist/ReactCrop.css'
 import { ArrowLeft, Save, Loader2, RotateCw, RotateCcw, FlipVertical2, Crop as CropIcon, Plus, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage } from '@/lib/image-rotate'
+import { convertHeicToJpeg, isHeic } from '@/components/post/StepPhotos'
 import { NEIGHBORHOODS, ROOM_TYPES, AMENITIES, AMENITY_LABELS } from '@/lib/constants'
 import { useToast } from '@/components/ui/Toast'
 import { Modal } from '@/components/ui/Modal'
@@ -248,7 +249,10 @@ export default function AdminEditListingPage() {
     setUploading(true)
 
     let currentOrder = editedPhotos.length
-    for (const file of Array.from(files)) {
+    for (let file of Array.from(files)) {
+      if (isHeic(file)) {
+        try { file = await convertHeicToJpeg(file) } catch { toast('Failed to convert HEIC image', 'error'); continue }
+      }
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch('/api/upload', { method: 'POST', body: formData })
@@ -496,7 +500,7 @@ export default function AdminEditListingPage() {
               ) : (
                 <Plus className="w-5 h-5 text-gray-400" />
               )}
-              <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
             </label>
           </div>
 
@@ -615,10 +619,6 @@ export default function AdminEditListingPage() {
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={utilitiesIncluded} onChange={(e) => setUtilitiesIncluded(e.target.checked)} className={checkboxClass} />
                 Utilities Included
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" checked={isInternFriendly} onChange={(e) => setIsInternFriendly(e.target.checked)} className={checkboxClass} />
-                Intern Friendly
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={immediateMovein} onChange={(e) => setImmediateMovein(e.target.checked)} className={checkboxClass} />

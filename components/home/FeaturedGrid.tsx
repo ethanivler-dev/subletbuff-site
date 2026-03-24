@@ -5,6 +5,7 @@ import { ListingCard, type ListingCardData } from '@/components/listings/Listing
 import { StaggeredGrid } from '@/components/home/StaggeredGrid'
 import { sanitizeListingTitle } from '@/lib/utils'
 import { shouldHideTestListings } from '@/lib/appEnv'
+import { fetchWalkingTimesToCU } from '@/lib/walking-time'
 
 async function fetchFeaturedListings(): Promise<ListingCardData[]> {
   const supabase = await createClient()
@@ -16,7 +17,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
     .select(`
       id, title, neighborhood, rent_monthly, available_from, available_to,
       room_type, furnished, is_featured, is_intern_friendly, immediate_movein, verified,
-      save_count, photo_urls, user_id,
+      save_count, photo_urls, user_id, latitude, longitude, public_latitude, public_longitude,
       listing_photos(url, display_order, is_primary)
     `)
     .eq('status', 'approved')
@@ -56,7 +57,7 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
     if (savedRows) savedIds = new Set(savedRows.map((r: { listing_id: string }) => r.listing_id))
   }
 
-  return data.map((row: Record<string, unknown>) => {
+  const listings: ListingCardData[] = data.map((row: Record<string, unknown>) => {
     const photos = (row.listing_photos as Array<{ url: string; display_order: number; is_primary: boolean }> | null) ?? []
     const primaryPhoto =
       photos.find((p) => p.is_primary)?.url ??
@@ -83,8 +84,18 @@ async function fetchFeaturedListings(): Promise<ListingCardData[]> {
       is_saved: savedIds.has(row.id as string),
       verified: (row.verified as boolean) ?? false,
       verification_level: verificationMap.get(row.user_id as string),
+      public_latitude: row.public_latitude as number | undefined,
+      public_longitude: row.public_longitude as number | undefined,
     }
   })
+
+  // Batch-fetch routed walking times to CU
+  const walkingTimes = await fetchWalkingTimesToCU(
+    listings.map((l) => ({ lat: l.latitude ?? l.public_latitude, lng: l.longitude ?? l.public_longitude })),
+  )
+  listings.forEach((l, i) => { l.walking_time = walkingTimes[i] })
+
+  return listings
 }
 
 export async function FeaturedGrid() {

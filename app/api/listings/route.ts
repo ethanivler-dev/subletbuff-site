@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { isStagingEnvironment, shouldHideTestListings } from '@/lib/appEnv'
 import { rateLimit } from '@/lib/rate-limit'
-import { sendListingSubmittedEmail } from '@/lib/email'
+import { sendListingSubmittedEmail, sendAdminNewListingEmail } from '@/lib/email'
 
 function escapeLikePattern(str: string): string {
   return str.replace(/[%_\\]/g, '\\$&')
@@ -202,8 +202,8 @@ export async function POST(request: NextRequest) {
   // Jitter coordinates for privacy
   const baseLat = body.latitude ?? 40.0150
   const baseLng = body.longitude ?? -105.2705
-  const jitterLat = baseLat + (Math.random() - 0.5) * 0.004
-  const jitterLng = baseLng + (Math.random() - 0.5) * 0.004
+  const jitterLat = baseLat + (Math.random() - 0.5) * 0.001
+  const jitterLng = baseLng + (Math.random() - 0.5) * 0.001
 
   const rentNum = parseInt(body.rent_monthly) || 0
   const depositNum = body.deposit ? parseInt(body.deposit) : null
@@ -270,6 +270,7 @@ export async function POST(request: NextRequest) {
       // Lease verification — server-side enforcement: never trust client-sent lease_status
       lease_document_path: body.lease_document_path || null,
       lease_status: body.lease_document_path ? 'pending' : 'none',
+      created_device: body.created_device === 'mobile' ? 'mobile' : 'desktop',
 
       photo_urls: body.photo_urls ?? [],
       test_listing: isStaging,
@@ -335,22 +336,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Notify admins about new listing (fire-and-forget)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (supabaseUrl) {
-    fetch(`${supabaseUrl}/functions/v1/notify-admin-new-listing`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({
-        title: body.title,
-        listerName: `${body.first_name || ''} ${body.last_name || ''}`.trim() || user.email,
-        listerEmail: user.email,
-        listingId: listing.id,
-      }),
-    }).catch(err => console.error('[notify-admin] Failed:', err))
-  }
+  const submitterName = `${body.first_name || ''} ${body.last_name || ''}`.trim() || user.email || 'Unknown'
+  sendAdminNewListingEmail(submitterName, user.email ?? 'N/A', body.title ?? 'Untitled listing', listing.id)
 
   return NextResponse.json({ id: listing.id }, { status: 201 })
 }
