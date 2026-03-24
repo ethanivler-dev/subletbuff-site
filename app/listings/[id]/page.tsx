@@ -13,7 +13,6 @@ import { ListingGallery } from '@/components/listings/ListingGallery'
 import { AmenityGrid } from '@/components/listings/AmenityGrid'
 import { ListerProfile } from '@/components/listings/ListerProfile'
 import { MessageListerForm } from '@/components/listings/MessageListerForm'
-import { RequestTransferButton } from './RequestTransferButton'
 import { SimilarListings } from '@/components/listings/SimilarListings'
 import { FacebookShareButtons } from '@/components/listings/FacebookShareButtons'
 import { ListingDetailMap, type MapListing } from '@/components/listings/ListingDetailMap'
@@ -551,16 +550,6 @@ export default async function ListingDetailPage({
               listerName={displayListerName}
               user={user}
             />
-
-            {/* Transfer request button — only for logged-in users who aren't the lister */}
-            {user && user.id !== ownerId && (
-              <RequestTransferButton
-                listingId={listing.id}
-                userId={user.id}
-                userEmail={user.email}
-                userName={user.fullName}
-              />
-            )}
 
             {/* Fee breakdown */}
             <div className="rounded-card border border-gray-200 bg-white p-5">
