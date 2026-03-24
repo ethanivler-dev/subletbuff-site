@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, MapPin, Calendar, Bed, Bath, Home, Shield, Building2, Flag, Footprints } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { shouldHideTestListings } from '@/lib/appEnv'
-import { isAdmin } from '@/lib/admin'
+import { isAdminServer } from '@/lib/admin'
 import { formatRent, formatPrice, formatDate, formatDateRange, formatRoomType, sanitizeListingTitle } from '@/lib/utils'
 import { fetchWalkingTimeToCU } from '@/lib/walking-time'
 import { MANAGEMENT_COMPANY_URLS } from '@/lib/constants'
@@ -116,7 +116,7 @@ async function getListing(id: string) {
   if (!isPublic) {
     const { data: { user } } = await supabase.auth.getUser()
     const isOwner = user && ownerId && user.id === ownerId
-    const isAdminUser = user && isAdmin(user.id)
+    const isAdminUser = user ? await isAdminServer(supabase, user.id) : false
     if (!isOwner && !isAdminUser) return null
   }
 
@@ -244,6 +244,7 @@ export default async function ListingDetailPage({
   ])
   const isSaved = !!(savedRow as { data: unknown }).data
   const mapListings = ((mapListingsResult.data ?? []) as MapListing[])
+  const isAdminUser = user ? await isAdminServer(supabase, user.id) : false
 
   const roomType = listing.room_type ?? 'private_room'
   const neighborhood = listing.neighborhood ?? 'Boulder'
@@ -338,11 +339,11 @@ export default async function ListingDetailPage({
       )}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <Link
-          href={user && isAdmin(user.id) ? '/admin' : '/listings'}
+          href={isAdminUser ? '/admin' : '/listings'}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          {user && isAdmin(user.id) ? 'Back to Admin' : 'Back to Listings'}
+          {isAdminUser ? 'Back to Admin' : 'Back to Listings'}
         </Link>
       </div>
 

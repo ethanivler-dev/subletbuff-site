@@ -21,5 +21,5 @@ CREATE POLICY "Owners manage photos"
 CREATE POLICY "Admins manage photos"
   ON public.listing_photos FOR ALL
   USING (
-    auth.uid() = '4943eb7b-d0bd-40c6-95ce-a0f04471754e'::uuid
+    public.is_admin_user(auth.uid())
   );

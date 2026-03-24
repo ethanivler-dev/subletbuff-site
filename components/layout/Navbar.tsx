@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Menu, User, ChevronDown, LogOut, Shield, MessageCircle, Building2 } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { createClient } from '@/lib/supabase/client'
-import { ADMIN_USER_ID, isAdmin } from '@/lib/admin'
+import { isAdmin } from '@/lib/admin'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export function Navbar() {
@@ -39,16 +39,8 @@ export function Navbar() {
     supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user)
       if (data.user) {
-        if (isAdmin(data.user.id)) {
-          setIsAdminUser(true)
-        } else {
-          const { data: row } = await supabase
-            .from('admins')
-            .select('id')
-            .eq('id', data.user.id)
-            .maybeSingle()
-          setIsAdminUser(!!row)
-        }
+        const adminStatus = await isAdmin(supabase, data.user.id)
+        setIsAdminUser(adminStatus)
         // Fetch user role for landlord portal link
         const { data: profile } = await supabase
           .from('profiles')
