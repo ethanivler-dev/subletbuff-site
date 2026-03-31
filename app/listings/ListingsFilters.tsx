@@ -94,17 +94,6 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
 
   function handleSearchChange(value: string) {
     setSearchQuery(value)
-    if (searchDebounce.current) clearTimeout(searchDebounce.current)
-    searchDebounce.current = setTimeout(() => {
-      const sp = new URLSearchParams()
-      for (const [k, v] of Object.entries(params)) {
-        if (v !== undefined) sp.set(k, v)
-      }
-      if (value.trim()) sp.set('q', value.trim())
-      else sp.delete('q')
-      sp.delete('page') // reset to page 1 on new search
-      router.push(`${pathname}?${sp.toString()}`)
-    }, 350)
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
@@ -135,7 +124,17 @@ export function ListingsFilters({ params }: ListingsFiltersProps) {
         {searchQuery && (
           <button
             type="button"
-            onClick={() => handleSearchChange('')}
+            onClick={() => {
+              if (searchDebounce.current) clearTimeout(searchDebounce.current)
+              setSearchQuery('')
+              const sp = new URLSearchParams()
+              for (const [k, v] of Object.entries(params)) {
+                if (v !== undefined) sp.set(k, v)
+              }
+              sp.delete('q')
+              sp.delete('page')
+              router.push(`${pathname}?${sp.toString()}`)
+            }}
             className="text-gray-400 hover:text-gray-600 text-sm font-medium flex-shrink-0"
           >
             Clear

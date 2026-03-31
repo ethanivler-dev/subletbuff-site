@@ -1,6 +1,7 @@
 /** CU Boulder campus center (Norlin Library area) */
 const CU_LAT = 40.0076
 const CU_LNG = -105.2659
+const WALKING_API_TIMEOUT_MS = 700
 
 /**
  * Fetch walking time from a single point to CU Boulder campus using OSRM routing.
@@ -13,10 +14,12 @@ export async function fetchWalkingTimeToCU(
   if (lat == null || lng == null) return null
 
   try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), WALKING_API_TIMEOUT_MS)
     const res = await fetch(
       `https://router.project-osrm.org/route/v1/foot/${lng},${lat};${CU_LNG},${CU_LAT}?overview=false`,
-      { next: { revalidate: 86400 } },
-    )
+      { next: { revalidate: 86400 }, signal: controller.signal },
+    ).finally(() => clearTimeout(timeout))
     if (!res.ok) return null
     const data = await res.json()
 
@@ -64,10 +67,12 @@ export async function fetchWalkingTimesToCU(
     const destIndex = chunk.length
 
     try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), WALKING_API_TIMEOUT_MS)
       const res = await fetch(
         `https://router.project-osrm.org/table/v1/foot/${coordStr}?sources=${sources}&destinations=${destIndex}&annotations=duration`,
-        { next: { revalidate: 86400 } },
-      )
+        { next: { revalidate: 86400 }, signal: controller.signal },
+      ).finally(() => clearTimeout(timeout))
       if (!res.ok) continue
       const data = await res.json()
 
